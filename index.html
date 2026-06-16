@@ -115,6 +115,12 @@
 <main>
   <div class="kpis" id="kpis"></div>
 
+  <section class="card" id="cameraCard">
+    <h2>Kamera uživo</h2>
+    <div class="hint">Snimak sa graničnog prelaza (izvor: borderalarm.com / AMSS). Neki prelazi nemaju kameru.</div>
+    <div id="cameraBody"></div>
+  </section>
+
   <section class="card">
     <h2>Sezonski trend — prosek po mesecima</h2>
     <div class="hint">Prosečno čekanje za svaki mesec (uvek nad svim podacima). Letnja sezona se vidi kao skok.</div>
@@ -231,6 +237,44 @@ const monthKey   = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,
 const monthLabel = k => { const [y,m]=k.split("-"); return `${MES[+m-1]} ${y}`; };
 
 let ALL = [];   // sve prijave za izabrani prelaz (keširano, bez ponovnog fetch-a)
+let CAMS = {};  // info o kamerama po prelazu (iz data/cameras.json)
+
+async function loadCameras(){
+  try{
+    const res = await fetch("data/cameras.json", {cache:"no-store"});
+    CAMS = res.ok ? await res.json() : {};
+  }catch(e){ CAMS = {}; }
+}
+
+function renderCamera(slug){
+  const el = document.getElementById("cameraBody");
+  const c = CAMS[slug];
+  if(!c || c.status !== "available" || (!c.streams.length && !c.amss.length)){
+    el.innerHTML = `<div class="empty-state">Nema dostupne kamere za ovaj prelaz.</div>`;
+    return;
+  }
+  let h = "";
+  if(c.streams.length){
+    h += `<button id="camPlay">▶ Prikaži kameru uživo</button><div id="camFrame" style="margin-top:12px"></div>`;
+  }
+  if(c.amss.length){
+    h += `<div class="hint" style="margin-top:14px">Zvanične AMSS kamere (otvaraju se na amss.org.rs):</div>` +
+      c.amss.map((u,i)=>`<a href="${u}" target="_blank" rel="noopener" style="color:var(--gold);display:inline-block;margin-right:16px">AMSS kamera ${i+1} →</a>`).join("");
+  }
+  el.innerHTML = h;
+  const play = document.getElementById("camPlay");
+  if(play){
+    play.onclick = ()=>{
+      document.getElementById("camFrame").innerHTML =
+        `<div style="position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;background:#000">
+           <iframe src="${c.streams[0]}" allow="autoplay; fullscreen; encrypted-media" allowfullscreen
+             style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+         </div>
+         <div class="hint" style="margin-top:8px">Live stream sa borderalarm.com. Ako se ne učita, kamera trenutno nije aktivna.</div>`;
+      play.style.display = "none";
+    };
+  }
+}
 
 function buildPeriods(rows){
   const months = [...new Set(rows.map(r=>monthKey(r.dt)))].sort().reverse();
@@ -285,12 +329,13 @@ async function manualRefresh(){
   const st = document.getElementById("status");
   btn.classList.add("spin");
   st.textContent = "Osvežavam…";
-  try { await loadSlug(document.getElementById("crossing").value); }
+  try { await loadCameras(); await loadSlug(document.getElementById("crossing").value); }
   finally { btn.classList.remove("spin"); }
 }
 
 async function loadSlug(slug){
   document.getElementById("heatTitle").textContent = `Prosečno čekanje — ${CROSSINGS[slug]}`;
+  renderCamera(slug);   // kamera je nezavisna od podataka o cekanju
   try{
     ALL = await loadCSV(slug);
     if(!ALL.length){ throw new Error("CSV je prazan."); }
@@ -317,7 +362,7 @@ sel.onchange = ()=>loadSlug(sel.value);
 document.getElementById("refresh").onclick = manualRefresh;
 document.getElementById("period").onchange = applyPeriod;
 document.getElementById("theme").onclick = ()=>{ const b=document.body; b.dataset.theme = b.dataset.theme==="dark"?"light":"dark"; };
-loadSlug(sel.value);
+loadCameras().finally(()=>loadSlug(sel.value));
 </script>
 </body>
 </html>

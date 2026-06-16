@@ -11,6 +11,7 @@ CSV se commituje nazad u repo (GitHub Actions) i sluzi kao istorijska vremenska 
 """
 
 import csv
+import json
 import re
 import sys
 import time
@@ -30,6 +31,7 @@ CROSSINGS = [
 
 BASE_URL = "https://borderalarm.com/bottlenecks/{slug}/"
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+CAMERAS_FILE = DATA_DIR / "cameras.json"
 USER_AGENT = "Mozilla/5.0 (compatible; BorderAlarmLogger/1.0)"
 REQUEST_TIMEOUT = 30
 RETRIES = 3
@@ -91,6 +93,24 @@ def parse_reports(html: str):
             "reporter": m.group("reporter"),
         })
     return rows
+
+
+# Kamere: borderalarm live stream (Ant Media, sme da se ugradi - bez X-Frame-Options/CSP)
+# i AMSS iframe (NE sme da se ugradi - CSP frame-ancestors; cuvamo samo kao spoljni link).
+CAM_STREAM_RE = re.compile(r'src="(https://camerastream\.borderalarm\.com[^"]+)"', re.I)
+CAM_AMSS_RE = re.compile(r'src="(https://kamere\.amss\.org\.rs/iframe/[^"]+)"', re.I)
+
+
+def parse_cameras(html: str) -> dict:
+    """Vadi info o kamerama za prelaz: status + ugradivi stream(ovi) + AMSS linkovi."""
+    available = "Check Cameras" in html
+    streams = list(dict.fromkeys(CAM_STREAM_RE.findall(html)))  # ugradivo u iframe
+    amss = list(dict.fromkeys(CAM_AMSS_RE.findall(html)))       # samo link (ne sme iframe)
+    return {
+        "status": "available" if (available or streams or amss) else "none",
+        "streams": streams,
+        "amss": amss,
+    }
 
 
 # --- Mrezni sloj -------------------------------------------------------------
@@ -162,6 +182,7 @@ def main() -> int:
     scraped_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     total_added = 0
     failures = []
+    cameras = {}
 
     for slug in CROSSINGS:
         url = BASE_URL.format(slug=slug)
@@ -170,10 +191,18 @@ def main() -> int:
             rows = parse_reports(html)
             added = append_rows(slug, rows, scraped_at)
             total_added += added
-            print(f"[{slug}] parsirano={len(rows)} novo={added}")
+            cameras[slug] = parse_cameras(html)
+            print(f"[{slug}] parsirano={len(rows)} novo={added} kamera={cameras[slug]['status']}")
         except Exception as e:  # noqa: BLE001 — zelimo da ostali prelazi prodju
             failures.append((slug, str(e)))
             print(f"[{slug}] GRESKA: {e}", file=sys.stderr)
+
+    # cameras.json se prepisuje svaki run iz svezih podataka (stream id zna da rotira).
+    # Pisemo samo ako je bar jedan prelaz uspesno parsiran, da ne obrisemo info pri totalnom padu.
+    if cameras:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        with CAMERAS_FILE.open("w", encoding="utf-8") as f:
+            json.dump(cameras, f, ensure_ascii=False, indent=2, sort_keys=True)
 
     print(f"Ukupno novih redova: {total_added}")
     # Ne obaramo job ako bar jedan prelaz prodje; padamo samo ako svi padnu.

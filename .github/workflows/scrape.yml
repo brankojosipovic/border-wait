@@ -36,7 +36,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/*.csv
+          git add data/*.csv data/cameras.json
           if git diff --staged --quiet; then
             echo "Nema novih podataka — nista za commit."
           else
