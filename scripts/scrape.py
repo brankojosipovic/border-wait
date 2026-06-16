@@ -72,6 +72,9 @@ def parse_reports(html: str):
     start = html.lower().find("lastly reported")
     end = html.lower().find("report waiting time")
     block = html[start:end] if start != -1 and end != -1 else html
+    # Sajt obavija svako polje u zaseban <span> tag; zamenjujemo tagove razmakom
+    # da REPORT_RE (koji ocekuje polja razdvojena razmakom) hvata prijave.
+    block = re.sub(r"<[^>]+>", " ", block)
 
     rows = []
     for m in REPORT_RE.finditer(block):
