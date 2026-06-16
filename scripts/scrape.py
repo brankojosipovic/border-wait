@@ -99,7 +99,16 @@ def fetch(url: str) -> str:
     last_err = None
     for attempt in range(1, RETRIES + 1):
         try:
-            req = Request(url, headers={"User-Agent": USER_AGENT})
+            # Cache-buster: WP Rocket/CDN servira kesiranu stranicu (narocito GitHub
+            # runner-u u drugom regionu), pa propusta najnovije prijave. Jedinstven query
+            # param po pozivu + nowprocket=1 (WP Rocket bypass) + no-cache zaglavlja.
+            sep = "&" if "?" in url else "?"
+            bust_url = f"{url}{sep}nowprocket=1&_cb={int(time.time() * 1000)}"
+            req = Request(bust_url, headers={
+                "User-Agent": USER_AGENT,
+                "Cache-Control": "no-cache, no-store, max-age=0",
+                "Pragma": "no-cache",
+            })
             with urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
                 charset = resp.headers.get_content_charset() or "utf-8"
                 return resp.read().decode(charset, errors="replace")
