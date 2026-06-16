@@ -71,6 +71,8 @@
   .err { color: var(--bad); }
   #status { font-size: 11px; margin-top: 6px; opacity: .85; }
   #refresh { font-size: 16px; line-height: 1; }
+  #refresh.spin { animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
   /* --- Mobilni --- */
   @media (max-width: 640px) {
@@ -105,7 +107,7 @@
   <div class="ctrl">
     <select id="crossing"></select>
     <select id="period" title="Filtriraj po mesecu"></select>
-    <button id="refresh" title="Osveži podatke">↻</button>
+    <button id="refresh" title="Ponovo učitaj sačuvane podatke (za najnovije pokreni skeniranje - link u dnu)">↻</button>
     <button id="theme">☀︎ / ☾</button>
   </div>
 </header>
@@ -267,13 +269,24 @@ function applyPeriod(){
   renderKPIs(rows); renderHeat(grid); renderBestHours(byHour);
 }
 
-const fmtDT = d => d.toLocaleString("sr-RS",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+const fmtDT  = d => d.toLocaleString("sr-RS",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+const fmtSec = d => d.toLocaleString("sr-RS",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"});
 
 function setStatus(rows){
   const el = document.getElementById("status");
   const valid = rows.filter(r=>!isNaN(r.scr)).map(r=>r.scr);
   const last = valid.length ? new Date(Math.max(...valid)) : null;
-  el.innerHTML = `Osveženo: ${fmtDT(new Date())}` + (last ? ` · podaci preuzeti: ${fmtDT(last)}` : "");
+  // "Osveženo" sa sekundama da se svaki klik na ↻ vidno promeni; "podaci preuzeti" = poslednji scrape
+  el.innerHTML = `Osveženo: ${fmtSec(new Date())}` + (last ? ` · podaci preuzeti: ${fmtDT(last)}` : "");
+}
+
+async function manualRefresh(){
+  const btn = document.getElementById("refresh");
+  const st = document.getElementById("status");
+  btn.classList.add("spin");
+  st.textContent = "Osvežavam…";
+  try { await loadSlug(document.getElementById("crossing").value); }
+  finally { btn.classList.remove("spin"); }
 }
 
 async function loadSlug(slug){
@@ -301,7 +314,7 @@ async function loadSlug(slug){
 const sel = document.getElementById("crossing");
 for(const [slug,name] of Object.entries(CROSSINGS)){ const o=document.createElement("option"); o.value=slug; o.textContent=name; sel.appendChild(o); }
 sel.onchange = ()=>loadSlug(sel.value);
-document.getElementById("refresh").onclick = ()=>loadSlug(sel.value);
+document.getElementById("refresh").onclick = manualRefresh;
 document.getElementById("period").onchange = applyPeriod;
 document.getElementById("theme").onclick = ()=>{ const b=document.body; b.dataset.theme = b.dataset.theme==="dark"?"light":"dark"; };
 loadSlug(sel.value);
