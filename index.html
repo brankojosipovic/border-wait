@@ -67,6 +67,8 @@
   .empty-state { color: var(--ink-dim); padding: 28px; text-align: center; border: 1px dashed var(--line); border-radius: 12px; }
   footer { color: var(--ink-dim); font-size: 11px; padding: 18px 28px; border-top: 1px solid var(--line); text-align: center; }
   .err { color: var(--bad); }
+  #status { font-size: 11px; margin-top: 6px; opacity: .85; }
+  #refresh { font-size: 16px; line-height: 1; }
 
   /* --- Mobilni --- */
   @media (max-width: 640px) {
@@ -74,7 +76,7 @@
     header h1 { font-size: 20px; }
     header .sub { font-size: 12px; }
     .spacer { display: none; }
-    .ctrl { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .ctrl { width: 100%; display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
     #crossing { grid-column: 1 / -1; width: 100%; }
     #period { width: 100%; }
     select, button { padding: 9px 12px; }
@@ -95,11 +97,13 @@
   <div>
     <h1>Border Wait</h1>
     <div class="sub">Analiza vremena čekanja na graničnim prelazima · izvor: borderalarm.com (korisničke prijave)</div>
+    <div class="sub" id="status">&nbsp;</div>
   </div>
   <div class="spacer"></div>
   <div class="ctrl">
     <select id="crossing"></select>
     <select id="period" title="Filtriraj po mesecu"></select>
+    <button id="refresh" title="Osveži podatke">↻</button>
     <button id="theme">☀︎ / ☾</button>
   </div>
 </header>
@@ -157,11 +161,11 @@ async function loadCSV(slug){
   const text = await res.text();
   const lines = text.trim().split(/\r?\n/);
   const head = lines.shift().split(",");
-  const iAt = head.indexOf("reported_at"), iVal = head.indexOf("value_min");
+  const iAt = head.indexOf("reported_at"), iVal = head.indexOf("value_min"), iScr = head.indexOf("scraped_at_utc");
   return lines.map(l=>{
     const f = l.split(",");
     const d = new Date(f[iAt]);
-    return {dt:d, dow:(d.getDay()+6)%7, hour:d.getHours(), val:+f[iVal]};
+    return {dt:d, dow:(d.getDay()+6)%7, hour:d.getHours(), val:+f[iVal], scr:new Date(f[iScr])};
   }).filter(r=>!isNaN(r.val) && !isNaN(r.dt));
 }
 
@@ -260,6 +264,15 @@ function applyPeriod(){
   renderKPIs(rows); renderHeat(grid); renderBestHours(byHour);
 }
 
+const fmtDT = d => d.toLocaleString("sr-RS",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+
+function setStatus(rows){
+  const el = document.getElementById("status");
+  const valid = rows.filter(r=>!isNaN(r.scr)).map(r=>r.scr);
+  const last = valid.length ? new Date(Math.max(...valid)) : null;
+  el.innerHTML = `Osveženo: ${fmtDT(new Date())}` + (last ? ` · podaci preuzeti: ${fmtDT(last)}` : "");
+}
+
 async function loadSlug(slug){
   document.getElementById("heatTitle").textContent = `Prosečno čekanje — ${CROSSINGS[slug]}`;
   try{
@@ -268,8 +281,10 @@ async function loadSlug(slug){
     buildPeriods(ALL);
     renderMonthly(ALL);   // sezonski trend — uvek nad svim mesecima
     applyPeriod();
+    setStatus(ALL);
   }catch(e){
     ALL = [];
+    document.getElementById("status").innerHTML = `Osveženo: ${fmtDT(new Date())} · nema podataka`;
     document.getElementById("period").innerHTML = `<option value="all">Svi podaci</option>`;
     document.getElementById("monthly").innerHTML = "";
     document.getElementById("kpis").innerHTML="";
@@ -283,6 +298,7 @@ async function loadSlug(slug){
 const sel = document.getElementById("crossing");
 for(const [slug,name] of Object.entries(CROSSINGS)){ const o=document.createElement("option"); o.value=slug; o.textContent=name; sel.appendChild(o); }
 sel.onchange = ()=>loadSlug(sel.value);
+document.getElementById("refresh").onclick = ()=>loadSlug(sel.value);
 document.getElementById("period").onchange = applyPeriod;
 document.getElementById("theme").onclick = ()=>{ const b=document.body; b.dataset.theme = b.dataset.theme==="dark"?"light":"dark"; };
 loadSlug(sel.value);
