@@ -75,12 +75,19 @@
   <div class="spacer"></div>
   <div class="ctrl">
     <select id="crossing"></select>
+    <select id="period" title="Filtriraj po mesecu"></select>
     <button id="theme">☀︎ / ☾</button>
   </div>
 </header>
 
 <main>
   <div class="kpis" id="kpis"></div>
+
+  <section class="card">
+    <h2>Sezonski trend — prosek po mesecima</h2>
+    <div class="hint">Prosečno čekanje za svaki mesec (uvek nad svim podacima). Letnja sezona se vidi kao skok.</div>
+    <div id="monthly"></div>
+  </section>
 
   <section class="card">
     <h2 id="heatTitle">Prosečno čekanje — dan u nedelji × sat</h2>
@@ -91,7 +98,7 @@
 
   <section class="card">
     <h2>Najbolji termini za prelazak</h2>
-    <div class="hint">Sati rangirani po prosečnom čekanju (manje = bolje). Računato iz svih prikupljenih prijava.</div>
+    <div class="hint">Sati rangirani po prosečnom čekanju (manje = bolje), za izabrani period.</div>
     <div id="bestHours"></div>
   </section>
 </main>
@@ -186,14 +193,61 @@ function renderBestHours(byHour){
     </div>`).join("");
 }
 
-async function render(slug){
+const MES = ["januar","februar","mart","april","maj","jun","jul","avgust","septembar","oktobar","novembar","decembar"];
+const monthKey   = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+const monthLabel = k => { const [y,m]=k.split("-"); return `${MES[+m-1]} ${y}`; };
+
+let ALL = [];   // sve prijave za izabrani prelaz (keširano, bez ponovnog fetch-a)
+
+function buildPeriods(rows){
+  const months = [...new Set(rows.map(r=>monthKey(r.dt)))].sort().reverse();
+  const sel = document.getElementById("period");
+  sel.innerHTML = `<option value="all">Svi podaci</option>` +
+    months.map(k=>`<option value="${k}">${monthLabel(k)}</option>`).join("");
+}
+
+function renderMonthly(rows){
+  const map = {};
+  for(const r of rows){ const k=monthKey(r.dt); (map[k]=map[k]||{sum:0,n:0}); map[k].sum+=r.val; map[k].n++; }
+  const keys = Object.keys(map).sort();
+  const el = document.getElementById("monthly");
+  if(!keys.length){ el.innerHTML='<div class="empty-state">Još nema podataka.</div>'; return; }
+  const max = Math.max(...keys.map(k=>map[k].sum/map[k].n));
+  el.innerHTML = keys.map(k=>{
+    const avg = map[k].sum/map[k].n, n = map[k].n;
+    return `<div class="barrow" title="${n} prijava">
+      <span>${monthLabel(k)}</span>
+      <div class="track"><div class="fill" style="width:${(avg/max*100).toFixed(0)}%;background:${heatColor(avg)}"></div></div>
+      <span>${avg.toFixed(0)} min</span>
+    </div>`;
+  }).join("");
+}
+
+function applyPeriod(){
+  const p = document.getElementById("period").value;
+  const rows = (p === "all") ? ALL : ALL.filter(r=>monthKey(r.dt)===p);
+  if(!rows.length){
+    document.getElementById("kpis").innerHTML="";
+    document.getElementById("heatWrap").innerHTML = `<div class="empty-state">Nema prijava za izabrani mesec.</div>`;
+    document.getElementById("bestHours").innerHTML=""; document.getElementById("legend").innerHTML="";
+    return;
+  }
+  const {grid, byHour} = aggregate(rows);
+  renderKPIs(rows); renderHeat(grid); renderBestHours(byHour);
+}
+
+async function loadSlug(slug){
   document.getElementById("heatTitle").textContent = `Prosečno čekanje — ${CROSSINGS[slug]}`;
   try{
-    const rows = await loadCSV(slug);
-    if(!rows.length){ throw new Error("CSV je prazan."); }
-    const {grid, byHour} = aggregate(rows);
-    renderKPIs(rows); renderHeat(grid); renderBestHours(byHour);
+    ALL = await loadCSV(slug);
+    if(!ALL.length){ throw new Error("CSV je prazan."); }
+    buildPeriods(ALL);
+    renderMonthly(ALL);   // sezonski trend — uvek nad svim mesecima
+    applyPeriod();
   }catch(e){
+    ALL = [];
+    document.getElementById("period").innerHTML = `<option value="all">Svi podaci</option>`;
+    document.getElementById("monthly").innerHTML = "";
     document.getElementById("kpis").innerHTML="";
     document.getElementById("heatWrap").innerHTML = `<div class="empty-state err">${e.message}<br><small>Sačekaj da GitHub Actions prikupi prve prijave, pa osveži.</small></div>`;
     document.getElementById("bestHours").innerHTML="";
@@ -204,9 +258,10 @@ async function render(slug){
 // init
 const sel = document.getElementById("crossing");
 for(const [slug,name] of Object.entries(CROSSINGS)){ const o=document.createElement("option"); o.value=slug; o.textContent=name; sel.appendChild(o); }
-sel.onchange = ()=>render(sel.value);
+sel.onchange = ()=>loadSlug(sel.value);
+document.getElementById("period").onchange = applyPeriod;
 document.getElementById("theme").onclick = ()=>{ const b=document.body; b.dataset.theme = b.dataset.theme==="dark"?"light":"dark"; };
-render(sel.value);
+loadSlug(sel.value);
 </script>
 </body>
 </html>
