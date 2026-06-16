@@ -66,6 +66,8 @@
   .barrow .fill { height: 100%; border-radius: 5px; }
   .empty-state { color: var(--ink-dim); padding: 28px; text-align: center; border: 1px dashed var(--line); border-radius: 12px; }
   footer { color: var(--ink-dim); font-size: 11px; padding: 18px 28px; border-top: 1px solid var(--line); text-align: center; }
+  footer a { color: var(--gold); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
   .err { color: var(--bad); }
   #status { font-size: 11px; margin-top: 6px; opacity: .85; }
   #refresh { font-size: 16px; line-height: 1; }
@@ -131,7 +133,8 @@
   </section>
 </main>
 
-<footer>Poverljivo — za internu upotrebu · Podaci su korisničke prijave i mogu biti nepotpuni/nepouzdani. Ne koristiti kao zvaničan izvor.</footer>
+<footer>Poverljivo — za internu upotrebu · Podaci su korisničke prijave i mogu biti nepotpuni/nepouzdani. Ne koristiti kao zvaničan izvor.<br>
+<a href="https://github.com/brankojosipovic/border-wait/actions/workflows/scrape.yml" target="_blank" rel="noopener">Ručno skeniranje na GitHub-u →</a> (klikni "Run workflow" za trenutno povlačenje najnovijih podataka)</footer>
 
 <script>
 const DAYS = ["Pon","Uto","Sre","Čet","Pet","Sub","Ned"];
