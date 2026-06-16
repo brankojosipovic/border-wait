@@ -1,0 +1,41 @@
+name: border-scrape
+
+on:
+  schedule:
+    # Na svakih 30 min. Napomena: GitHub cron radi po UTC i moze kasniti pod opterecenjem.
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}   # rucno pokretanje iz Actions taba
+
+permissions:
+  contents: write          # potrebno da workflow moze da commituje CSV
+
+concurrency:
+  group: border-scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run scraper
+        run: python scripts/scrape.py
+
+      - name: Commit data
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/*.csv
+          if git diff --staged --quiet; then
+            echo "Nema novih podataka — nista za commit."
+          else
+            git commit -m "data: vremena cekanja $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
