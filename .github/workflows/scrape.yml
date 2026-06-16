@@ -2,8 +2,9 @@ name: border-scrape
 
 on:
   schedule:
-    # Na svakih 30 min. Napomena: GitHub cron radi po UTC i moze kasniti pod opterecenjem.
-    - cron: "*/30 * * * *"
+    # Na svakih 15 min - sajt drzi samo poslednjih 8 prijava po prelazu, pa cesce skeniranje
+    # sprecava gubitak prijava u letnjoj spici. GitHub cron radi po UTC i moze kasniti pod opterecenjem.
+    - cron: "*/15 * * * *"
   workflow_dispatch: {}   # rucno pokretanje iz Actions taba
 
 permissions:
