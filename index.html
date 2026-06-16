@@ -246,31 +246,60 @@ async function loadCameras(){
   }catch(e){ CAMS = {}; }
 }
 
+function playHls(container, src){
+  const v = document.createElement("video");
+  v.controls = true; v.autoplay = true; v.muted = true; v.playsInline = true;
+  v.setAttribute("style", "width:100%;border-radius:10px;background:#000;aspect-ratio:16/9");
+  container.appendChild(v);
+  if(v.canPlayType("application/vnd.apple.mpegurl")){
+    v.src = src;                                   // Safari / iOS - nativni HLS
+  } else if(window.Hls && window.Hls.isSupported()){
+    const hls = new Hls(); hls.loadSource(src); hls.attachMedia(v);
+  } else {
+    const s = document.createElement("script");    // lazy-load hls.js sa CDN-a
+    s.src = "https://cdn.jsdelivr.net/npm/hls.js@1";
+    s.onload = ()=>{ if(window.Hls && Hls.isSupported()){ const hls=new Hls(); hls.loadSource(src); hls.attachMedia(v); } };
+    s.onerror = ()=>{ container.innerHTML = `<div class="empty-state err">Ne mogu da učitam plejer (hls.js).</div>`; };
+    document.head.appendChild(s);
+  }
+}
+
 function renderCamera(slug){
   const el = document.getElementById("cameraBody");
   const c = CAMS[slug];
-  if(!c || c.status !== "available" || (!c.streams.length && !c.amss.length)){
+  const hasHls = c && c.hls && c.hls.length;
+  const hasStream = c && c.streams && c.streams.length;
+  if(!c || c.status !== "available" || (!hasHls && !hasStream && !(c.amss && c.amss.length))){
     el.innerHTML = `<div class="empty-state">Nema dostupne kamere za ovaj prelaz.</div>`;
     return;
   }
   let h = "";
-  if(c.streams.length){
+  if(hasHls || hasStream){
     h += `<button id="camPlay">▶ Prikaži kameru uživo</button><div id="camFrame" style="margin-top:12px"></div>`;
   }
-  if(c.amss.length){
+  if(c.amss && c.amss.length){
     h += `<div class="hint" style="margin-top:14px">Zvanične AMSS kamere (otvaraju se na amss.org.rs):</div>` +
       c.amss.map((u,i)=>`<a href="${u}" target="_blank" rel="noopener" style="color:var(--gold);display:inline-block;margin-right:16px">AMSS kamera ${i+1} →</a>`).join("");
+  }
+  if(c.source){
+    h += `<div class="hint" style="margin-top:12px">Izvor kamere: <a href="${c.source}" target="_blank" rel="noopener" style="color:var(--gold)">otvori original →</a></div>`;
   }
   el.innerHTML = h;
   const play = document.getElementById("camPlay");
   if(play){
     play.onclick = ()=>{
-      document.getElementById("camFrame").innerHTML =
-        `<div style="position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;background:#000">
-           <iframe src="${c.streams[0]}" allow="autoplay; fullscreen; encrypted-media" allowfullscreen
-             style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
-         </div>
-         <div class="hint" style="margin-top:8px">Live stream sa borderalarm.com. Ako se ne učita, kamera trenutno nije aktivna.</div>`;
+      const frame = document.getElementById("camFrame");
+      if(hasHls){
+        playHls(frame, c.hls[0]);
+        frame.insertAdjacentHTML("beforeend", `<div class="hint" style="margin-top:8px">Live stream. Ako se ne učita, kamera trenutno nije aktivna.</div>`);
+      } else {
+        frame.innerHTML =
+          `<div style="position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;background:#000">
+             <iframe src="${c.streams[0]}" allow="autoplay; fullscreen; encrypted-media" allowfullscreen
+               style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+           </div>
+           <div class="hint" style="margin-top:8px">Live stream sa borderalarm.com. Ako se ne učita, kamera trenutno nije aktivna.</div>`;
+      }
       play.style.display = "none";
     };
   }

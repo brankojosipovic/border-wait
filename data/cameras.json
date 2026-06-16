@@ -3,6 +3,8 @@
     "amss": [
       "https://kamere.amss.org.rs/iframe/batrovci1.html"
     ],
+    "hls": [],
+    "source": null,
     "status": "available",
     "streams": [
       "https://camerastream.borderalarm.com:5443/LiveApp/play.html?id=xilXOXNxCFcdH9yO1701120826441"
@@ -13,6 +15,8 @@
       "https://kamere.amss.org.rs/iframe/batrovci2.html",
       "https://kamere.amss.org.rs/iframe/batrovci1.html"
     ],
+    "hls": [],
+    "source": null,
     "status": "available",
     "streams": [
       "https://camerastream.borderalarm.com:5443/LiveApp/play.html?id=ttSTHFuzmOkLRmJr1701120841166"
@@ -20,12 +24,20 @@
   },
   "bogorodica-evzoni": {
     "amss": [],
-    "status": "none",
+    "hls": [
+      "https://streaming1.neotel.net.mk/stream/bogorodica.m3u8"
+    ],
+    "source": "https://alltrafficcams.com/live/border-crossings/north-macedonia/greece/bogorodica-evzonoi/",
+    "status": "available",
     "streams": []
   },
   "evzoni-bogorodica": {
     "amss": [],
-    "status": "none",
+    "hls": [
+      "https://streaming1.neotel.net.mk/stream/bogorodica.m3u8"
+    ],
+    "source": "https://alltrafficcams.com/live/border-crossings/north-macedonia/greece/bogorodica-evzonoi/",
+    "status": "available",
     "streams": []
   }
 }

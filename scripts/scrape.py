@@ -104,13 +104,29 @@ CAM_AMSS_RE = re.compile(r'src="(https://kamere\.amss\.org\.rs/iframe/[^"]+)"', 
 def parse_cameras(html: str) -> dict:
     """Vadi info o kamerama za prelaz: status + ugradivi stream(ovi) + AMSS linkovi."""
     available = "Check Cameras" in html
-    streams = list(dict.fromkeys(CAM_STREAM_RE.findall(html)))  # ugradivo u iframe
+    streams = list(dict.fromkeys(CAM_STREAM_RE.findall(html)))  # borderalarm iframe stream
     amss = list(dict.fromkeys(CAM_AMSS_RE.findall(html)))       # samo link (ne sme iframe)
     return {
         "status": "available" if (available or streams or amss) else "none",
         "streams": streams,
+        "hls": [],       # HLS .m3u8 (pusta se preko hls.js / nativno na Safari)
         "amss": amss,
+        "source": None,  # spoljni link na izvor kamere (atribucija/fallback)
     }
+
+
+# Dopunski izvori kamera za prelaze koje borderalarm ne pokriva (npr. GR-MK).
+# Bogorodica-Evzoni: HLS sa neotel.net.mk (preko alltrafficcams.com); ACAO:* pa radi preko hls.js.
+EXTRA_CAMERAS = {
+    "bogorodica-evzoni": {
+        "hls": ["https://streaming1.neotel.net.mk/stream/bogorodica.m3u8"],
+        "source": "https://alltrafficcams.com/live/border-crossings/north-macedonia/greece/bogorodica-evzonoi/",
+    },
+    "evzoni-bogorodica": {
+        "hls": ["https://streaming1.neotel.net.mk/stream/bogorodica.m3u8"],
+        "source": "https://alltrafficcams.com/live/border-crossings/north-macedonia/greece/bogorodica-evzonoi/",
+    },
+}
 
 
 # --- Mrezni sloj -------------------------------------------------------------
@@ -191,8 +207,15 @@ def main() -> int:
             rows = parse_reports(html)
             added = append_rows(slug, rows, scraped_at)
             total_added += added
-            cameras[slug] = parse_cameras(html)
-            print(f"[{slug}] parsirano={len(rows)} novo={added} kamera={cameras[slug]['status']}")
+            cam = parse_cameras(html)
+            extra = EXTRA_CAMERAS.get(slug)
+            if extra:
+                cam["hls"] = extra.get("hls", [])
+                cam["source"] = extra.get("source")
+                if cam["hls"]:
+                    cam["status"] = "available"
+            cameras[slug] = cam
+            print(f"[{slug}] parsirano={len(rows)} novo={added} kamera={cam['status']}")
         except Exception as e:  # noqa: BLE001 — zelimo da ostali prelazi prodju
             failures.append((slug, str(e)))
             print(f"[{slug}] GRESKA: {e}", file=sys.stderr)
