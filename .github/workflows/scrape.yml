@@ -2,9 +2,9 @@ name: border-scrape
 
 on:
   schedule:
-    # ~svakih 15 min, ali na "off-peak" minutama (:07/:22/:37/:52) umesto :00/:15/:30/:45 -
-    # GitHub gusi/odbacuje zakazane run-ove na zagusenim okruglim terminima. I dalje best-effort
-    # (GitHub cron ume da preskoci); za garantovan ritam koristiti spoljni okidac (cron-job.org).
+    # Pokretac/safety za self-loop: kad GitHub okine (best-effort, off-peak minute),
+    # restartuje dugacak loop posao. Sam loop (ispod) daje pravih ~15 min preko sleep-a,
+    # nezavisno od toga da li GitHub postuje raspored.
     - cron: "7,22,37,52 * * * *"
   workflow_dispatch: {}   # rucno pokretanje iz Actions taba
 
@@ -13,11 +13,12 @@ permissions:
 
 concurrency:
   group: border-scrape
-  cancel-in-progress: false
+  cancel-in-progress: true   # nov pokretac otkaze stari -> uvek tacno JEDAN loop
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    timeout-minutes: 350     # ~5.5h; pod GitHub limitom od 6h
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,20 +28,24 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run scraper
-        run: python scripts/scrape.py
-
-      - name: Build monthly summary
-        run: python scripts/aggregate.py
-
-      - name: Commit data
+      - name: Scrape loop (na 15 min, ~5.5h pa ga schedule restartuje)
         run: |
+          set +e
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/*.csv data/cameras.json
-          if git diff --staged --quiet; then
-            echo "Nema novih podataka — nista za commit."
-          else
-            git commit -m "data: vremena cekanja $(date -u +'%Y-%m-%d %H:%M UTC')"
-            git push
-          fi
+          END=$(( $(date +%s) + 330*60 ))   # radi ~5.5h pa izadji pre timeout-a
+          while [ "$(date +%s)" -lt "$END" ]; do
+            echo "::group::ciklus $(date -u +'%Y-%m-%d %H:%M:%S') UTC"
+            python scripts/scrape.py
+            python scripts/aggregate.py
+            git add data/*.csv data/cameras.json
+            if git diff --staged --quiet; then
+              echo "Nema novih podataka — nista za commit."
+            else
+              git commit -m "data: vremena cekanja $(date -u +'%Y-%m-%d %H:%M UTC')"
+              git push || { git pull --rebase --autostash && git push; }
+            fi
+            echo "::endgroup::"
+            sleep 900   # 15 min
+          done
+          echo "Loop zavrsen posle ~5.5h; schedule/dispatch ce ga restartovati."
