@@ -1,5 +1,5 @@
 crossing,month,n_reports,avg_min,median_min,p90_min,max_min,min_min
-bajakovo-batrovci,2026-06,370,46.1,30.0,90.0,360,5
-batrovci-bajakovo,2026-06,402,55.2,30.0,120.0,300,5
+bajakovo-batrovci,2026-06,371,46.0,30,90.0,360,5
+batrovci-bajakovo,2026-06,403,55.1,30,120.0,300,5
 bogorodica-evzoni,2026-06,311,44.6,15,150.0,360,5
 evzoni-bogorodica,2026-06,365,67.0,20,210.0,450,5
