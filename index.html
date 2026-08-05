@@ -6,12 +6,14 @@
 <title>Border Wait — analiza čekanja na granici</title>
 <style>
   :root {
+    color-scheme: dark;
     --bg: #0e1626; --panel: #16223a; --panel-2: #1b2a4a;
     --ink: #eef2f9; --ink-dim: #9fb0cc; --line: #283a5e;
     --gold: #c9a227; --good: #2e9e6b; --mid: #d9a441; --bad: #d65a4e;
     --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.35);
   }
   [data-theme="light"] {
+    color-scheme: light;
     --bg: #f2f4f8; --panel: #ffffff; --panel-2: #eef1f7;
     --ink: #1b2a4a; --ink-dim: #5a6884; --line: #d7dded;
     --gold: #a9851a; --good: #1f7d52; --mid: #c08a1f; --bad: #c0473c;
@@ -33,12 +35,15 @@
   header .sub { color: var(--ink-dim); font-size: 13px; }
   .spacer { flex: 1; }
   .ctrl { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  select, button {
+  select, button, input[type="date"] {
     font: inherit; color: var(--ink); background: var(--panel);
     border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px;
     cursor: pointer;
   }
-  button:hover, select:hover { border-color: var(--gold); }
+  button:hover, select:hover, input[type="date"]:hover { border-color: var(--gold); }
+  .dayctrl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .dayctrl button { min-width: 38px; }
+  .dayctrl .hint { margin: 0; }
   main { padding: 24px 28px 48px; max-width: 1180px; margin: 0 auto; }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 14px; margin-bottom: 26px; }
   .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow); border-top: 3px solid var(--gold); }
@@ -135,6 +140,28 @@
   </section>
 
   <section class="card">
+    <h2 id="weekTitle">Poslednjih 7 dana — datum × sat</h2>
+    <div class="hint">Konkretni datumi, ne prosek svih nedelja. Nezavisno od izabranog meseca gore. Prazno = nema prijava u tom satu.</div>
+    <div id="weekWrap"></div>
+    <div class="legend" id="weekLegend"></div>
+  </section>
+
+  <section class="card">
+    <h2>Bilo koji dan iz prošlosti — sat po sat</h2>
+    <div class="hint">Izaberi datum i vidi gužvu tog dana po satima. Strelice skaču na prethodni/sledeći dan za koji imamo prijave.</div>
+    <div class="dayctrl">
+      <button id="dayPrev" title="Prethodni dan sa podacima">‹</button>
+      <input type="date" id="dayPick">
+      <button id="dayNext" title="Sledeći dan sa podacima">›</button>
+      <button id="dayLast" title="Skoči na poslednji dan sa podacima">Poslednji dan</button>
+      <span class="hint" id="dayMeta"></span>
+    </div>
+    <div id="dayWrap"></div>
+    <div class="legend" id="dayLegend"></div>
+    <div id="dayBars" style="margin-top:16px"></div>
+  </section>
+
+  <section class="card">
     <h2>Najbolji termini za prelazak</h2>
     <div class="hint">Sati rangirani po prosečnom čekanju (manje = bolje), za izabrani period.</div>
     <div id="bestHours"></div>
@@ -201,23 +228,30 @@ function renderKPIs(rows){
     <div class="kpi"><div class="label">Poslednja prijava</div><div class="value">${last.val} <small>min · ${last.dt.toLocaleString("sr-RS",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</small></div></div>`;
 }
 
-function renderHeat(grid){
+const emptyGrid = n => Array.from({length:n},()=>Array.from({length:24},()=>({sum:0,n:0})));
+const legendHTML = () =>
+  `<span>brže</span>` + [0,20,40,70,120].map(v=>`<span class="sw" style="background:${heatColor(v)}"></span>`).join("") + `<span>sporije (min)</span>`;
+
+// jedna tabela dan(red) × sat(kolona); redovi su ili dani u nedelji ili konkretni datumi
+function heatTable(rowLabels, grid){
   let h = '<table class="heat"><tr><th></th>';
   for(let hr=0;hr<24;hr++) h += `<th>${hr}</th>`;
   h += "</tr>";
-  for(let d=0;d<7;d++){
-    h += `<tr><td class="day">${DAYS[d]}</td>`;
+  grid.forEach((row,i)=>{
+    h += `<tr><td class="day">${rowLabels[i]}</td>`;
     for(let hr=0;hr<24;hr++){
-      const c=grid[d][hr];
-      if(c.n===0){ h+=`<td class="cell empty">·</td>`; }
-      else{ const m=c.sum/c.n; h+=`<td class="cell" style="background:${heatColor(m)}" title="${DAYS[d]} ${hr}h · ${m.toFixed(0)} min · ${c.n} prijava">${m.toFixed(0)}</td>`; }
+      const c=row[hr];
+      if(!c || c.n===0){ h+=`<td class="cell empty">·</td>`; }
+      else{ const m=c.sum/c.n; h+=`<td class="cell" style="background:${heatColor(m)}" title="${rowLabels[i]} ${hr}h · ${m.toFixed(0)} min · ${c.n} prijava">${m.toFixed(0)}</td>`; }
     }
     h += "</tr>";
-  }
-  h += "</table>";
-  document.getElementById("heatWrap").innerHTML = h;
-  document.getElementById("legend").innerHTML =
-    `<span>brže</span>` + [0,20,40,70,120].map(v=>`<span class="sw" style="background:${heatColor(v)}"></span>`).join("") + `<span>sporije (min)</span>`;
+  });
+  return h + "</table>";
+}
+
+function renderHeat(grid){
+  document.getElementById("heatWrap").innerHTML = heatTable(DAYS, grid);
+  document.getElementById("legend").innerHTML = legendHTML();
 }
 
 function renderBestHours(byHour){
@@ -236,8 +270,90 @@ const MES = ["januar","februar","mart","april","maj","jun","jul","avgust","septe
 const monthKey   = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
 const monthLabel = k => { const [y,m]=k.split("-"); return `${MES[+m-1]} ${y}`; };
 
-let ALL = [];   // sve prijave za izabrani prelaz (keširano, bez ponovnog fetch-a)
-let CAMS = {};  // info o kamerama po prelazu (iz data/cameras.json)
+// --- Dnevni pregledi (lokalni datum, isti format kao <input type="date">) ---
+const p2 = n => String(n).padStart(2,"0");
+const dayKey = d => `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+const keyToDate = k => { const [y,m,d]=k.split("-").map(Number); return new Date(y,m-1,d); };
+const fmtDayShort = k => { const d=keyToDate(k); return `${DAYS[(d.getDay()+6)%7]} ${p2(d.getDate())}.${p2(d.getMonth()+1)}.`; };
+const fmtDayFull  = k => `${fmtDayShort(k)}${keyToDate(k).getFullYear()}`;
+
+let ALL = [];       // sve prijave za izabrani prelaz (keširano, bez ponovnog fetch-a)
+let DAY_KEYS = [];  // sortirani datumi za koje ima bar jedna prijava
+let CAMS = {};      // info o kamerama po prelazu (iz data/cameras.json)
+
+// Poslednjih 7 kalendarskih dana zakljucno sa poslednjim danom koji ima prijave
+function renderWeek(){
+  const wrap = document.getElementById("weekWrap");
+  const lg = document.getElementById("weekLegend");
+  if(!DAY_KEYS.length){ wrap.innerHTML = '<div class="empty-state">Još nema podataka.</div>'; lg.innerHTML=""; return; }
+  const end = keyToDate(DAY_KEYS[DAY_KEYS.length-1]);
+  const keys = [];
+  for(let i=6;i>=0;i--) keys.push(dayKey(new Date(end.getFullYear(), end.getMonth(), end.getDate()-i)));
+  const pos = {}; keys.forEach((k,i)=>pos[k]=i);
+  const grid = emptyGrid(7);
+  for(const r of ALL){
+    const i = pos[dayKey(r.dt)];
+    if(i === undefined) continue;
+    grid[i][r.hour].sum += r.val; grid[i][r.hour].n++;
+  }
+  wrap.innerHTML = heatTable(keys.map(fmtDayShort), grid);
+  lg.innerHTML = legendHTML();
+  document.getElementById("weekTitle").textContent =
+    `Poslednjih 7 dana — ${fmtDayShort(keys[0])} do ${fmtDayFull(keys[6])}`;
+}
+
+function renderDay(key){
+  document.getElementById("dayPick").value = key;
+  const meta = document.getElementById("dayMeta");
+  const wrap = document.getElementById("dayWrap");
+  const bars = document.getElementById("dayBars");
+  const lg   = document.getElementById("dayLegend");
+  const rows = ALL.filter(r=>dayKey(r.dt)===key);
+  if(!rows.length){
+    meta.textContent = "";
+    wrap.innerHTML = `<div class="empty-state">Nema prijava za ${fmtDayFull(key)}. Probaj strelice — one vode na najbliži dan sa podacima.</div>`;
+    bars.innerHTML = ""; lg.innerHTML = "";
+    return;
+  }
+  const grid = emptyGrid(1);
+  for(const r of rows){ grid[0][r.hour].sum += r.val; grid[0][r.hour].n++; }
+  const hours = grid[0].map((c,h)=>({h, avg: c.n ? c.sum/c.n : null, n:c.n})).filter(x=>x.avg!=null);
+  const avg = rows.reduce((a,r)=>a+r.val,0)/rows.length;
+  const peak = hours.reduce((a,b)=>b.avg>a.avg?b:a);
+  const calm = hours.reduce((a,b)=>b.avg<a.avg?b:a);
+  meta.innerHTML = `${rows.length} prijava · prosek ${avg.toFixed(0)} min · najgori sat ${p2(peak.h)}:00 (${peak.avg.toFixed(0)} min) · najmirniji ${p2(calm.h)}:00 (${calm.avg.toFixed(0)} min)`;
+  wrap.innerHTML = heatTable([fmtDayFull(key)], grid);
+  lg.innerHTML = legendHTML();
+  const max = Math.max(...hours.map(x=>x.avg));
+  bars.innerHTML = grid[0].map((c,h)=>{
+    const a = c.n ? c.sum/c.n : null;
+    return `<div class="barrow" title="${c.n} prijava">
+      <span>${p2(h)}:00</span>
+      <div class="track">${a!=null?`<div class="fill" style="width:${(a/max*100).toFixed(0)}%;background:${heatColor(a)}"></div>`:""}</div>
+      <span>${a!=null? a.toFixed(0)+" min" : "—"}</span>
+    </div>`;
+  }).join("");
+}
+
+function initDays(){
+  DAY_KEYS = [...new Set(ALL.map(r=>dayKey(r.dt)))].sort();
+  const inp = document.getElementById("dayPick");
+  if(!DAY_KEYS.length){ inp.value=""; renderDay(""); renderWeek(); return; }
+  inp.min = DAY_KEYS[0]; inp.max = DAY_KEYS[DAY_KEYS.length-1];
+  // zadrzi izabrani datum pri promeni prelaza ako i tamo ima prijava
+  const cur = DAY_KEYS.includes(inp.value) ? inp.value : DAY_KEYS[DAY_KEYS.length-1];
+  renderDay(cur);
+  renderWeek();
+}
+
+// skok na najblizi dan SA podacima u zadatom smeru (preskace rupe u seriji)
+function stepDay(dir){
+  const cur = document.getElementById("dayPick").value;
+  const next = dir < 0
+    ? [...DAY_KEYS].reverse().find(k => k < cur)
+    : DAY_KEYS.find(k => k > cur);
+  if(next) renderDay(next);
+}
 
 async function loadCameras(){
   try{
@@ -371,9 +487,10 @@ async function loadSlug(slug){
     buildPeriods(ALL);
     renderMonthly(ALL);   // sezonski trend — uvek nad svim mesecima
     applyPeriod();
+    initDays();           // poslednjih 7 dana + izbor datuma — nezavisno od filtera meseca
     setStatus(ALL);
   }catch(e){
-    ALL = [];
+    ALL = []; DAY_KEYS = [];
     document.getElementById("status").innerHTML = `Osveženo: ${fmtDT(new Date())} · nema podataka`;
     document.getElementById("period").innerHTML = `<option value="all">Svi podaci</option>`;
     document.getElementById("monthly").innerHTML = "";
@@ -381,6 +498,9 @@ async function loadSlug(slug){
     document.getElementById("heatWrap").innerHTML = `<div class="empty-state err">${e.message}<br><small>Sačekaj da GitHub Actions prikupi prve prijave, pa osveži.</small></div>`;
     document.getElementById("bestHours").innerHTML="";
     document.getElementById("legend").innerHTML="";
+    document.getElementById("weekWrap").innerHTML=""; document.getElementById("weekLegend").innerHTML="";
+    document.getElementById("dayWrap").innerHTML=""; document.getElementById("dayLegend").innerHTML="";
+    document.getElementById("dayBars").innerHTML=""; document.getElementById("dayMeta").textContent="";
   }
 }
 
@@ -390,6 +510,10 @@ for(const [slug,name] of Object.entries(CROSSINGS)){ const o=document.createElem
 sel.onchange = ()=>loadSlug(sel.value);
 document.getElementById("refresh").onclick = manualRefresh;
 document.getElementById("period").onchange = applyPeriod;
+document.getElementById("dayPick").onchange = e => renderDay(e.target.value);
+document.getElementById("dayPrev").onclick  = ()=>stepDay(-1);
+document.getElementById("dayNext").onclick  = ()=>stepDay(1);
+document.getElementById("dayLast").onclick  = ()=>{ if(DAY_KEYS.length) renderDay(DAY_KEYS[DAY_KEYS.length-1]); };
 document.getElementById("theme").onclick = ()=>{ const b=document.body; b.dataset.theme = b.dataset.theme==="dark"?"light":"dark"; };
 loadCameras().finally(()=>loadSlug(sel.value));
 </script>
