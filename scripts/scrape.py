@@ -27,6 +27,10 @@ CROSSINGS = [
     "bogorodica-evzoni",
     "bajakovo-batrovci",
     "batrovci-bajakovo",
+    "horgos-roszke",
+    "roszke-horgos",
+    "kelebija-tompa",
+    "tompa-kelebija",
 ]
 
 BASE_URL = "https://borderalarm.com/bottlenecks/{slug}/"

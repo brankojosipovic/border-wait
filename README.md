@@ -24,6 +24,10 @@ rang najboljih termina za prelazak.
 | `bogorodica-evzoni` | Bogorodica → Evzoni (MK→GR) |
 | `bajakovo-batrovci` | Bajakovo → Batrovci (HR→RS) |
 | `batrovci-bajakovo` | Batrovci → Bajakovo (RS→HR) |
+| `horgos-roszke` | Horgoš → Röszke (RS→HU) |
+| `roszke-horgos` | Röszke → Horgoš (HU→RS) |
+| `kelebija-tompa` | Kelebija → Tompa (RS→HU) |
+| `tompa-kelebija` | Tompa → Kelebija (HU→RS) |
 
 Dodavanje novog prelaza: ubaci slug u listu `CROSSINGS` u `scripts/scrape.py`
 i u objekat `CROSSINGS` u `index.html`. Slug = deo URL-a posle `/bottlenecks/`.

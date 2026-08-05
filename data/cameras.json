@@ -39,5 +39,45 @@
     "source": "https://alltrafficcams.com/live/border-crossings/north-macedonia/greece/bogorodica-evzonoi/",
     "status": "available",
     "streams": []
+  },
+  "horgos-roszke": {
+    "amss": [
+      "https://kamere.amss.org.rs/iframe/horgos2.html"
+    ],
+    "hls": [],
+    "source": null,
+    "status": "available",
+    "streams": [
+      "https://camerastream.borderalarm.com:5443/LiveApp/play.html?id=veVL9nIR9SfxqNDW1702036081693"
+    ]
+  },
+  "kelebija-tompa": {
+    "amss": [],
+    "hls": [],
+    "source": null,
+    "status": "available",
+    "streams": [
+      "https://camerastream.borderalarm.com:5443/LiveApp/play.html?id=okzE0ntbRyBMEaGE1701120646787"
+    ]
+  },
+  "roszke-horgos": {
+    "amss": [
+      "https://kamere.amss.org.rs/iframe/horgos1.html"
+    ],
+    "hls": [],
+    "source": null,
+    "status": "available",
+    "streams": [
+      "https://camerastream.borderalarm.com:5443/LiveApp/play.html?id=eg5VaCgbJst0D6231703150294210"
+    ]
+  },
+  "tompa-kelebija": {
+    "amss": [],
+    "hls": [],
+    "source": null,
+    "status": "available",
+    "streams": [
+      "https://camerastream.borderalarm.com:5443/LiveApp/play.html?id=idPlUiQ9wi3aIwtU1701120628432"
+    ]
   }
 }
