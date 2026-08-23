@@ -1,7 +1,7 @@
 crossing,month,n_reports,avg_min,median_min,p90_min,max_min,min_min
 bajakovo-batrovci,2026-06,548,41.7,30.0,90.0,360,5
 bajakovo-batrovci,2026-07,1468,98.1,55.0,240.0,780,5
-bajakovo-batrovci,2026-08,882,104.5,42.5,300.0,780,5
+bajakovo-batrovci,2026-08,884,104.3,40.0,300.0,780,5
 batrovci-bajakovo,2026-06,599,44.4,30,120.0,300,5
 batrovci-bajakovo,2026-07,1378,49.0,30.0,120.0,630,5
 batrovci-bajakovo,2026-08,1094,137.7,90.0,360.0,780,5
@@ -13,5 +13,5 @@ evzoni-bogorodica,2026-07,1415,102.0,35,270.0,780,5
 evzoni-bogorodica,2026-08,1092,87.0,30.0,240.0,780,5
 horgos-roszke,2026-08,576,68.8,45.0,180.0,480,5
 kelebija-tompa,2026-08,490,30.0,15.0,60.0,270,5
-roszke-horgos,2026-08,527,29.4,10,60.0,270,5
+roszke-horgos,2026-08,528,29.4,10.0,60.0,270,5
 tompa-kelebija,2026-08,457,14.4,10,27.0,180,5
