@@ -41,6 +41,13 @@ i u objekat `CROSSINGS` u `index.html`. Slug = deo URL-a posle `/bottlenecks/`.
 5. Dashboard: GitHub Pages (Settings → Pages → branch `main`, root) ili lokalno
    `python -m http.server` u root folderu.
 
+## Sudoku
+
+`sudoku.html` je samostalna igra (bez zavisnosti, radi offline posle prvog učitavanja) —
+9×9 tabla, četiri težine, beleške, poništavanje, saveti, tajmer i automatsko čuvanje partije
+u `localStorage`. Zagonetke se generišu u pregledaču i uvek imaju **tačno jedno rešenje**.
+Link stoji u zaglavlju dashboarda (🎲 Sudoku).
+
 ## Ograničenja podataka
 
 Prijave su anonimne i neravnomerne (rupe po satima, vrednosti skaču). Korisno za grubi

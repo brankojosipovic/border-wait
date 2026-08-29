@@ -41,6 +41,12 @@
     cursor: pointer;
   }
   button:hover, select:hover, input[type="date"]:hover { border-color: var(--gold); }
+  .ctrl a.navlink {
+    font: inherit; color: var(--ink); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px;
+    text-decoration: none; white-space: nowrap;
+  }
+  .ctrl a.navlink:hover { border-color: var(--gold); }
   .dayctrl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
   .dayctrl button { min-width: 38px; }
   .dayctrl .hint { margin: 0; }
@@ -113,6 +119,7 @@
     <select id="crossing"></select>
     <select id="period" title="Filtriraj po mesecu"></select>
     <button id="refresh" title="Ponovo učitaj sačuvane podatke (za najnovije pokreni skeniranje - link u dnu)">↻</button>
+    <a class="navlink" href="sudoku.html" title="Sudoku dok čekaš u koloni">🎲 Sudoku</a>
     <button id="theme">☀︎ / ☾</button>
   </div>
 </header>
