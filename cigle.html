@@ -50,7 +50,11 @@
   header h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
   header .sub { color: var(--ink-dim); font-size: 12px; }
   .spacer { flex: 1; }
-  .hud { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-dim); }
+  .hud { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-dim);
+         white-space: nowrap; overflow: hidden; }
+  .hud > span { overflow: hidden; text-overflow: ellipsis; }
+  #hProt:not(:empty) { color: var(--ink); background: var(--panel-2); border: 1px solid var(--line);
+            border-radius: 999px; padding: 1px 8px; }
   .hud b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 700; }
   .stage { position: relative; }
   canvas { display: block; border: 1px solid var(--line); border-radius: 12px;
@@ -242,15 +246,15 @@ function startLevel() {
   if (!raf) raf = requestAnimationFrame(loop);
 }
 function updHud() {
-  $("#hLevel").textContent = level + " · " + nivo(((level - 1) % UKUPNO_NIVOA) + 1).nm;
+  const ime = nivo(((level - 1) % UKUPNO_NIVOA) + 1).nm;
+  $("#hLevel").textContent = trka ? String(level) : level + " · " + ime;   // u trci HUD deli mesto sa protivnikom
   $("#hScore").textContent = score;
-  $("#hLives").textContent = "❤️".repeat(Math.max(0, lives));
   const hp = $("#hProt");
-  if (!trka) { hp.textContent = ""; return; }
+  if (!trka) { hp.textContent = ""; $("#hLives").textContent = "❤️".repeat(Math.max(0, lives)); return; }
+  $("#hLives").textContent = "❤️" + Math.max(0, lives);
   const p = trka.prot;
-  hp.textContent = p.gotov ? "🏁 protivnik gotov"
-    : p.pao ? "💀 protivnik ispao"
-    : "👤 " + p.cigle + "🧱 " + "❤️".repeat(Math.max(0, p.zivoti));
+  hp.textContent = p.gotov ? "🏁 protivnik" : p.pao ? "💀 protivnik"
+    : "👤 " + p.cigle + "🧱 ❤️" + Math.max(0, p.zivoti);
 }
 function boom(x, y, n, col) {
   for (let i = 0; i < n; i++) {
