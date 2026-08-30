@@ -64,6 +64,22 @@ Svet je deterministički po seed-u i ne zavisi od igračevih poteza, pa igra na 
 (dinamičkim programiranjem) i savršenu liniju i „da si samo stajao" — i kaže ti koliko si
 minuta istrgovao. Dnevna kolona: isti seed za sve, rezultat može da se podeli.
 
+## Aparat
+
+`aparat.html` — dva aparata u jednom, sa zajedničkim virtuelnim kreditima (bez pravog novca;
+kad potrošiš, „kuća časti" nove): **Poker** (Jacks or Better — deli, zadrži, menjaj; isplate
+1×–250×) i **Voćkice** (3×3, 5 linija, RTP ~90% izmeren na 400.000 simuliranih vrtnji).
+Svaki dobitak može u „Dupliraj" (crveno/crno, do 5 puta).
+
+## Švercer
+
+`svercer.html` — push-your-luck: natovari gepek (8 mesta — kafa, farmerke, gorivo, cigarete,
+zlato; vrednija roba = veći rizik), pa kroz tri punkta sa stvarnim imenima prelaza. Na punktu
+vidiš raspoloženje carinika i još možeš da baciš robu kroz prozor; posle svakog prođenog
+punkta biraš: prodaj (×1,5 pa ×2) ili teraj do pijace (×3). Pad na pregledu nosi sve.
+Pet tura po sezoni, dnevna sezona sa istim seed-om za sve, a na kraju te igra uporedi sa
+„savršenim švercerom" (sveznajućim oraklom).
+
 ## Ograničenja podataka
 
 Prijave su anonimne i neravnomerne (rupe po satima, vrednosti skaču). Korisno za grubi
