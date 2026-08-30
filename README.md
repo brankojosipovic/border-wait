@@ -119,7 +119,9 @@ Nova verzija se objavljuje dizanjem `VERSION` u `sw.js`; stari keš se tada bri�
 
 ## Cigle i Stvorenja
 
-`cigle.html` — breakout: palica, loptica i 10 ručno složenih nivoa. Zelena cigla puca iz prve,
+`cigle.html` — breakout: palica, loptica i 16 imenovanih nivoa sa oblicima (srce, piramida, tvrđava,
+osmeh, strela…). Na startu se bira nivo iz mreže minijatura, uz rekord po nivou i najdalje
+dostignut nivo. Palica stoji 62 px iznad dna da je prst ne pokriva, sa senkom-pokazivačem ispod. Zelena cigla puca iz prve,
 žuta traži dva, crvena tri udarca, a čelična se ne razbija — samo odbija. Bonusi padaju
 (šira palica, tri loptice, sporija loptica, život). Ugao odbijanja zavisi od mesta udara u
 palicu, a loptica se pomera u sitnim koracima da ne proleti kroz ciglu pri velikoj brzini.

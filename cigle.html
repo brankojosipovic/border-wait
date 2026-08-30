@@ -70,6 +70,15 @@
   .overlay .res { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: 14px; color: #9fb0cc; }
   .overlay .res b { color: #eef2f9; font-variant-numeric: tabular-nums; }
   .overlay button { background: #16223a; color: #eef2f9; border-color: #283a5e; }
+  .lvGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; width: 100%; max-width: 320px; }
+  .lvCard { background: #16223a; border: 1px solid #283a5e; border-radius: 9px; padding: 5px 4px 4px;
+            cursor: pointer; text-align: center; }
+  .lvCard:active { transform: translateY(1px); }
+  .lvCard.on { border-color: #c9a227; }
+  .lvCard .mini { display: grid; grid-template-columns: repeat(8, 1fr); gap: 1px; margin-bottom: 3px; }
+  .lvCard .mini i { display: block; height: 4px; border-radius: 1px; }
+  .lvCard .nm { font-size: 9px; color: #9fb0cc; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lvCard .rec { font-size: 8.5px; color: #2e9e6b; font-weight: 700; }
   .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
   .foot a { color: var(--ink-dim); }
   @media (max-height: 780px) { .foot { display: none; } }
@@ -117,35 +126,46 @@
 "use strict";
 const $ = s => document.querySelector(s);
 const KEY = "cigle.v1";
-const LW = 240, LH = 360;
+const LW = 240, LH = 360, PADY = LH - 62;   // palica visoko iznad dna: prst je ne pokriva
 const cv = $("#cv"), ctx = cv.getContext("2d");
 
 /* ---------- nivoi ----------
    . prazno · 1/2/3 cigle po izdržljivosti · X čelična (nerazrušiva) */
 const LEVELS = [
-  ["11111111", "11111111", "........", "........"],
-  ["22222222", "11111111", "1.1.1.1.", "........"],
-  ["1X1X1X1X", "11111111", "22222222", "........"],
-  [".222222.", "21111112", "2.1XX1.2", ".222222."],
-  ["33333333", "2X2X2X2X", "11111111", "........"],
-  ["1.2.2.1.", "21X33X12", "1.2.2.1.", "22222222"],
-  ["X111111X", "X222222X", "X333333X", "X111111X"],
-  ["3.3.3.3.", ".2.2.2.2", "1X1X1X1X", "33333333"],
-  ["2222222X", "X1111112", "2222222X", "X3333332"],
-  ["33X33X33", "32222223", "31XXXX13", "33333333"]
+  { nm: "Zagrevanje",  m: ["11111111", "11111111", "........", "........"] },
+  { nm: "Stepenice",   m: ["2.......", "22......", "222.....", "2222....", "22222...", "222222.."] },
+  { nm: "Rešetka",     m: ["1X1X1X1X", "11111111", "22222222", "1X1X1X1X"] },
+  { nm: "Srce",        m: [".22..22.", "22222222", "22222222", ".222222.", "..2222..", "...22..."] },
+  { nm: "Piramida",    m: ["...33...", "..3223..", ".322223.", "32222223", "11111111"] },
+  { nm: "Tvrđava",     m: ["XX3333XX", "X222222X", "X211112X", "X222222X", "XX3333XX"] },
+  { nm: "Šahovnica",   m: ["1.2.1.2.", ".2.1.2.1", "2.1.2.1.", ".1.2.1.2", "33333333"] },
+  { nm: "Osmeh",       m: ["..2..2..", "..2..2..", "........", "3......3", ".333333."] },
+  { nm: "Tunel",       m: ["XX1111XX", "X1.22.1X", "X1.22.1X", "X1.33.1X", "XX2222XX"] },
+  { nm: "Kiša",        m: ["1.1.1.1.", ".2.2.2.2", "1.1.1.1.", ".3.3.3.3", "22222222"] },
+  { nm: "Strela",      m: ["...33...", "..3333..", ".33..33.", "33....33", "...22...", "...22..."] },
+  { nm: "Zid",         m: ["X111111X", "X222222X", "X333333X", "X222222X", "X111111X"] },
+  { nm: "Krst",        m: ["...22...", "...22...", "22222222", "22222222", "...22...", "...33..."] },
+  { nm: "Češalj",      m: ["3.3.3.3.", "3.3.3.3.", "3.3.3.3.", "33333333", "X......X"] },
+  { nm: "Sendvič",     m: ["33333333", "XXXXXXXX", "22222222", "XXXXXXXX", "11111111"] },
+  { nm: "Lavirint",    m: ["3X2222X3", "3X2..2X3", "3X2.32X3", "3X2222X3", "33XXXX33"] }
 ];
 const COLS = 8, BW = LW / COLS, BH = 14, TOP = 34;
 
 /* ---------- stanje ---------- */
 let bricks, balls, pad, drops, parts;
-let level = 1, score = 0, lives = 3, best = 0;
+let level = 1, score = 0, lives = 3, best = 0, startLv = 1;
+let lvBest = {}, maxLv = 1;
 let state = "intro", stuck = true, raf = 0, lastTs = 0;
-try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s && s.best) best = s.best; } catch (e) { }
+try {
+  const s = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (s) { best = s.best || 0; lvBest = s.lvBest || {}; maxLv = s.maxLv || 1; }
+} catch (e) { }
+function saveRec() { try { localStorage.setItem(KEY, JSON.stringify({ best, lvBest, maxLv })); } catch (e) { } }
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 function buildLevel(n) {
-  const map = LEVELS[(n - 1) % LEVELS.length];
+  const map = LEVELS[(n - 1) % LEVELS.length].m;
   bricks = [];
   for (let r = 0; r < map.length; r++) for (let c = 0; c < COLS; c++) {
     const ch = map[r][c];
@@ -159,10 +179,10 @@ const brickLeft = () => bricks.filter(b => !b.steel).length;
 function resetPad() { pad = { x: LW / 2, w: 52, base: 52, wide: 0 }; }
 function newBall(speedUp) {
   const sp = 132 + (level - 1) * 7 + (speedUp || 0);
-  return { x: pad.x, y: LH - 26, vx: rnd(-.4, .4) * sp, vy: -sp, r: 4, slow: 0 };
+  return { x: pad.x, y: PADY - 8, vx: rnd(-.4, .4) * sp, vy: -sp, r: 4, slow: 0 };
 }
-function newGame() {
-  level = 1; score = 0; lives = 3;
+function newGame(od) {
+  level = od || 1; startLv = level; score = 0; lives = 3;
   startLevel();
   window.SFX && SFX.shuffle();
 }
@@ -173,7 +193,8 @@ function startLevel() {
   if (!raf) raf = requestAnimationFrame(loop);
 }
 function updHud() {
-  $("#hLevel").textContent = level; $("#hScore").textContent = score;
+  $("#hLevel").textContent = level + (LEVELS[(level - 1) % LEVELS.length] ? " · " + LEVELS[(level - 1) % LEVELS.length].nm : "");
+  $("#hScore").textContent = score;
   $("#hLives").textContent = "❤️".repeat(Math.max(0, lives));
 }
 function boom(x, y, n, col) {
@@ -186,7 +207,7 @@ function boom(x, y, n, col) {
 /* ---------- fizika ---------- */
 function step(dt) {
   if (pad.wide > 0) { pad.wide -= dt; if (pad.wide <= 0) pad.w = pad.base; }
-  if (stuck) { for (const b of balls) { b.x = pad.x; b.y = LH - 26; } }
+  if (stuck) { for (const b of balls) { b.x = pad.x; b.y = PADY - 8; } }
 
   for (const b of balls) {
     if (stuck) continue;
@@ -201,12 +222,12 @@ function step(dt) {
       if (b.y < b.r + 8) { b.y = b.r + 8; b.vy = Math.abs(b.vy); window.SFX && SFX.tick(); }
       hitBricks(b);
       // palica
-      if (b.vy > 0 && b.y + b.r >= LH - 18 && b.y - b.r <= LH - 12 && Math.abs(b.x - pad.x) < pad.w / 2 + b.r) {
+      if (b.vy > 0 && b.y + b.r >= PADY && b.y - b.r <= PADY + 6 && Math.abs(b.x - pad.x) < pad.w / 2 + b.r) {
         const rel = clamp((b.x - pad.x) / (pad.w / 2), -1, 1);
         const sp = Math.min(300, Math.hypot(b.vx, b.vy) * 1.012);
         const ang = rel * 1.05;                        // ugao zavisi od mesta udara
         b.vx = Math.sin(ang) * sp; b.vy = -Math.cos(ang) * sp;
-        b.y = LH - 18 - b.r;
+        b.y = PADY - b.r;
         window.SFX && SFX.tap();
       }
     }
@@ -216,7 +237,7 @@ function step(dt) {
 
   for (const d of drops) { d.y += 68 * dt; d.t += dt; }
   for (const d of drops) {
-    if (d.y > LH - 22 && d.y < LH - 6 && Math.abs(d.x - pad.x) < pad.w / 2 + 8) { d.dead = true; takeDrop(d.k); }
+    if (d.y > PADY - 6 && d.y < PADY + 10 && Math.abs(d.x - pad.x) < pad.w / 2 + 8) { d.dead = true; takeDrop(d.k); }
   }
   drops = drops.filter(d => !d.dead && d.y < LH + 10);
 
@@ -274,35 +295,71 @@ function loseLife() {
 }
 function winLevel() {
   score += 100 * level;
+  if (level + 1 > maxLv) { maxLv = Math.min(LEVELS.length, level + 1); saveRec(); }
   window.SFX && SFX.win();
   state = "levelup";
   const zadnji = level >= LEVELS.length;
   showOverlay('<h2>' + (zadnji ? "🏆 Sve prošao!" : "Nivo " + level + " očišćen") + '</h2>' +
     '<p>Poeni: <b style="color:#eef2f9">' + score + '</b></p>' +
-    '<button id="nextBtn">' + (zadnji ? "⟲ Ispočetka, brže" : "▶ Nivo " + (level + 1)) + '</button>');
+    '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
+    '<button id="nextBtn">' + (zadnji ? "⟲ Ispočetka" : "▶ Nivo " + (level + 1) + ": " + LEVELS[level % LEVELS.length].nm) + '</button>' +
+    '<button id="pickBtn2">📋 Izbor nivoa</button></div>');
   $("#nextBtn").onclick = () => { level++; startLevel(); };
+  $("#pickBtn2").onclick = levelPicker;
 }
 function gameOver() {
   state = "over";
   const rek = score > best;
-  if (rek) { best = score; try { localStorage.setItem(KEY, JSON.stringify({ best })); } catch (e) { } }
+  if (rek) best = score;
+  if (score > (lvBest[startLv] || 0)) lvBest[startLv] = score;
+  saveRec();
   window.SFX && SFX.siren();
   showOverlay('<h2>Kraj igre</h2>' +
     '<div class="res"><span>Poeni</span><b>' + score + '</b><span>Nivo</span><b>' + level + '</b>' +
     '<span>Rekord</span><b>' + best + '</b></div>' +
     (rek ? '<p style="color:#2e9e6b;font-weight:700">Novi rekord! 🎉</p>' : '') +
-    '<button id="againBtn">⟲ Još jednom</button>');
-  $("#againBtn").onclick = newGame;
+    '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
+    '<button id="againBtn">⟲ Isti nivo</button><button id="pickBtn3">📋 Izbor nivoa</button></div>');
+  $("#againBtn").onclick = () => newGame(startLv);
+  $("#pickBtn3").onclick = levelPicker;
+}
+const MINI_COL = { "1": "#3fb96a", "2": "#e0a53a", "3": "#d8534a", "X": "#7c8aa6" };
+function miniHTML(m) {
+  let h = '<div class="mini">';
+  for (let r = 0; r < Math.min(5, m.length); r++)
+    for (let c = 0; c < COLS; c++) {
+      const ch = m[r][c];
+      h += '<i style="background:' + (MINI_COL[ch] || "transparent") + '"></i>';
+    }
+  return h + "</div>";
+}
+function levelPicker() {
+  state = "intro";
+  let cards = "";
+  for (let i = 0; i < LEVELS.length; i++) {
+    const n = i + 1, L = LEVELS[i], rec = lvBest[n];
+    cards += '<div class="lvCard' + (n === 1 ? " on" : "") + '" data-lv="' + n + '">' +
+      miniHTML(L.m) + '<div class="nm">' + n + '. ' + L.nm + '</div>' +
+      '<div class="rec">' + (rec ? rec : "&nbsp;") + '</div></div>';
+  }
+  showOverlay('<h2>Izaberi nivo</h2>' +
+    '<p>Rekord: <b style="color:#eef2f9">' + best + '</b> · najdalje stigao: <b style="color:#eef2f9">nivo ' + maxLv + '</b></p>' +
+    '<div class="lvGrid">' + cards + '</div>' +
+    '<p>Zeleno puca iz prve, žuto traži dva, crveno tri, sivo se ne razbija.</p>' +
+    '<button id="rulesBtn">❔ Pravila</button>');
+  for (const c of document.querySelectorAll(".lvCard"))
+    c.onclick = () => { window.SFX && SFX.tap(); newGame(+c.dataset.lv); };
+  $("#rulesBtn").onclick = intro;
 }
 function intro() {
   state = "intro";
   showOverlay('<h2>🧱 Cigle</h2>' +
-    '<ul><li><b>Prevlači prstom</b> da pomeriš palicu, tapni da ispališ lopticu.</li>' +
+    '<ul><li><b>Prevlači prstom</b> ispod palice da je pomeriš, tapni da ispališ lopticu.</li>' +
     '<li>Cigle: <b>zelena</b> puca iz prve, <b>žuta</b> traži dva, <b>crvena</b> tri udarca. <b>Čelična</b> se ne razbija — samo odbija.</li>' +
-    '<li>Bonusi padaju: 🟦 šira palica, ⬤ tri loptice, 🐢 sporije, ❤️ život.</li></ul>' +
-    (best ? '<p>Rekord: <b style="color:#eef2f9">' + best + '</b></p>' : '') +
-    '<button id="startBtn">▶ Počni</button>');
-  $("#startBtn").onclick = newGame;
+    '<li>Bonusi padaju: 🟦 šira palica, ⬤ tri loptice, 🐢 sporije, ❤️ život.</li>' +
+    '<li>Ugao odbijanja zavisi od toga gde loptica pogodi palicu — tako biraš smer.</li></ul>' +
+    '<button id="pickBtn">▶ Izbor nivoa</button>');
+  $("#pickBtn").onclick = levelPicker;
 }
 function showOverlay(h) { const o = $("#overlay"); o.innerHTML = h; o.hidden = false; }
 function hideOverlay() { $("#overlay").hidden = true; }
@@ -332,10 +389,14 @@ function draw() {
     ctx.font = "13px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText(d.k === "w" ? "🟦" : d.k === "m" ? "⬤" : d.k === "s" ? "🐢" : "❤️", d.x, d.y);
   }
+  ctx.fillStyle = "rgba(255,255,255,.05)";                     // zona za prst ispod palice
+  ctx.fillRect(0, PADY + 16, LW, LH - PADY - 16);
   ctx.fillStyle = "#c9a227";
-  ctx.fillRect(pad.x - pad.w / 2, LH - 18, pad.w, 6);
-  ctx.fillStyle = "rgba(255,255,255,.25)";
-  ctx.fillRect(pad.x - pad.w / 2, LH - 18, pad.w, 2);
+  ctx.fillRect(pad.x - pad.w / 2, PADY, pad.w, 7);
+  ctx.fillStyle = "rgba(255,255,255,.3)";
+  ctx.fillRect(pad.x - pad.w / 2, PADY, pad.w, 2);
+  ctx.fillStyle = "rgba(201,162,39,.25)";                      // pokazivač ispod prsta
+  ctx.fillRect(pad.x - pad.w / 2, PADY + 22, pad.w, 3);
   ctx.fillStyle = "#eef2f9";
   for (const b of balls) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); }
   for (const p of parts) {
@@ -345,7 +406,7 @@ function draw() {
   ctx.globalAlpha = 1;
   if (stuck && state === "play") {
     ctx.fillStyle = "rgba(238,242,249,.75)"; ctx.font = "9px system-ui"; ctx.textAlign = "center";
-    ctx.fillText("tapni da ispališ", LW / 2, LH - 34);
+    ctx.fillText("tapni da ispališ", LW / 2, PADY - 16);
   }
 }
 function loop(ts) {
@@ -418,14 +479,15 @@ window.addEventListener("orientationchange", () => setTimeout(fit, 150));
 /* ---------- start ---------- */
 try { const t = localStorage.getItem("sudoku.theme"); if (t) document.body.dataset.theme = t; } catch (e) { }
 buildLevel(1); resetPad(); balls = [newBall()]; drops = []; parts = [];
-fit(); updHud(); draw(); intro();
+fit(); updHud(); draw(); if (best > 0) levelPicker(); else intro();
 raf = requestAnimationFrame(loop);
 
 window.C = {
   get state() { return state; }, get score() { return score; }, get level() { return level; },
   get lives() { return lives; }, get bricks() { return bricks; }, get balls() { return balls; },
   get pad() { return pad; }, get drops() { return drops; }, get stuck() { return stuck; },
-  LEVELS, brickLeft, newGame, startLevel, step, takeDrop, loseLife, hitBricks,
+  LEVELS, brickLeft, newGame, startLevel, step, takeDrop, loseLife, hitBricks, levelPicker,
+  get lvBest() { return lvBest; }, get maxLv() { return maxLv; }, get best() { return best; },
   setBricks: a => { bricks = a; }, setLives: n => { lives = n; updHud(); },
   setLevel: n => { level = n; startLevel(); }, launch: () => { stuck = false; },
   run: (dt, n) => { for (let i = 0; i < n; i++) step(dt); }
