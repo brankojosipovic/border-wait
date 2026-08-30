@@ -8,6 +8,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="description" content="Igre za čekanje na granici — sudoku, soliter, kolona, aparat i švercer. Rade offline, na telefonu.">
+<meta name="apple-mobile-web-app-title" content="Igre">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/igre-180.png">
+<link rel="icon" href="icons/igre-180.png" sizes="180x180" type="image/png">
 <title>Igre za kolonu</title>
 <style>
   :root {
@@ -88,6 +92,12 @@
       <button id="sndToggle">…</button>
     </div>
     <div class="row"><span class="hint">Zvuci se prave u pregledaču (bez skidanja fajlova). Prekidač važi za sve igre i pamti se; isti prekidač stoji i u traci na dnu ekrana.</span></div>
+    <div class="row" style="border-top:1px dashed var(--line); padding-top:10px">
+      <span class="lbl">📶 Rad bez interneta</span>
+      <div class="spacer"></div>
+      <span id="offState" style="font-size:13px; font-weight:700; color:var(--ink-dim)">proveravam…</span>
+    </div>
+    <div class="row"><span class="hint" id="offHint">Igre se čuvaju na telefonu pri prvom otvaranju, pa rade i kad nema signala.</span></div>
   </div>
 
   <div class="foot col">
@@ -166,6 +176,42 @@ function paintSnd() {
 }
 document.getElementById("sndToggle").onclick = function () { SFX.toggle(); paintSnd(); };
 paintSnd();
+
+/* stanje offline keša */
+function offlineStatus(pokusaj) {
+  var st = document.getElementById("offState"), hint = document.getElementById("offHint");
+  if (!("serviceWorker" in navigator) || !("caches" in window)) {
+    st.textContent = "nije podržano";
+    hint.textContent = "Ovaj pregledač ne ume da čuva stranice za rad bez interneta.";
+    return;
+  }
+  if (location.protocol === "file:") {
+    st.textContent = "lokalni fajl"; st.style.color = "var(--ink-dim)";
+    hint.textContent = "Stranica je otvorena kao lokalni fajl — već radi bez interneta.";
+    return;
+  }
+  Promise.all([navigator.serviceWorker.getRegistration(), caches.keys()]).then(function (r) {
+    var reg = r[0], keys = r[1];
+    return Promise.all(keys.map(function (k) {
+      return caches.open(k).then(function (c) { return c.keys(); }).then(function (l) { return l.length; });
+    })).then(function (counts) {
+      var n = counts.reduce(function (a, b) { return a + b; }, 0);
+      if (reg && reg.active && n > 0) {
+        st.textContent = "✓ spremno"; st.style.color = "var(--good)";
+        hint.textContent = "Sačuvano " + n + " fajlova na telefonu — sve igre rade i bez signala. " +
+          "Dodaj na početni ekran (Podeli \u2192 \u201EDodaj na po\u010Detni ekran\u201C) pa se otvara kao aplikacija.";
+      } else if ((pokusaj || 0) < 8) {
+        st.textContent = "sprema se…"; st.style.color = "var(--gold)";
+        hint.textContent = "Prvo otvaranje uz internet čuva igre na telefon — traje koji trenutak.";
+        setTimeout(function () { offlineStatus((pokusaj || 0) + 1); }, 1500);
+      } else {
+        st.textContent = "nije sačuvano"; st.style.color = "var(--ink-dim)";
+        hint.textContent = "Igre još nisu sačuvane. Osveži stranicu dok imaš internet.";
+      }
+    });
+  }).catch(function () { st.textContent = "nepoznato"; });
+}
+offlineStatus(0);
 
 document.getElementById("theme").onclick = function () {
   var b = document.body;
