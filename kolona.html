@@ -17,7 +17,7 @@
     --gold: #c9a227; --good: #2e9e6b; --bad: #d65a4e;
     --road: #171d29; --lane-line: #3a4664; --booth: #223354;
     --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.35);
-    --rows: 13; --chrome: calc(365px + var(--navh, 0px));
+    --rows: 13; --chrome: calc(365px + var(--navh, 0px) + var(--sat, 0px));
   }
   [data-theme="light"] {
     color-scheme: light;
@@ -34,7 +34,7 @@
     font: 15px/1.5 Calibri, "Segoe UI", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none; user-select: none; -webkit-user-select: none;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   }
   button { font: inherit; color: var(--ink); background: var(--panel);
     border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer;
@@ -74,7 +74,7 @@
                       color: var(--ink); background: var(--panel); border-radius: 6px; padding: 0 4px;
                       border: 1px solid var(--line); }
   .lane .booth .insp { position: absolute; left: 2px; top: 1px; font-size: 11px; }
-  .lane { --rh: clamp(13px, calc((100dvh - var(--chrome)) / var(--rows)), 31px); }
+  .lane { --rh: clamp(var(--rhmin, 13px), calc((100dvh - var(--chrome)) / var(--rows)), 31px); }
   .cellrow { height: var(--rh); display: flex; align-items: center; justify-content: center;
              font-size: calc(var(--rh) * .68); line-height: 1; position: relative; }
   .cellrow.player { border-radius: 8px; box-shadow: inset 0 0 0 2px var(--gold);
@@ -114,9 +114,18 @@
   .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
   .foot a { color: var(--ink-dim); }
 
+  @media (max-height: 700px) { header .sub { display: none; } }
+  @media (max-height: 620px) {
+    :root { --rhmin: 10px; --chrome: calc(330px + var(--navh, 0px) + var(--sat, 0px)); }
+    .wrap { gap: 6px; padding: 6px 10px 8px; }
+    header h1 { font-size: 15px; }
+    .ctrls button { padding: 9px 4px; font-size: 14px; }
+    .lane .est { font-size: 10px; }
+    .ticker { min-height: 16px; font-size: 11px; }
+  }
   @media (orientation: landscape) and (max-height: 620px) {
-    :root { --chrome: calc(268px + var(--navh, 0px)); }
-    .roadWrap { overflow-y: auto; max-height: calc(100dvh - 176px - var(--navh, 0px)); }
+    :root { --chrome: calc(268px + var(--navh, 0px) + var(--sat, 0px)); }
+    .roadWrap { overflow-y: auto; max-height: calc(100dvh - 176px - var(--navh, 0px) - var(--sat, 0px)); }
     .col { width: min(88vw, 640px); }
     header .sub, .foot { display: none; }
     header { padding: 0 0 0 10px; } header h1 { font-size: 15px; }
