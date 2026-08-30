@@ -247,6 +247,9 @@ function offlineStatus(pokusaj) {
   }).catch(function () { st.textContent = "nepoznato"; });
 }
 offlineStatus(0);
+if (navigator.serviceWorker) navigator.serviceWorker.addEventListener("message", function (e) {
+  if (e.data && typeof e.data.dopunjeno === "number") { offlineStatus(0); prikaziVerziju(); }
+});
 
 /* verzija + ručna provera ažuriranja */
 function prikaziVerziju() {
@@ -266,6 +269,7 @@ document.getElementById("updBtn").onclick = function () {
   if (!("serviceWorker" in navigator)) { gotov("nije podržano"); return; }
   navigator.serviceWorker.getRegistration().then(function (r) {
     if (!r) { location.reload(); return; }
+    if (r.active) r.active.postMessage("dopuni");        // usput dovuci fajlove koji fale za offline
     return r.update().then(function () {
       if (r.waiting) { r.waiting.postMessage("skipWaiting"); gotov("⬇️ preuzimam…"); return; }
       if (r.installing) { gotov("⬇️ preuzimam…"); return; }

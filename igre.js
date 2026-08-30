@@ -130,7 +130,10 @@ var CSS =
 'html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}' +
 ':root{--navh:52px;--sat:env(safe-area-inset-top, 0px)}' +
 'html,body{height:auto !important}' +
-'body.duga-strana .wrap{padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 26px) !important}' +
+/* spiskovi se skroluju: jastuk racuna i visinu trake i sigurnu zonu, pa dno ostaje
+   dohvatljivo i ako merenje trake omane (iPhone ume da javi manju visinu) */
+'body.duga-strana{padding-bottom:0 !important}' +
+'body.duga-strana .wrap{padding-bottom:calc(var(--navh, 52px) + env(safe-area-inset-bottom, 0px) + 40px) !important}' +
 'body{padding-bottom:calc(var(--navh) + 4px) !important}' +
 '.wrap{min-height:calc(100dvh - var(--navh) - var(--sat) - 4px) !important}' +
 '@media (orientation:landscape) and (max-height:620px){' +

@@ -1,7 +1,7 @@
 /* Service Worker — igre rade bez interneta, ali se osvežavaju čim ima signala.
    Stranice i skripte: mreža prvo (uz kratak rok), pa keš — tako nova verzija stiže odmah.
    Ikone i slike: keš prvo — one se ne menjaju. */
-const VERSION = "igre-v18";
+const VERSION = "igre-v19";
 const NET_TIMEOUT = 2500;
 const CORE = [
   "./", "./igre.html", "./igre.js", "./pomoc.html", "./manifest.webmanifest",
@@ -28,6 +28,7 @@ self.addEventListener("activate", e => {
     const stare = keys.filter(k => k !== VERSION);
     await Promise.all(stare.map(k => caches.delete(k)));
     await self.clients.claim();
+    dopuni();                                    // tiho popuni ono sto je pri instalaciji palo
     if (stare.length) {                          // bila je starija verzija → javi stranicama da se osveže
       const cs = await self.clients.matchAll({ type: "window" });
       for (const c of cs) c.postMessage({ type: "sw-activated", version: VERSION });
@@ -35,9 +36,20 @@ self.addEventListener("activate", e => {
   })());
 });
 
+async function dopuni() {                        // ako je prvo skidanje palo na pola, dovuci ostatak
+  const c = await caches.open(VERSION);
+  let dodato = 0;
+  for (const u of CORE) {
+    if (await c.match(u, { ignoreSearch: true })) continue;
+    try { await c.add(new Request(u, { cache: "reload" })); dodato++; } catch (e) { }
+  }
+  return dodato;
+}
+
 self.addEventListener("message", e => {
   if (e.data === "skipWaiting") self.skipWaiting();
   if (e.data === "version" && e.source) e.source.postMessage({ version: VERSION });
+  if (e.data === "dopuni") e.waitUntil(dopuni().then(n => { if (e.source) e.source.postMessage({ dopunjeno: n }); }));
 });
 
 const timeout = (p, ms) => new Promise((res, rej) => {
