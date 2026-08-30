@@ -208,8 +208,21 @@ let B = null;      // matrica polja (null ili tip)
 let cur = null, hold = null, holdUsed = false, bag = [], queue = [];
 let score = 0, lines = 0, level = 1, over = false, paused = false, started = false;
 let dropAcc = 0, lastTs = 0, lockAcc = 0, onGround = false, raf = 0, dirty = true;
-let best = 0;
-try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s && s.best) best = s.best; } catch (e) { }
+let best = 0, sacuvana = null;                 // sacuvana = prekinuta partija, čeka da je nastaviš
+try {
+  const s = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (s) {
+    best = s.best || 0;
+    const g = s.igra;
+    if (g && Array.isArray(g.B) && g.B.length === ROWS && g.B.every(r => Array.isArray(r) && r.length === COLS)) sacuvana = g;
+  }
+} catch (e) { }
+function sacuvaj() {                          // posle svakog spuštenog komada — tu se partija može preseći
+  try {
+    const igra = (started && !over && B) ? { B: B, hold: hold, queue: queue, bag: bag, score: score, lines: lines, level: level } : null;
+    localStorage.setItem(KEY, JSON.stringify({ best: best, igra: igra }));
+  } catch (e) { }
+}
 
 const speed = () => Math.max(60, 800 - (level - 1) * 65);
 
@@ -228,6 +241,7 @@ function spawn(type) {
   cur = p; onGround = false; lockAcc = 0;
   if (collides(p.t, p.rot, p.x, p.y)) gameOver();
   dirty = true;
+  sacuvaj();
 }
 function collides(t, rot, x, y) {
   for (const [cx, cy] of cellsOf(t, rot, x, y)) {
@@ -363,7 +377,22 @@ function render() {
 }
 
 /* ---------- tok igre ---------- */
+function nastaviIgru() {
+  const g = sacuvana; if (!g) return newGame();
+  B = g.B.map(r => r.slice());
+  hold = g.hold || null; queue = (g.queue || []).slice(); bag = (g.bag || []).slice();
+  score = g.score || 0; lines = g.lines || 0; level = g.level || 1;
+  holdUsed = false; over = false; paused = false; started = true;
+  dropAcc = 0; lockAcc = 0; lastTs = 0;
+  while (queue.length < 3) queue.push(nextType());
+  cur = null; spawn();
+  hideOverlay(); dirty = true;
+  window.SFX && SFX.tap();
+  if (!raf) raf = requestAnimationFrame(tick);
+  scheduleFit();
+}
 function newGame() {
+  sacuvana = null;
   B = Array.from({ length: ROWS }, () => new Array(COLS).fill(null));
   bag = []; queue = []; hold = null; holdUsed = false;
   score = 0; lines = 0; level = 1; over = false; paused = false; started = true;
@@ -379,7 +408,8 @@ function gameOver() {
   over = true; started = false;
   window.SFX && SFX.siren();
   const rekord = score > best;
-  if (rekord) { best = score; try { localStorage.setItem(KEY, JSON.stringify({ best })); } catch (e) { } }
+  if (rekord) best = score;
+  sacuvana = null; sacuvaj();                 // partija je gotova; rekord ostaje
   showOverlay('<h2>Kraj igre</h2>' +
     '<div class="res"><span>Bodovi</span><b>' + score + '</b>' +
     '<span>Linije</span><b>' + lines + '</b><span>Nivo</span><b>' + level + '</b>' +
@@ -403,7 +433,11 @@ function intro() {
     '<li>Dugmad ispod: pomeraj, <b>okreni</b>, <b>tresni</b> (odmah do dna), <b>sačuvaj</b> komad za kasnije.</li>' +
     '<li>Svakih 10 linija ide nivo više i brže pada.</li></ul>' +
     (best ? '<p>Tvoj rekord: <b style="color:var(--ink)">' + best + '</b></p>' : '') +
-    '<div class="btns"><button id="startBtn">▶ Počni</button></div>');
+    '<div class="btns">' +
+    (sacuvana ? '<button id="nastBtn">▶ Nastavi — ' + (sacuvana.score || 0) + ' bodova, nivo ' + (sacuvana.level || 1) + '</button>' : '') +
+    '<button id="startBtn">' + (sacuvana ? "⟲ Nova igra" : "▶ Počni") + '</button></div>' +
+    (sacuvana ? '<p><small>Prekinuta partija te čeka dok je sam ne pokreneš ispočetka.</small></p>' : ''));
+  const nb = $("#nastBtn"); if (nb) nb.onclick = nastaviIgru;
   $("#startBtn").onclick = newGame;
 }
 
@@ -486,7 +520,8 @@ render(); scheduleFit(); intro();
 
 window.T = { get B() { return B; }, get cur() { return cur; }, get score() { return score; }, get lines() { return lines; },
   get level() { return level; }, get over() { return over; }, get queue() { return queue; }, get hold() { return hold; },
-  PIECES, shape, cellsOf, collides, move, rotate, hardDrop, holdPiece, newGame, spawn, ghostY,
+  PIECES, shape, cellsOf, collides, move, rotate, hardDrop, holdPiece, newGame, nastaviIgru, spawn, ghostY,
+  get sacuvana() { return sacuvana; },
   setB: m => { B = m; dirty = true; }, tickOnce: () => { if (cur && !collides(cur.t, cur.rot, cur.x, cur.y + 1)) cur.y++; else lockPiece(); render(); } };
 </script>
 </body>
