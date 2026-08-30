@@ -13,7 +13,8 @@ var GAMES = [
   { id: "cigle",     href: "cigle.html",     em: "🕹️", nm: "Cigle" },
   { id: "stvorenja", href: "stvorenja.html", em: "🐉", nm: "Bića" },
   { id: "tablic",    href: "tablic.html",    em: "🃏", nm: "Tablić" },
-  { id: "jamb",      href: "jamb.html",      em: "🎲", nm: "Jamb" }
+  { id: "jamb",      href: "jamb.html",      em: "🎲", nm: "Jamb" },
+  { id: "geo",       href: "geo.html",       em: "🌍", nm: "Geo" }
 ];
 var SKEY = "igre.sound";
 
@@ -103,7 +104,7 @@ window.IGRE = GAMES;
 /* ---------- donja traka ---------- */
 var CSS =
 '.gamenav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;' +
-'grid-template-columns:repeat(12,1fr);align-items:stretch;' +
+'grid-template-columns:repeat(' + (GAMES.length + 1) + ',1fr);align-items:stretch;' +
 'background:var(--panel);border-top:1px solid var(--line);' +
 'padding-bottom:env(safe-area-inset-bottom, 0px);box-shadow:0 -4px 18px rgba(0,0,0,.22)}' +
 '.gamenav a,.gamenav button{display:flex;flex-direction:column;align-items:center;justify-content:center;' +
@@ -111,7 +112,7 @@ var CSS =
 'text-decoration:none;font:inherit;cursor:pointer;touch-action:manipulation;min-height:46px}' +
 '.gamenav .e{font-size:19px;line-height:1.05}' +
 '.gamenav .t{font-size:9px;letter-spacing:0;white-space:nowrap;overflow:hidden;max-width:100%;text-overflow:clip}' +
-'@media (max-width:400px){.gamenav .t{display:none}.gamenav .e{font-size:22px}.gamenav a,.gamenav button{min-height:42px;padding:6px 0}}' +
+'@media (max-width:460px){.gamenav .t{display:none}.gamenav .e{font-size:20px}.gamenav a,.gamenav button{min-height:42px;padding:6px 0}}' +
 '.gamenav a.on{color:var(--gold);box-shadow:inset 0 2px 0 var(--gold);' +
 'background:color-mix(in srgb, var(--gold) 9%, transparent)}' +
 '.gamenav button.off{opacity:.6}' +

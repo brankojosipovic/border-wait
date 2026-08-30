@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1626">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Geo — geografski kviz sa ponuđenim odgovorima. Ko prvi pogodi, nosi poene. Sam ili u dvoje preko interneta.">
+<meta name="apple-mobile-web-app-title" content="Geo">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/geo-180.png">
+<link rel="icon" href="icons/geo-180.png" sizes="180x180" type="image/png">
+<title>Geo — geografski kviz</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0e1626; --panel: #16223a; --panel-2: #1b2a4a;
+    --ink: #eef2f9; --ink-dim: #9fb0cc; --line: #283a5e;
+    --gold: #c9a227; --good: #2e9e6b; --bad: #d65a4e;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.35);
+  }
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg: #f2f4f8; --panel: #ffffff; --panel-2: #eef1f7;
+    --ink: #1b2a4a; --ink-dim: #5a6884; --line: #d7dded;
+    --gold: #a9851a; --good: #1f7d52; --bad: #c0473c;
+    --shadow: 0 1px 2px rgba(27,42,74,.06), 0 6px 18px rgba(27,42,74,.08);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 Calibri, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none; user-select: none; -webkit-user-select: none;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+  button { font: inherit; color: var(--ink); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px; cursor: pointer;
+    touch-action: manipulation; }
+  button:active { transform: translateY(1px); }
+  button:disabled { cursor: default; }
+  @media (hover: hover) { button:hover { border-color: var(--gold); } }
+  input { font: inherit; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line);
+          border-radius: 10px; padding: 9px 11px; width: 100%; text-align: center;
+          letter-spacing: 3px; text-transform: uppercase; }
+
+  .wrap { display: flex; flex-direction: column; align-items: center; gap: 8px;
+          min-height: 100dvh; padding: 6px 10px 8px; }
+  .col { width: min(100vw - 20px, 460px); }
+  header { display: flex; align-items: center; gap: 10px;
+           border-left: 4px solid var(--gold); padding: 3px 0 3px 10px; }
+  header h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
+  header .sub { color: var(--ink-dim); font-size: 12px; }
+  .spacer { flex: 1; }
+
+  .hud { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-dim); }
+  .hud b { color: var(--ink); font-weight: 700; }
+  .hud .ko { padding: 2px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); }
+  .hud .ko.on { border-color: var(--gold); color: var(--gold); font-weight: 700; }
+  .hud button { padding: 4px 9px; font-size: 13px; }
+
+  .traka { height: 6px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+  .traka i { display: block; height: 100%; background: var(--gold); width: 100%; }
+  .traka.malo i { background: var(--bad); }
+
+  .pit { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+         box-shadow: var(--shadow); padding: 12px 14px; text-align: center;
+         display: flex; flex-direction: column; justify-content: center; gap: 6px;
+         min-height: var(--ph, 96px); }
+  .pit .br { font-size: 11px; color: var(--ink-dim); letter-spacing: .4px; text-transform: uppercase; }
+  .pit .tx { font-size: var(--pf, 17px); font-weight: 700; line-height: 1.3; }
+
+  .odg { display: flex; flex-direction: column; gap: var(--og, 8px); }
+  .odg button { display: flex; align-items: center; gap: 10px; text-align: left;
+                padding: var(--op, 10px) 12px; font-size: var(--of, 15px); line-height: 1.25;
+                background: var(--panel); border-radius: 12px; }
+  .odg button .sl { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 8px;
+                    background: var(--panel-2); border: 1px solid var(--line);
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 12px; font-weight: 700; color: var(--ink-dim); }
+  .odg button.tacno { border-color: var(--good); background: color-mix(in srgb, var(--good) 20%, var(--panel)); }
+  .odg button.tacno .sl { border-color: var(--good); color: var(--good); }
+  .odg button.netacno { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 18%, var(--panel)); }
+  .odg button.moj { box-shadow: inset 0 0 0 2px var(--gold); }
+  .odg button .pr { margin-left: auto; font-size: 11px; color: var(--ink-dim); white-space: nowrap; }
+  .odg button:disabled { opacity: 1; }
+
+  .msg { text-align: center; font-size: 13px; color: var(--ink-dim); min-height: 20px; }
+  .msg b { color: var(--ink); }
+
+  .overlay { position: fixed; inset: 0 0 var(--navh, 0px) 0; display: flex; flex-direction: column; gap: 10px;
+             align-items: center; justify-content: center; text-align: center; padding: 18px;
+             background: color-mix(in srgb, var(--bg) 95%, transparent); backdrop-filter: blur(4px);
+             z-index: 55; overflow-y: auto; overscroll-behavior: contain; }
+  .overlay > * { flex-shrink: 0; }
+  .overlay > :first-child { margin-top: auto; }
+  .overlay > :last-child { margin-bottom: auto; }
+  .overlay h2 { margin: 0; font-size: 20px; }
+  .overlay p, .overlay ul { margin: 0; font-size: 13px; color: var(--ink-dim); max-width: 340px; }
+  .overlay ul { padding-left: 18px; text-align: left; }
+  .overlay ul li { margin-bottom: 5px; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .btns button { min-width: 130px; }
+  .kodBox { font-size: 30px; font-weight: 700; letter-spacing: 8px; color: var(--gold);
+            background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
+
+  .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
+  .foot a { color: var(--ink-dim); }
+  @media (max-height: 760px) { .foot { display: none; } }
+  @media (max-height: 660px) { header .sub { display: none; } }
+  @media (max-height: 600px) {
+    header h1 { font-size: 15px; } .wrap { gap: 6px; padding: 4px 10px 6px; }
+    .msg { min-height: 16px; font-size: 12px; }
+  }
+</style>
+</head>
+<body data-theme="dark">
+<div class="wrap">
+  <header class="col">
+    <div>
+      <h1>🌍 Geo</h1>
+      <div class="sub">Geografija — ko prvi pogodi, nosi poene</div>
+    </div>
+    <div class="spacer"></div>
+    <button id="theme" title="Svetla/tamna tema">☀︎ / ☾</button>
+  </header>
+
+  <div class="hud col" id="hud"></div>
+  <div class="traka col" id="traka"><i></i></div>
+  <div class="pit col" id="pit"></div>
+  <div class="odg col" id="odg"></div>
+  <div class="msg col" id="msg"></div>
+
+  <div class="foot col">
+    Tačan odgovor +3 · promašaj −1 i to pitanje ti je zaključano.
+    <br><a href="igre.html">🎮 Sve igre</a> · <a href="index.html">← Border Wait</a>
+  </div>
+</div>
+<div class="overlay" id="overlay" hidden></div>
+
+<script src="igre.js"></script>
+<script src="mreza.js"></script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const KEY = "geo.v1";
+const PITANJA_PO_PARTIJI = 10;
+const ROK = 15000;          // koliko traje pitanje
+const CEKAJ = 700;          // domaćin sačeka i drugi odgovor, pa uporedi vremena
+const OTKRIVENO = 2800;     // koliko se vidi tačan odgovor
+
+/* ---------- pitanja: prvi ponuđeni je tačan, redosled se meša ---------- */
+const PIT = [];
+</script>
+<script>
+PIT.push(
+["Koji je glavni grad Australije?","Kanbera","Sidnej","Melburn","Pert"],
+["Koji je glavni grad Kanade?","Otava","Toronto","Montreal","Vankuver"],
+["Koji je glavni grad Brazila?","Brazilija","Rio de Žaneiro","Sao Paulo","Salvador"],
+["Koji je glavni grad Turske?","Ankara","Istanbul","Izmir","Bursa"],
+["Koji je glavni grad Švajcarske?","Bern","Cirih","Ženeva","Bazel"],
+["Koji je glavni grad Novog Zelanda?","Velington","Oklend","Krajstčerč","Danidin"],
+["Koji je glavni grad Maroka?","Rabat","Kazablanka","Marakeš","Fes"],
+["Koji je glavni grad Nigerije?","Abudža","Lagos","Kano","Ibadan"],
+["Koji je glavni grad Pakistana?","Islamabad","Karači","Lahor","Pešavar"],
+["Koji je glavni grad Indije?","Nju Delhi","Mumbaj","Kolkata","Bangalor"],
+["Koji je glavni grad Egipta?","Kairo","Aleksandrija","Luksor","Gize"],
+["Koji je glavni grad Kine?","Peking","Šangaj","Hongkong","Nanking"],
+["Koji je glavni grad Japana?","Tokio","Osaka","Kjoto","Jokohama"],
+["Koji je glavni grad Južne Koreje?","Seul","Busan","Inčon","Tegu"],
+["Koji je glavni grad Tajlanda?","Bangkok","Puket","Čijang Maj","Pataja"],
+["Koji je glavni grad Vijetnama?","Hanoj","Ho Ši Min","Da Nang","Hue"],
+["Koji je glavni grad Filipina?","Manila","Sebu","Davao","Kezon"],
+["Koji je glavni grad Irana?","Teheran","Isfahan","Širaz","Tabriz"],
+["Koji je glavni grad Kenije?","Najrobi","Mombasa","Kisumu","Nakuru"],
+["Koji je glavni grad Argentine?","Buenos Ajres","Kordoba","Rosario","Mendosa"],
+["Koji je glavni grad Perua?","Lima","Kusko","Arekipa","Truhiljo"],
+["Koji je glavni grad Čilea?","Santjago","Valparaiso","Konsepsion","Antofagasta"],
+["Koji je glavni grad Kube?","Havana","Santjago de Kuba","Varadero","Trinidad"],
+["Koji je glavni grad Portugala?","Lisabon","Porto","Faro","Koimbra"],
+["Koji je glavni grad Norveške?","Oslo","Bergen","Trondhajm","Stavanger"],
+["Koji je glavni grad Finske?","Helsinki","Tampere","Turku","Espo"],
+["Koji je glavni grad Islanda?","Rejkjavik","Akurejri","Keflavik","Hafnarfjerdir"],
+["Koji je glavni grad Irske?","Dablin","Kork","Golvej","Limerik"],
+["Koji je glavni grad Belgije?","Brisel","Antverpen","Brige","Gent"],
+["Koji je glavni grad Poljske?","Varšava","Krakov","Gdanjsk","Vroclav"],
+["Koji je glavni grad Slovačke?","Bratislava","Košice","Žilina","Nitra"],
+["Koji je glavni grad Rumunije?","Bukurešt","Kluž","Temišvar","Konstanca"],
+["Koji je glavni grad Bugarske?","Sofija","Plovdiv","Varna","Burgas"],
+["Koji je glavni grad Albanije?","Tirana","Drač","Skadar","Valona"],
+["Koji je glavni grad Severne Makedonije?","Skoplje","Bitolj","Ohrid","Kumanovo"],
+["Koji je glavni grad Crne Gore?","Podgorica","Cetinje","Nikšić","Budva"],
+["Koji je glavni grad Bosne i Hercegovine?","Sarajevo","Banja Luka","Mostar","Tuzla"],
+["Koji je glavni grad Slovenije?","Ljubljana","Maribor","Celje","Koper"],
+["Koji je glavni grad Austrije?","Beč","Salcburg","Grac","Insbruk"],
+["Koji je glavni grad Holandije?","Amsterdam","Roterdam","Hag","Utreht"],
+["Koja je najduža reka u Evropi?","Volga","Dunav","Rajna","Dnjepar"],
+["Koja reka se uliva u Dunav kod Beograda?","Sava","Tisa","Drina","Morava"],
+["Kroz koji grad protiče Sena?","Pariz","Lion","Marselj","Bordo"],
+["Na kojoj reci leži Rim?","Tibar","Po","Arno","Adiđe"],
+["Kroz koji grad protiče Temza?","London","Mančester","Liverpul","Birmingem"],
+["U koje more se uliva Nil?","Sredozemno","Crveno","Crno","Kaspijsko"],
+["Na kom kontinentu je reka Amazon?","Južna Amerika","Afrika","Azija","Australija"],
+["Kroz koju zemlju protiče Gang?","Indija","Kina","Iran","Mjanmar"],
+["Na kojoj reci su Viktorijini vodopadi?","Zambezi","Nil","Kongo","Niger"],
+["Kroz koji grad u Srbiji protiče Nišava?","Niš","Kragujevac","Užice","Šabac"],
+["Na kojoj reci je Đerdapska klisura?","Dunav","Sava","Tisa","Drina"],
+["Koja reka razdvaja Srbiju i Bosnu i Hercegovinu većim delom?","Drina","Sava","Una","Bosna"],
+["Kroz koji grad protiče Dunav u Srbiji?","Novi Sad","Kragujevac","Niš","Užice"],
+["Kroz koje glavne gradove protiče Dunav?","Beč, Bratislava, Budimpešta i Beograd","Prag i Varšava","Rim i Madrid","Berlin i Bern"],
+["Koji je najviši vrh sveta?","Everest","K2","Kilimandžaro","Mon Blan"],
+["Koji je najviši vrh Afrike?","Kilimandžaro","Kenija","Atlas","Ras Dašen"],
+["Koji je najviši vrh Alpa?","Mon Blan","Materhorn","Ajger","Grosglokner"],
+["Koji je najviši vrh Balkanskog poluostrva?","Musala","Olimp","Triglav","Midžor"],
+["U kojoj zemlji je planina Fudži?","Japan","Kina","Južna Koreja","Filipini"],
+["Koja planina u Srbiji je poznata po skijalištu?","Kopaonik","Fruška gora","Vršačke planine","Rudnik"],
+["Na kojoj planini je Sveta gora sa manastirima?","Atos","Olimp","Pind","Rodopi"],
+["Kroz koje zemlje se pružaju Karpati?","Rumunija i Slovačka","Španija i Portugal","Norveška i Švedska","Grčka i Turska"],
+["Koji je najveći okean?","Tihi","Atlantski","Indijski","Severni ledeni"],
+["Koji okean je između Evrope i Severne Amerike?","Atlantski","Tihi","Indijski","Južni"],
+["Koje more zapljuskuje obalu Crne Gore?","Jadransko","Egejsko","Jonsko","Crno"],
+["Koje more je između Grčke i Turske?","Egejsko","Jadransko","Crno","Mramorno"],
+["Koje jezero je najdublje na svetu?","Bajkal","Tanganjika","Kaspijsko","Viktorijino"],
+["Koje je najveće jezero na svetu po površini?","Kaspijsko jezero","Bajkal","Viktorijino jezero","Gornje jezero"],
+["Koje jezero leži najniže na Zemlji i toliko je slano da se u njemu pluta?","Mrtvo more","Bajkal","Balaton","Ohridsko"],
+["Koje more nema obalu i poznato je po algama?","Sargaško","Crno","Mramorno","Beringovo"],
+["Koja dva mora spaja Suecki kanal?","Sredozemno i Crveno","Crno i Egejsko","Baltičko i Severno","Kaspijsko i Crno"],
+["Kroz koju državu prolazi kanal koji spaja Atlantski i Tihi okean?","Panama","Meksiko","Kolumbija","Kostarika"],
+["Koja je najveća država na svetu po površini?","Rusija","Kanada","Kina","SAD"],
+["Koja je najmanja država na svetu?","Vatikan","Monako","San Marino","Lihtenštajn"],
+["Na kom kontinentu nema stalnih stanovnika?","Antarktik","Australija","Južna Amerika","Afrika"],
+["Koje je najveće ostrvo na svetu?","Grenland","Nova Gvineja","Borneo","Madagaskar"],
+["Koji grad leži na dva kontinenta?","Istanbul","Kairo","Atina","Moskva"],
+["Koja je najveća vruća pustinja na svetu?","Sahara","Gobi","Kalahari","Atakama"],
+["Na kom kontinentu je Sahara?","Afrika","Azija","Australija","Južna Amerika"],
+["Koja država ima oblik čizme?","Italija","Grčka","Portugal","Hrvatska"],
+["Kako se zove zemlja poznata kao „zemlja hiljadu jezera“?","Finska","Švedska","Kanada","Norveška"],
+["U kojoj zemlji je grad Marakeš?","Maroko","Alžir","Tunis","Egipat"],
+["Kroz koju državu prolazi ekvator, a ime joj to i kaže?","Ekvador","Kolumbija","Bolivija","Peru"],
+["Koja država ima zastavu sa crvenim krugom na beloj podlozi?","Japan","Kina","Južna Koreja","Vijetnam"],
+["Koja država ima javorov list na zastavi?","Kanada","SAD","Švedska","Švajcarska"],
+["Koji kontinent je najmanji po površini?","Australija","Evropa","Antarktik","Južna Amerika"],
+["Koliko kontinenata ima na Zemlji?","Sedam","Pet","Šest","Osam"],
+["Koja zemlja ima najviše stanovnika na svetu?","Indija","Kina","SAD","Indonezija"],
+["Gde se nalazi Ajfelova kula?","Pariz","London","Rim","Madrid"],
+["U kom gradu je Koloseum?","Rim","Atina","Napulj","Milano"],
+["U kom gradu je Big Ben?","London","Dablin","Edinburg","Kardif"],
+["U kom gradu je Kip slobode?","Njujork","Vašington","Boston","Čikago"],
+["U kojoj državi je Mačupikču?","Peru","Bolivija","Meksiko","Čile"],
+["U kojoj državi su najpoznatije piramide?","Egipat","Meksiko","Sudan","Irak"],
+["U kojoj državi je Tadž Mahal?","Indija","Pakistan","Iran","Bangladeš"],
+["U kom gradu je Akropolj?","Atina","Rim","Solun","Istanbul"],
+["U kom gradu je Sagrada Familija?","Barselona","Madrid","Valensija","Sevilja"],
+["U kom gradu je operska zgrada sa krovom nalik jedrima?","Sidnej","Melburn","Oklend","Kejptaun"],
+["U kom gradu je kosi toranj?","Piza","Firenca","Bolonja","Đenova"],
+["U kojoj zemlji je drevni grad Petra isklesan u steni?","Jordan","Egipat","Sirija","Izrael"],
+["U kom gradu je kip Hrista Iskupitelja?","Rio de Žaneiro","Buenos Ajres","Lisabon","Lima"],
+["U kojoj zemlji je Angkor Vat?","Kambodža","Tajland","Vijetnam","Laos"],
+["Gde se nalazi Uluru (Ajers rok)?","Australija","Južna Afrika","Meksiko","SAD"],
+["U kojoj državi je Grand Kanjon?","SAD","Kanada","Meksiko","Australija"],
+["Na granici kojih država su Nijagarini vodopadi?","SAD i Kanada","SAD i Meksiko","Kanada i Grenland","Brazil i Argentina"],
+["U kojoj državi je najviši vodopad na svetu, Anhel?","Venecuela","Brazil","Kolumbija","Gvajana"],
+["U kom gradu je Kalemegdanska tvrđava?","Beograd","Novi Sad","Niš","Smederevo"],
+["U kom gradu je Petrovaradinska tvrđava?","Novi Sad","Beograd","Sombor","Subotica"],
+["U kom gradu je Ćele kula?","Niš","Kragujevac","Leskovac","Vranje"],
+["Koji je drugi najveći grad u Srbiji?","Novi Sad","Niš","Kragujevac","Subotica"],
+["Gde se održava sabor trubača u Srbiji?","Guča","Zlatibor","Vrnjačka Banja","Sokobanja"],
+["Kako se zove uskotračna pruga kod Mokre Gore?","Šarganska osmica","Ćirina pruga","Tarska petlja","Drinska spirala"],
+["Koja planina je nacionalni park uz Drinu, poznata po Banjskoj steni?","Tara","Kopaonik","Golija","Stara planina"],
+["Gde žive beloglavi supovi u Srbiji?","Kanjon Uvca","Fruška gora","Deliblatska peščara","Vlasinsko jezero"],
+["Koja pojava kod Kuršumlije se zove „Đavolja varoš“?","Zemljane kule sa kamenim kapama","Vodopad","Pećina sa crtežima","Slano jezero"],
+["Koja planina se diže iznad Novog Sada?","Fruška gora","Rudnik","Cer","Avala"],
+["Na kojoj reci je Zlatarsko jezero?","Uvac","Ibar","Lim","Drina"],
+["Koje jezero u Srbiji je nastalo pregrađivanjem Dunava?","Đerdapsko","Palićko","Vlasinsko","Ludoško"],
+["U kom gradu se održava festival Egzit?","Novi Sad","Beograd","Niš","Kragujevac"],
+["Koja banja je najpoznatija po vodi „Vrnjci“?","Vrnjačka Banja","Sokobanja","Niška Banja","Banja Koviljača"],
+["Koji je najviši vrh Vojvodine, Gudurički vrh?","Vršačke planine","Fruška gora","Titelski breg","Cer"],
+["Kroz koji grad protiče Zapadna Morava?","Čačak","Zaječar","Sombor","Pančevo"],
+["Koji grad je poznat po tvrđavi na ušću Jezave u Dunav?","Smederevo","Šabac","Zrenjanin","Sremska Mitrovica"],
+["Koja je najveća ravnica u Srbiji?","Panonska nizija","Metohijska kotlina","Timočka krajina","Šumadija"]
+);
+</script>
+<script>
+"use strict";
+
+/* ---------- nasumičnost koja je ista na oba telefona ---------- */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function promesaj(niz, r) {
+  for (let i = niz.length - 1; i > 0; i--) { const j = (r() * (i + 1)) | 0; [niz[i], niz[j]] = [niz[j], niz[i]]; }
+  return niz;
+}
+function izborPitanja(seed, koliko) {
+  const r = mulberry32(seed);
+  return promesaj(PIT.map((_, i) => i), r).slice(0, koliko);
+}
+function raspored(seed, k) {                 // gde je koja ponuđena opcija na ekranu
+  return promesaj([0, 1, 2, 3], mulberry32((seed ^ 0x9E3779B9) + k * 104729));
+}
+
+/* ---------- stanje ---------- */
+let G = null, mojIndex = 0;
+let tPrikaz = 0, mojIzbor = null, zadnjiK = -1;
+let tikTajmer = null, rokTajmer = null, cekajTajmer = null, daljeTajmer = null;
+let odgovori = [null, null];                 // domaćinov zapisnik za tekuće pitanje
+let sacuvanaMreza = null, nastavljam = false, ponoviVezu = null;
+
+const domacin = () => G && (G.rezim !== "mreza" || Mreza.uloga() === "domacin");
+const brojIgraca = () => (G && G.rezim === "mreza") ? 2 : 1;
+
+function novaIgra(rezim) {
+  ocistiTajmere();
+  G = {
+    rezim, seed: (Math.random() * 2147483647) | 0, k: 0,
+    poeni: [0, 0], faza: "pitanje", izbor: [null, null], vreme: [null, null],
+    brzi: null, gotovo: false
+  };
+  G.red = izborPitanja(G.seed, PITANJA_PO_PARTIJI);
+  if (rezim !== "mreza") mojIndex = 0;
+  odgovori = [null, null]; mojIzbor = null; zadnjiK = -1;
+  hideOverlay(); pocniPitanje(); posaljiStanje(); save();
+}
+function ocistiTajmere() {
+  clearInterval(tikTajmer); clearTimeout(rokTajmer); clearTimeout(cekajTajmer); clearTimeout(daljeTajmer);
+  tikTajmer = rokTajmer = cekajTajmer = daljeTajmer = null;
+}
+function pocniPitanje() {                    // domaćin (ili igra za jednog) otvara novo pitanje
+  G.faza = "pitanje"; G.izbor = [null, null]; G.vreme = [null, null]; G.brzi = null;
+  odgovori = [null, null];
+  render();
+  if (domacin()) {
+    clearTimeout(rokTajmer);
+    rokTajmer = setTimeout(() => resi(), ROK + 200);
+  }
+}
+
+/* ---------- odgovaranje ---------- */
+function odgovori_klik(poz) {
+  if (!G || G.faza !== "pitanje" || G.gotovo || mojIzbor != null) return;
+  const ms = Math.max(0, Math.round(performance.now() - tPrikaz));
+  mojIzbor = poz;
+  window.SFX && SFX.tick();
+  if (domacin()) zapisi(mojIndex, poz, ms);
+  else Mreza.posalji({ t: "odg", poz: poz, ms: ms });
+  render();
+}
+function zapisi(i, poz, ms) {                // samo domaćin vodi zapisnik
+  if (!G || G.faza !== "pitanje" || odgovori[i]) return;
+  odgovori[i] = { poz: poz, ms: ms, tacno: poz === tacnaPozicija() };
+  G.izbor[i] = poz; G.vreme[i] = ms;
+  render();
+  const svi = odgovori.slice(0, brojIgraca()).every(o => o);
+  if (svi) return resi();
+  if (!cekajTajmer) cekajTajmer = setTimeout(() => resi(), CEKAJ);   // sačekaj i drugog, pa uporedi
+}
+function resi() {                            // ko je bio brži i tačan
+  if (!G || G.faza !== "pitanje") return;
+  ocistiTajmere();
+  const tacni = [];
+  for (let i = 0; i < brojIgraca(); i++) {
+    const o = odgovori[i];
+    if (!o) continue;
+    if (o.tacno) tacni.push({ i, ms: o.ms }); else G.poeni[i] -= 1;
+  }
+  tacni.sort((a, b) => a.ms - b.ms);
+  tacni.forEach((x, mesto) => { G.poeni[x.i] += mesto === 0 ? 3 : 1; });
+  G.brzi = tacni.length ? tacni[0].i : null;
+  G.faza = "otkrij";
+  window.SFX && (G.brzi === mojIndex ? SFX.coin() : G.brzi != null ? SFX.bad() : SFX.tick());
+  render(); posaljiStanje(); save();
+  daljeTajmer = setTimeout(dalje, OTKRIVENO);
+}
+function dalje() {
+  if (!G) return;
+  if (G.k + 1 >= G.red.length) return kraj();
+  G.k++; mojIzbor = null;
+  pocniPitanje(); posaljiStanje(); save();
+}
+function kraj() {
+  ocistiTajmere();
+  G.gotovo = true; G.faza = "kraj";
+  render(); posaljiStanje();
+  try { localStorage.removeItem(KEY); } catch (e) { }
+  let rekord = 0;
+  try { rekord = JSON.parse(localStorage.getItem("geo.rekord") || "0"); } catch (e) { }
+  const moji = G.poeni[mojIndex];
+  const nov = moji > rekord;
+  if (nov) { try { localStorage.setItem("geo.rekord", JSON.stringify(moji)); } catch (e) { } }
+  window.SFX && SFX.win();
+  const dvoje = G.rezim === "mreza";
+  const ishod = !dvoje ? "" :
+    (G.poeni[mojIndex] > G.poeni[1 - mojIndex] ? "🏆 Pobedio si!" :
+     G.poeni[mojIndex] < G.poeni[1 - mojIndex] ? "Protivnik je bolji ovog puta." : "Nerešeno!");
+  showOverlay('<h2>🏁 Kraj kviza</h2>' +
+    (dvoje ? '<p style="font-size:15px;color:var(--ink)"><b>' + ishod + '</b></p>' : '') +
+    '<p>Ti: <b style="color:var(--ink)">' + G.poeni[mojIndex] + '</b>' +
+    (dvoje ? ' · Protivnik: <b style="color:var(--ink)">' + G.poeni[1 - mojIndex] + '</b>' : '') + '</p>' +
+    (nov ? '<p style="color:var(--good);font-weight:700">Novi lični rekord: ' + moji + '</p>'
+         : '<p>Tvoj rekord: ' + Math.max(rekord, moji) + '</p>') +
+    '<div class="btns">' + (domacin() ? '<button id="opetBtn">⟲ Još jednom</button>' : '') +
+    '<button id="meniBtn">📋 Meni</button></div>');
+  if (domacin()) $("#opetBtn").onclick = () => novaIgra(G.rezim);
+  $("#meniBtn").onclick = meni;
+}
+const tacnaPozicija = () => raspored(G.seed, G.red[G.k]).indexOf(0);
+
+/* ---------- mreža ---------- */
+function posaljiStanje() {
+  if (G && G.rezim === "mreza" && window.Mreza && Mreza.povezan() && Mreza.uloga() === "domacin")
+    Mreza.posalji({ t: "stanje", g: G });
+}
+function primi(m) {
+  if (!m || !G) return;
+  if (m.t === "stanje") {
+    G = m.g; G.rezim = "mreza";
+    if (G.faza === "pitanje" && G.k !== zadnjiK) mojIzbor = null;
+    render();
+    if (G.gotovo && $("#overlay").hidden) kraj();
+    save();
+    return;
+  }
+  if (m.t === "odg" && domacin()) zapisi(1, m.poz, m.ms);
+}
+function statusMreze(st, detalj) {
+  if (st === "spajam") { showOverlay('<h2>Spajam se…</h2><p>' + (detalj || "Tražim server za upoznavanje igrača.") + '</p>' +
+    '<div class="btns"><button id="odBtn">Odustani</button></div>'); $("#odBtn").onclick = () => { Mreza.zatvori(); meni(); }; }
+  if (st === "cekam") pokaziKod(detalj);
+  if (st === "povezan") {
+    if (Mreza.uloga() === "domacin") {
+      mojIndex = 0;
+      if (nastavljam && G && !G.gotovo && G.rezim === "mreza") { hideOverlay(); render(); posaljiStanje(); save(); }
+      else novaIgra("mreza");
+    } else { mojIndex = 1; hideOverlay(); save(); }
+    poruka("Povezani ste! (" + (Mreza.nacin() === "relej" ? "preko servera" : "direktna veza") + ")");
+  }
+  if (st === "prekinuto") poruka("⚠️ Veza je prekinuta.");
+  if (st === "greska") {
+    showOverlay('<h2>Spajanje nije uspelo</h2><p>' + (detalj || "") + '</p>' +
+      '<p><small>Ako ne ide ni iz drugog pokušaja, probajte oba telefona na Wi-Fi mreži.</small></p>' +
+      '<div class="btns">' + (ponoviVezu ? '<button id="opetBtn2">↻ Probaj ponovo</button>' : '') +
+      '<button id="nb">← Nazad</button></div>');
+    if (ponoviVezu) $("#opetBtn2").onclick = () => { const f = ponoviVezu; Mreza.zatvori(); f(); };
+    $("#nb").onclick = meni;
+  }
+}
+function pokaziKod(kod) {
+  showOverlay('<h2>Kod sobe</h2><div class="kodBox">' + kod + '</div>' +
+    '<p>Pošalji ovaj kod drugom igraču — neka ga ukuca kod „Uđi u sobu". Čekam da se pridruži…</p>' +
+    '<div class="btns"><button id="kopBtn">📋 Kopiraj kod</button><button id="odustBtn">Odustani</button></div>');
+  $("#kopBtn").onclick = () => { try { navigator.clipboard.writeText(kod).then(() => $("#kopBtn").textContent = "✔ Kopirano"); } catch (e) { } };
+  $("#odustBtn").onclick = () => { Mreza.zatvori(); meni(); };
+}
+
+/* ---------- čuvanje ---------- */
+function save() {
+  if (!G || G.gotovo) return;
+  try {
+    const m = (G.rezim === "mreza" && window.Mreza && Mreza.kod())
+      ? { kod: Mreza.kod(), uloga: Mreza.uloga(), mojIndex: mojIndex }
+      : (G.rezim === "mreza" ? sacuvanaMreza : null);
+    localStorage.setItem(KEY, JSON.stringify({ g: G, mreza: m }));
+  } catch (e) { }
+}
+function load() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (!raw || !raw.g || !raw.g.red || raw.g.gotovo) return false;
+    G = raw.g; sacuvanaMreza = raw.mreza || null;
+    if (G.rezim === "mreza" && !sacuvanaMreza) return false;      // bez koda nema šta da se nastavi
+    mojIndex = sacuvanaMreza ? (sacuvanaMreza.mojIndex || 0) : 0;
+    return true;
+  } catch (e) { return false; }
+}
+
+/* ---------- crtanje ---------- */
+function render() {
+  if (!G) return;
+  const dvoje = G.rezim === "mreza";
+  $("#hud").innerHTML =
+    '<span class="ko' + (G.brzi === mojIndex ? " on" : "") + '">Ti <b>' + G.poeni[mojIndex] + '</b></span>' +
+    (dvoje ? '<span class="ko' + (G.brzi === 1 - mojIndex ? " on" : "") + '">Protivnik <b>' + G.poeni[1 - mojIndex] + '</b></span>' : '') +
+    '<div class="spacer"></div>' +
+    (dvoje ? '<span>' + (Mreza.povezan() ? "🟢" : "🔴") + " " + (Mreza.kod() || "") + '</span>' : '') +
+    '<button id="meniBtn2" title="Meni">☰</button>';
+  $("#meniBtn2").onclick = meni;
+
+  const qi = G.red[G.k], q = PIT[qi], map = raspored(G.seed, qi);
+  const tacnaPoz = map.indexOf(0);
+  $("#pit").innerHTML = '<div class="br">Pitanje ' + (G.k + 1) + " / " + G.red.length + '</div>' +
+    '<div class="tx">' + q[0] + '</div>';
+
+  const otkrij = G.faza !== "pitanje";
+  $("#odg").innerHTML = map.map((orig, poz) => {
+    let cls = "";
+    if (otkrij) {
+      if (poz === tacnaPoz) cls = " tacno";
+      else if (G.izbor[mojIndex] === poz || (dvoje && G.izbor[1 - mojIndex] === poz)) cls = " netacno";
+    }
+    if (mojIzbor === poz || (otkrij && G.izbor[mojIndex] === poz)) cls += " moj";
+    let pr = "";
+    if (otkrij && dvoje && G.izbor[1 - mojIndex] === poz) pr = "protivnik";
+    if (otkrij && G.izbor[mojIndex] === poz) pr = (pr ? "ti i " + pr : "ti");
+    return '<button class="' + cls.trim() + '" data-p="' + poz + '"' + (otkrij || mojIzbor != null ? " disabled" : "") + '>' +
+      '<span class="sl">' + "ABCD"[poz] + '</span><span>' + q[1 + orig] + '</span>' +
+      (pr ? '<span class="pr">' + pr + '</span>' : '') + '</button>';
+  }).join("");
+  for (const b of document.querySelectorAll("#odg button")) b.onclick = () => odgovori_klik(+b.dataset.p);
+
+  if (G.faza === "pitanje") {
+    if (G.k !== zadnjiK) { zadnjiK = G.k; tPrikaz = performance.now(); pokreniTraku(); }
+    poruka(mojIzbor != null ? "Odgovor poslat — čekam…" : (dvoje ? "Ko prvi pogodi, nosi <b>+3</b>." : "Tačno <b>+3</b>, promašaj <b>−1</b>."));
+  } else if (G.faza === "otkrij") {
+    zadnjiK = -1; stopTraka();
+    const ja = G.izbor[mojIndex], mojaTacna = ja === tacnaPoz;
+    let t;
+    if (G.brzi == null) t = "Niko nije pogodio — tačno je <b>" + q[1] + "</b>.";
+    else if (G.brzi === mojIndex) t = "✔ Ti si bio brži! <b>+3</b>" + (G.vreme[mojIndex] != null ? " (" + (G.vreme[mojIndex] / 1000).toFixed(1) + " s)" : "");
+    else t = (mojaTacna ? "Tačno, ali sporije — <b>+1</b>." : "Protivnik je pogodio.") +
+             (G.vreme[1 - mojIndex] != null ? " (" + (G.vreme[1 - mojIndex] / 1000).toFixed(1) + " s)" : "");
+    poruka(t);
+  }
+  fit();
+}
+function poruka(h) { $("#msg").innerHTML = h; }
+
+/* ---------- traka vremena ---------- */
+function pokreniTraku() {
+  clearInterval(tikTajmer);
+  const bar = $("#traka");
+  tikTajmer = setInterval(() => {
+    if (!G || G.faza !== "pitanje") return stopTraka();
+    const p = Math.max(0, 1 - (performance.now() - tPrikaz) / ROK);
+    bar.firstElementChild.style.width = (p * 100).toFixed(1) + "%";
+    bar.classList.toggle("malo", p < 0.28);
+  }, 100);
+}
+function stopTraka() {
+  clearInterval(tikTajmer); tikTajmer = null;
+  const bar = $("#traka");
+  bar.firstElementChild.style.width = "100%"; bar.classList.remove("malo");
+}
+
+/* ---------- uklapanje u jedan ekran ---------- */
+function fit() {
+  const wrap = document.querySelector(".wrap"), nav = document.querySelector(".gamenav");
+  if (!wrap) return;
+  const root = document.documentElement, limit = nav ? nav.getBoundingClientRect().top : window.innerHeight;
+  const stanje = [
+    { pf: 17, of: 15, op: 10, og: 8, ph: 96 },
+    { pf: 16, of: 14, op: 9, og: 7, ph: 86 },
+    { pf: 15, of: 13.5, op: 8, og: 6, ph: 76 },
+    { pf: 14, of: 13, op: 7, og: 5, ph: 66 },
+    { pf: 13, of: 12, op: 6, og: 4, ph: 58 }
+  ];
+  for (let i = 0; i < stanje.length; i++) {
+    const s = stanje[i];
+    root.style.setProperty("--pf", s.pf + "px"); root.style.setProperty("--of", s.of + "px");
+    root.style.setProperty("--op", s.op + "px"); root.style.setProperty("--og", s.og + "px");
+    root.style.setProperty("--ph", s.ph + "px");
+    const dno = wrap.getBoundingClientRect().bottom;
+    if (dno <= limit - 2) return;
+  }
+}
+window.addEventListener("resize", fit);
+window.addEventListener("load", fit);
+window.addEventListener("orientationchange", () => setTimeout(fit, 120));
+
+/* ---------- meni ---------- */
+function meni() {
+  ocistiTajmere(); stopTraka();
+  const nast = sacuvanaMreza && G && !G.gotovo;
+  showOverlay('<h2>🌍 Geo</h2>' +
+    '<div class="btns">' +
+    (nast ? '<button id="nastBtn">▶ Nastavi kviz (' + sacuvanaMreza.kod + ')</button>' : '') +
+    '<button id="samBtn">👤 Vežbanje</button>' +
+    '<button id="sobaBtn">🌐 Napravi sobu</button>' +
+    '<button id="udjiBtn">🔗 Uđi u sobu</button>' +
+    '<button id="pravBtn">❔ Pravila</button></div>' +
+    '<p>' + (nast ? "Prekinuti kviz se čuva — pritisnite „Nastavi kviz“ oba."
+                  : "Deset pitanja iz geografije. U dvoje: oba telefona vide isto pitanje, a poene nosi onaj ko brže pogodi.") + '</p>');
+  if (nast) $("#nastBtn").onclick = nastaviKviz;
+  $("#samBtn").onclick = () => novaIgra("sam");
+  $("#sobaBtn").onclick = napraviSobu;
+  $("#udjiBtn").onclick = udjiUSobu;
+  $("#pravBtn").onclick = pravila;
+}
+function pravila() {
+  showOverlay('<h2>Pravila</h2>' +
+    '<ul><li>Deset pitanja, na svako imaš <b>15 sekundi</b>.</li>' +
+    '<li><b>Tačan odgovor +3</b>, a promašaj <b>−1</b> i to pitanje ti je zaključano.</li>' +
+    '<li>U dvoje: broji se koliko ti je trebalo od trenutka kad se pitanje pojavilo — ' +
+    'brži tačan dobija +3, sporiji tačan +1. Veza ne može da te ošteti.</li>' +
+    '<li>Ponuđeni odgovori se mešaju, pa je isti raspored na oba telefona.</li></ul>' +
+    '<div class="btns"><button id="nazadBtn2">← Nazad</button></div>');
+  $("#nazadBtn2").onclick = meni;
+}
+function nastaviKviz() {
+  if (!sacuvanaMreza) return meni();
+  nastavljam = true;
+  if (sacuvanaMreza.uloga === "domacin") { mojIndex = 0; napraviSobu(sacuvanaMreza.kod); }
+  else { mojIndex = sacuvanaMreza.mojIndex || 1; pridruziSe(sacuvanaMreza.kod, true); }
+}
+function napraviSobu(istiKod) {
+  if (!Mreza.podrzana()) { showOverlay('<h2>Nije podržano</h2><p>Ovaj pregledač ne ume vezu sa drugim telefonom.</p><div class="btns"><button id="nb2">← Nazad</button></div>'); $("#nb2").onclick = meni; return; }
+  const kod = typeof istiKod === "string" ? istiKod : null;
+  if (!kod) nastavljam = false;
+  ponoviVezu = () => napraviSobu(kod);
+  showOverlay('<h2>' + (kod ? "Otvaram staru sobu…" : "Pravim sobu…") + '</h2><p>Spajam se na server za upoznavanje igrača.</p>');
+  Mreza.napravi({ kod: kod, poruka: primi, status: statusMreze }).catch(() => { });
+}
+function udjiUSobu() {
+  showOverlay('<h2>Uđi u sobu</h2><p>Ukucaj kod koji ti je poslao drugi igrač.</p>' +
+    '<input id="kodIn" maxlength="5" placeholder="KOD" autocapitalize="characters" autocomplete="off">' +
+    '<div class="btns"><button id="idiBtn">🔗 Poveži se</button><button id="nazadBtn3">← Nazad</button></div>');
+  $("#nazadBtn3").onclick = meni;
+  $("#idiBtn").onclick = () => {
+    const k = $("#kodIn").value.trim();
+    if (k.length < 4) return;
+    pridruziSe(k.toUpperCase(), false);
+  };
+  setTimeout(() => { const i = $("#kodIn"); if (i) i.focus(); }, 100);
+}
+function pridruziSe(k, nastavakStare) {
+  nastavljam = !!nastavakStare;
+  ponoviVezu = () => pridruziSe(k, nastavakStare);
+  showOverlay('<h2>Spajam se…</h2><p>' + (nastavakStare ? "Vraćam se u sobu" : "Tražim sobu") +
+    ' <b style="color:var(--gold)">' + k + '</b></p>');
+  mojIndex = 1;
+  if (!nastavakStare || !G) { novaIgra("mreza"); showOverlay('<h2>Spajam se…</h2><p>Tražim sobu <b style="color:var(--gold)">' + k + '</b></p>'); }
+  Mreza.pridruzi(k, { poruka: primi, status: statusMreze }).catch(() => { });
+}
+function showOverlay(h) { const o = $("#overlay"); o.innerHTML = h; o.hidden = false; }
+function hideOverlay() { $("#overlay").hidden = true; }
+
+$("#theme").onclick = () => {
+  const b = document.body;
+  b.dataset.theme = b.dataset.theme === "dark" ? "light" : "dark";
+  try { localStorage.setItem("sudoku.theme", b.dataset.theme); } catch (e) { }
+};
+
+/* ---------- start ---------- */
+try { const t = localStorage.getItem("sudoku.theme"); if (t) document.body.dataset.theme = t; } catch (e) { }
+if (load()) { render(); meni(); } else { novaIgra("sam"); meni(); }
+
+window.GEO = {
+  get G() { return G; }, PIT, novaIgra, render, primi, statusMreze, raspored, izborPitanja,
+  odgovori: p => odgovori_klik(p), meni, save, load, nastaviKviz,
+  get mojIndex() { return mojIndex; }, get mojIzbor() { return mojIzbor; },
+  get sacuvanaMreza() { return sacuvanaMreza; },
+  tacnaPozicija: () => tacnaPozicija()
+};
+</script>
+</body>
+</html>
