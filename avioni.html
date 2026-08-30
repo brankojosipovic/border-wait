@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1626">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Avioni — vertikalna pucačina: nadogradnje oružja na krilima, nivoi i bosovi. Radi i bez interneta.">
+<title>Avioni</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0e1626; --panel: #16223a; --panel-2: #1b2a4a;
+    --ink: #eef2f9; --ink-dim: #9fb0cc; --line: #283a5e;
+    --gold: #c9a227; --good: #2e9e6b; --bad: #d65a4e;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.35);
+  }
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg: #f2f4f8; --panel: #ffffff; --panel-2: #eef1f7;
+    --ink: #1b2a4a; --ink-dim: #5a6884; --line: #d7dded;
+    --gold: #a9851a; --good: #1f7d52; --bad: #c0473c;
+    --shadow: 0 1px 2px rgba(27,42,74,.06), 0 6px 18px rgba(27,42,74,.08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 Calibri, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none; user-select: none; -webkit-user-select: none;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+  button { font: inherit; color: var(--ink); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 10px; padding: 7px 11px; cursor: pointer;
+    touch-action: manipulation; }
+  button:active { transform: translateY(1px); }
+  @media (hover: hover) { button:hover { border-color: var(--gold); } }
+
+  .wrap { display: flex; flex-direction: column; align-items: center; gap: 7px;
+          min-height: 100dvh; padding: 6px 10px 8px; }
+  .col { width: min(100vw - 20px, 460px); }
+  header { display: flex; align-items: center; gap: 10px;
+           border-left: 4px solid var(--gold); padding: 3px 0 3px 10px; }
+  header h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
+  header .sub { color: var(--ink-dim); font-size: 12px; }
+  .spacer { flex: 1; }
+
+  .hud { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-dim); }
+  .hud b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 700; }
+  .hud .lives { letter-spacing: 1px; }
+  .hud .wep { color: var(--gold); font-weight: 700; }
+
+  .stage { position: relative; }
+  canvas { display: block; border: 1px solid var(--line); border-radius: 12px;
+           background: #060b16; box-shadow: var(--shadow); touch-action: none; }
+  [data-theme="light"] canvas { background: #0c1navy; background: #0b1526; }
+
+  .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px;
+             align-items: center; justify-content: center; text-align: center; padding: 16px;
+             background: rgba(6,11,22,.9); backdrop-filter: blur(3px); border-radius: 12px; z-index: 5;
+             color: #eef2f9; overflow-y: auto; }
+  .overlay[hidden] { display: none; }
+  .overlay > * { flex-shrink: 0; }
+  .overlay > :first-child { margin-top: auto; }
+  .overlay > :last-child { margin-bottom: auto; }
+  .overlay h2 { margin: 0; font-size: 20px; }
+  .overlay p { margin: 0; font-size: 13px; color: #9fb0cc; max-width: 300px; }
+  .overlay ul { margin: 0; padding-left: 18px; text-align: left; font-size: 13px; color: #9fb0cc; max-width: 300px; }
+  .overlay ul li { margin-bottom: 5px; }
+  .overlay .res { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: 14px; color: #9fb0cc; }
+  .overlay .res b { color: #eef2f9; font-variant-numeric: tabular-nums; }
+  .overlay button { background: #16223a; color: #eef2f9; border-color: #283a5e; }
+
+  .ctrl { display: flex; gap: 8px; justify-content: center; }
+  .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
+  .foot a { color: var(--ink-dim); }
+  @media (max-height: 780px) { .foot { display: none; } }
+  @media (max-height: 680px) { header .sub { display: none; } }
+  @media (max-height: 600px) { header h1 { font-size: 15px; } .wrap { gap: 5px; } }
+  @media (orientation: landscape) and (max-height: 520px) {
+    header .sub, .foot { display: none; }
+    header { padding: 0 0 0 10px; } header h1 { font-size: 15px; }
+    .wrap { gap: 4px; padding: 3px 10px 5px; }
+  }
+</style>
+</head>
+<body data-theme="dark">
+<div class="wrap">
+  <header class="col">
+    <div>
+      <h1>Avioni</h1>
+      <div class="sub">Prevlači prstom — pucaš sam. Radi offline</div>
+    </div>
+    <div class="spacer"></div>
+    <button id="theme" title="Svetla/tamna tema">☀︎ / ☾</button>
+  </header>
+
+  <div class="hud col">
+    <span>Nivo <b id="hLevel">1</b></span>
+    <span>Poeni <b id="hScore">0</b></span>
+    <span class="wep" id="hWep">🔫 1</span>
+    <div class="spacer"></div>
+    <span class="lives" id="hLives">❤️❤️❤️</span>
+    <button id="bPause" title="Pauza">⏸</button>
+  </div>
+
+  <div class="stage">
+    <canvas id="cv"></canvas>
+    <div class="overlay" id="overlay" hidden></div>
+  </div>
+
+  <div class="foot col">
+    Prevlači prstom (ili strelicama) — top puca sam. Kupi 🔫 za jače oružje, 🛩 za pratioca, ❤️ za život, 🛡 za štit.
+    <br><a href="igre.html">🎮 Sve igre</a> · <a href="index.html">← Border Wait</a>
+  </div>
+</div>
+
+<script src="igre.js"></script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const KEY = "avioni.v1";
+const LW = 270, LH = 400;                       // logička rezolucija igre
+const cv = $("#cv"), ctx = cv.getContext("2d");
+
+/* ---------- stanje ---------- */
+let P, bullets, ebullets, foes, drops, parts, stars, boss;
+let level = 1, score = 0, lives = 3, wep = 1, wings = 0, shield = 0, best = 0;
+let state = "intro";                            // intro | play | pause | levelup | over
+let waveIdx = 0, waveT = 0, spawnT = 0, fireT = 0, invuln = 0, raf = 0, lastTs = 0, flash = 0;
+try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s && s.best) best = s.best; } catch (e) { }
+
+const rnd = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+/* ---------- talasi i nivoi ---------- */
+function levelWaves(lv) {                       // 4 talasa pa bos; teže sa nivoom
+  const n = 4;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const kinds = ["line", "vee", "zig", "rush"];
+    out.push({ kind: kinds[(i + lv) % kinds.length], count: 5 + Math.min(4, lv), hp: 1 + Math.floor((lv - 1) / 2) + (i === n - 1 ? 1 : 0) });
+  }
+  return out;
+}
+let waves = levelWaves(1);
+
+function spawnWave(w) {
+  const y0 = -20;
+  for (let i = 0; i < w.count; i++) {
+    const t = w.kind;
+    let x = 30 + (LW - 60) * (i / Math.max(1, w.count - 1));
+    let y = y0, vx = 0, vy = 42 + level * 5, type = "small";
+    if (t === "vee") { y = y0 - Math.abs(i - (w.count - 1) / 2) * 22; }
+    else if (t === "zig") { vx = i % 2 ? 26 : -26; }
+    else if (t === "rush") { vy += 34; type = "fast"; }
+    if (i === 0 && w.hp >= 3) type = "tank";
+    foes.push(mkFoe(x, y, vx, vy, w.hp + (type === "tank" ? 4 : 0), type));
+  }
+}
+function mkFoe(x, y, vx, vy, hp, type) {
+  return { x, y, vx, vy, hp, maxHp: hp, type, r: type === "tank" ? 15 : type === "fast" ? 8 : 10,
+           t: rnd(0, 6), fire: rnd(.8, 2.2), scoreV: type === "tank" ? 60 : type === "fast" ? 25 : 15 };
+}
+function mkBoss(lv) {
+  const hp = 90 + lv * lv * 22;                 // prati rast igračevog oružja
+  return { x: LW / 2, y: -60, vx: 46 + lv * 4, hp, maxHp: hp,
+           r: 30, phase: 0, t: 0, fire: 1.2, entering: true };
+}
+
+/* ---------- igrač ---------- */
+function resetPlayer() {
+  P = { x: LW / 2, y: LH - 46, tx: LW / 2, ty: LH - 46, r: 8 };
+}
+function fireRate() { return Math.max(90, 190 - wep * 16) / 1000; }
+function shoot() {
+  const add = (x, y, vx, vy, dmg, big) => bullets.push({ x, y, vx, vy, dmg, r: big ? 4 : 2.5, big: !!big });
+  const V = -430;
+  if (wep >= 1) add(P.x, P.y - 10, 0, V, 1);
+  if (wep >= 2) { add(P.x - 8, P.y - 4, 0, V, 1); add(P.x + 8, P.y - 4, 0, V, 1); }   // krila
+  if (wep >= 3) { add(P.x - 12, P.y - 2, -60, V, 1); add(P.x + 12, P.y - 2, 60, V, 1); }
+  if (wep >= 4) { add(P.x, P.y - 14, 0, V - 60, 2, true); }
+  if (wep >= 5) { add(P.x - 16, P.y, -130, V + 40, 1); add(P.x + 16, P.y, 130, V + 40, 1); }
+  if (wep >= 6) { add(P.x - 8, P.y - 12, 0, V - 90, 2, true); add(P.x + 8, P.y - 12, 0, V - 90, 2, true); }
+  for (let i = 0; i < wings; i++) {              // pratioci na krilima
+    const wx = P.x + (i === 0 ? -26 : 26);
+    add(wx, P.y + 4, 0, V + 40, 1);
+  }
+  window.SFX && SFX.tick();
+}
+
+/* ---------- eksplozije ---------- */
+function boom(x, y, n, col) {
+  for (let i = 0; i < n; i++) {
+    const a = rnd(0, Math.PI * 2), s = rnd(20, 130);
+    parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rnd(.25, .6), t: 0, col: col || "#ffb703" });
+  }
+}
+
+/* ---------- tok ---------- */
+function newGame() {
+  bullets = []; ebullets = []; foes = []; drops = []; parts = []; boss = null;
+  stars = Array.from({ length: 46 }, () => ({ x: rnd(0, LW), y: rnd(0, LH), z: rnd(.35, 1) }));
+  level = 1; score = 0; lives = 3; wep = 1; wings = 0; shield = 0;
+  waves = levelWaves(1); waveIdx = 0; waveT = 1.2; spawnT = 0; fireT = 0; invuln = 1.5;
+  resetPlayer(); hideOverlay(); state = "play"; lastTs = 0; fit();
+  window.SFX && SFX.engine();
+  updHud();
+  if (!raf) raf = requestAnimationFrame(loop);
+}
+function nextLevel() {
+  level++; score += 250;
+  waves = levelWaves(level); waveIdx = 0; waveT = 1.6; boss = null;
+  ebullets = []; foes = [];
+  state = "levelup";
+  window.SFX && SFX.win();
+  showOverlay('<h2>Nivo ' + level + '</h2><p>Bos je pao! Poeni: <b style="color:#eef2f9">' + score + '</b></p>' +
+    '<button id="goBtn">▶ Dalje</button>');
+  $("#goBtn").onclick = () => { state = "play"; hideOverlay(); invuln = 1.2; };
+  updHud();
+}
+function hit() {
+  if (invuln > 0 || shield > 0) { if (shield > 0) { shield = 0; window.SFX && SFX.bad(); } return; }
+  lives--; invuln = 2; wep = Math.max(1, wep - 1);
+  boom(P.x, P.y, 26, "#6fa8ff");
+  window.SFX && SFX.siren();
+  ebullets = [];
+  updHud();
+  if (lives <= 0) gameOver();
+  else resetPlayer();
+}
+function gameOver() {
+  state = "over";
+  const rek = score > best;
+  if (rek) { best = score; try { localStorage.setItem(KEY, JSON.stringify({ best })); } catch (e) { } }
+  showOverlay('<h2>Oboren si</h2>' +
+    '<div class="res"><span>Poeni</span><b>' + score + '</b><span>Nivo</span><b>' + level + '</b>' +
+    '<span>Rekord</span><b>' + best + '</b></div>' +
+    (rek ? '<p style="color:#2e9e6b;font-weight:700">Novi rekord! 🎉</p>' : '') +
+    '<button id="againBtn">⟲ Još jednom</button>');
+  $("#againBtn").onclick = newGame;
+}
+function intro() {
+  state = "intro";
+  showOverlay('<h2>✈️ Avioni</h2>' +
+    '<ul><li><b>Prevlači prstom</b> po ekranu — avion prati, a top puca sam.</li>' +
+    '<li>Kupi <b>🔫</b> za jače oružje (do 6 cevi), <b>🛩</b> za pratioca uz krilo, <b>❤️</b> život, <b>🛡</b> štit.</li>' +
+    '<li>Posle četiri talasa dolazi <b>bos</b> — jači je i puca u nizovima.</li></ul>' +
+    (best ? '<p>Rekord: <b style="color:#eef2f9">' + best + '</b></p>' : '') +
+    '<button id="startBtn">▶ Poleti</button>');
+  $("#startBtn").onclick = newGame;
+}
+function showOverlay(html) { const o = $("#overlay"); o.innerHTML = html; o.hidden = false; }
+function hideOverlay() { $("#overlay").hidden = true; }
+function updHud() {
+  $("#hLevel").textContent = level;
+  $("#hScore").textContent = score;
+  $("#hWep").textContent = "🔫 " + wep + (wings ? " 🛩".repeat(wings) : "") + (shield > 0 ? " 🛡" : "");
+  $("#hLives").textContent = "❤️".repeat(Math.max(0, lives));
+}
+
+/* ---------- petlja ---------- */
+function loop(ts) {
+  raf = requestAnimationFrame(loop);
+  if (!lastTs) lastTs = ts;
+  const dt = Math.min(.05, (ts - lastTs) / 1000); lastTs = ts;
+  if (state === "play") update(dt);
+  draw();
+}
+
+function update(dt) {
+  // igrač
+  P.x += (P.tx - P.x) * Math.min(1, dt * 14);
+  P.y += (P.ty - P.y) * Math.min(1, dt * 14);
+  P.x = clamp(P.x, 12, LW - 12); P.y = clamp(P.y, 40, LH - 14);
+  if (invuln > 0) invuln -= dt;
+  if (shield > 0) { shield -= dt; if (shield <= 0) updHud(); }
+
+  fireT -= dt;
+  if (fireT <= 0) { shoot(); fireT = fireRate(); }
+
+  // zvezde
+  for (const s of stars) { s.y += (26 + 60 * s.z) * dt * (1 + level * .06); if (s.y > LH) { s.y = -2; s.x = rnd(0, LW); } }
+
+  // talasi / bos
+  if (!boss) {
+    waveT -= dt;
+    if (waveT <= 0 && waveIdx < waves.length) { spawnWave(waves[waveIdx++]); waveT = 3.4 - Math.min(1.4, level * .12); }
+    else if (waveIdx >= waves.length && foes.length === 0 && waveT <= -1) {
+      boss = mkBoss(level); window.SFX && SFX.drum();
+      if (wep < 2) drops.push({ x: LW / 2, y: -10, k: "w", t: 0 });   // milost: bez ijednog pojačanja bos je nemoguć
+    }
+  }
+
+  // meci igrača
+  for (const b of bullets) { b.x += b.vx * dt; b.y += b.vy * dt; }
+  bullets = bullets.filter(b => b.y > -12 && b.x > -12 && b.x < LW + 12);
+
+  // neprijatelji
+  for (const f of foes) {
+    f.t += dt;
+    f.x += f.vx * dt; f.y += f.vy * dt;
+    if (f.x < 12 || f.x > LW - 12) f.vx *= -1;
+    f.fire -= dt;
+    if (f.fire <= 0 && f.y > 10 && f.y < LH - 80) {
+      f.fire = rnd(1.4, 3.2) / (1 + level * .08);
+      const a = Math.atan2(P.y - f.y, P.x - f.x);
+      const sp = 92 + level * 8;
+      ebullets.push({ x: f.x, y: f.y + 8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 3 });
+    }
+  }
+  foes = foes.filter(f => f.y < LH + 30);
+
+  // bos
+  if (boss) {
+    boss.t += dt;
+    if (boss.entering) { boss.y += 40 * dt; if (boss.y >= 60) { boss.y = 60; boss.entering = false; } }
+    else {
+      boss.x += boss.vx * dt;
+      if (boss.x < 40 || boss.x > LW - 40) boss.vx *= -1;
+      boss.y = 60 + Math.sin(boss.t * .8) * 12;
+      boss.fire -= dt;
+      if (boss.fire <= 0) {
+        const frac = boss.hp / boss.maxHp;
+        boss.fire = frac < .4 ? .75 : 1.15;
+        const sp = 105 + level * 6;
+        if (frac > .55) {                                   // lepeza
+          for (let i = -2; i <= 2; i++) {
+            const a = Math.PI / 2 + i * .22;
+            ebullets.push({ x: boss.x, y: boss.y + 20, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 3.5 });
+          }
+        } else {                                            // ciljano + bočno
+          const a = Math.atan2(P.y - boss.y, P.x - boss.x);
+          for (let i = -1; i <= 1; i++)
+            ebullets.push({ x: boss.x, y: boss.y + 20, vx: Math.cos(a + i * .16) * sp, vy: Math.sin(a + i * .16) * sp, r: 3.5 });
+          for (let i = -3; i <= 3; i++)
+            ebullets.push({ x: boss.x + i * 8, y: boss.y + 18, vx: i * 22, vy: sp * .8, r: 3 });
+        }
+        window.SFX && SFX.tick();
+      }
+    }
+  }
+
+  // neprijateljski meci
+  for (const b of ebullets) { b.x += b.vx * dt; b.y += b.vy * dt; }
+  ebullets = ebullets.filter(b => b.y < LH + 12 && b.y > -12 && b.x > -12 && b.x < LW + 12);
+
+  // bonusi
+  for (const d of drops) { d.y += 62 * dt; d.t += dt; }
+  drops = drops.filter(d => d.y < LH + 14);
+
+  // čestice
+  for (const p of parts) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 90 * dt; }
+  parts = parts.filter(p => p.t < p.life);
+
+  collisions();
+  if (flash > 0) flash -= dt;
+}
+
+function collisions() {
+  // meci → neprijatelji
+  for (const b of bullets) {
+    if (b.dead) continue;
+    for (const f of foes) {
+      if (f.hp <= 0) continue;
+      if ((b.x - f.x) ** 2 + (b.y - f.y) ** 2 < (b.r + f.r) ** 2) {
+        f.hp -= b.dmg; b.dead = true;
+        boom(b.x, b.y, 3, "#ffd166");
+        if (f.hp <= 0) {
+          score += f.scoreV; boom(f.x, f.y, 12, "#ff8c42");
+          window.SFX && SFX.card();
+          maybeDrop(f.x, f.y);
+          updHud();
+        }
+        break;
+      }
+    }
+    if (b.dead || !boss) continue;
+    if ((b.x - boss.x) ** 2 + (b.y - boss.y) ** 2 < (b.r + boss.r) ** 2) {
+      boss.hp -= b.dmg; b.dead = true; flash = .06;
+      boom(b.x, b.y, 3, "#ffd166");
+      if (boss.hp <= 0) {
+        score += 400 + level * 120; boom(boss.x, boss.y, 60, "#ff5d3b");
+        window.SFX && SFX.jackpot();
+        boss = null; nextLevel();
+      }
+    }
+  }
+  bullets = bullets.filter(b => !b.dead);
+  foes = foes.filter(f => f.hp > 0);
+
+  // neprijateljski meci → igrač
+  for (const b of ebullets) {
+    if ((b.x - P.x) ** 2 + (b.y - P.y) ** 2 < (b.r + P.r) ** 2) { b.dead = true; hit(); break; }
+  }
+  ebullets = ebullets.filter(b => !b.dead);
+
+  // sudar sa avionom
+  for (const f of foes) {
+    if ((f.x - P.x) ** 2 + (f.y - P.y) ** 2 < (f.r + P.r) ** 2) {
+      f.hp = 0; boom(f.x, f.y, 14, "#ff8c42"); hit(); break;
+    }
+  }
+  if (boss && !boss.entering && (boss.x - P.x) ** 2 + (boss.y - P.y) ** 2 < (boss.r + P.r) ** 2) hit();
+
+  // bonusi → igrač
+  for (const d of drops) {
+    if ((d.x - P.x) ** 2 + (d.y - P.y) ** 2 < (10 + P.r) ** 2) {
+      d.dead = true;
+      if (d.k === "w") { wep = Math.min(6, wep + 1); score += 20; }
+      else if (d.k === "m") { wings = Math.min(2, wings + 1); score += 20; }
+      else if (d.k === "h") { lives = Math.min(5, lives + 1); }
+      else if (d.k === "s") { shield = 8; }
+      window.SFX && SFX.coin();
+      updHud();
+    }
+  }
+  drops = drops.filter(d => !d.dead);
+}
+function maybeDrop(x, y) {
+  const r = Math.random();
+  let k = null;
+  if (r < .13) k = "w"; else if (r < .19) k = "m"; else if (r < .225) k = "s"; else if (r < .245) k = "h";
+  if (k) drops.push({ x, y, k, t: 0 });
+}
+
+/* ---------- crtanje ---------- */
+function drawPlane(x, y, s, col, dark) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.fillStyle = col;
+  ctx.beginPath();                                  // trup + krila
+  ctx.moveTo(0, -11); ctx.lineTo(3.5, -2); ctx.lineTo(13, 3); ctx.lineTo(13, 6);
+  ctx.lineTo(3.5, 4); ctx.lineTo(3, 9); ctx.lineTo(7, 12); ctx.lineTo(7, 13.5);
+  ctx.lineTo(0, 11.5); ctx.lineTo(-7, 13.5); ctx.lineTo(-7, 12); ctx.lineTo(-3, 9);
+  ctx.lineTo(-3.5, 4); ctx.lineTo(-13, 6); ctx.lineTo(-13, 3); ctx.lineTo(-3.5, -2);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = dark || "rgba(0,0,0,.35)";
+  ctx.beginPath(); ctx.ellipse(0, -1, 2.2, 4, 0, 0, 7); ctx.fill();
+  ctx.restore();
+}
+function drawFoe(f) {
+  ctx.save(); ctx.translate(f.x, f.y);
+  const col = f.type === "tank" ? "#c0563e" : f.type === "fast" ? "#e0913a" : "#d8534a";
+  ctx.fillStyle = col;
+  const s = f.type === "tank" ? 1.5 : f.type === "fast" ? .85 : 1;
+  ctx.scale(s, s);
+  ctx.beginPath();
+  ctx.moveTo(0, 10); ctx.lineTo(4, 2); ctx.lineTo(11, -2); ctx.lineTo(11, -5);
+  ctx.lineTo(3, -4); ctx.lineTo(2, -9); ctx.lineTo(-2, -9); ctx.lineTo(-3, -4);
+  ctx.lineTo(-11, -5); ctx.lineTo(-11, -2); ctx.lineTo(-4, 2);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.35)";
+  ctx.beginPath(); ctx.ellipse(0, 0, 1.8, 3, 0, 0, 7); ctx.fill();
+  ctx.restore();
+  if (f.maxHp > 2) {
+    ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(f.x - 11, f.y - f.r - 7, 22, 3);
+    ctx.fillStyle = "#ffb703"; ctx.fillRect(f.x - 11, f.y - f.r - 7, 22 * (f.hp / f.maxHp), 3);
+  }
+}
+function drawBoss() {
+  const b = boss;
+  ctx.save(); ctx.translate(b.x, b.y);
+  ctx.fillStyle = flash > 0 ? "#ffffff" : "#8e3f7e";
+  ctx.beginPath();
+  ctx.moveTo(0, 26); ctx.lineTo(14, 14); ctx.lineTo(34, 8); ctx.lineTo(36, -6);
+  ctx.lineTo(16, -10); ctx.lineTo(10, -22); ctx.lineTo(-10, -22); ctx.lineTo(-16, -10);
+  ctx.lineTo(-36, -6); ctx.lineTo(-34, 8); ctx.lineTo(-14, 14);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#4b2247";
+  ctx.fillRect(-22, -4, 44, 8);
+  ctx.fillStyle = "#ffd166";
+  ctx.beginPath(); ctx.ellipse(0, -6, 5, 7, 0, 0, 7); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(24, 8, LW - 48, 6);
+  ctx.fillStyle = "#d65a4e"; ctx.fillRect(24, 8, (LW - 48) * clamp(b.hp / b.maxHp, 0, 1), 6);
+  ctx.fillStyle = "#eef2f9"; ctx.font = "bold 9px system-ui"; ctx.textAlign = "center";
+  ctx.fillText("BOS " + level, LW / 2, 24);
+}
+function draw() {
+  ctx.clearRect(0, 0, LW, LH);
+  ctx.fillStyle = "#060b16"; ctx.fillRect(0, 0, LW, LH);
+  for (const s of stars) {
+    ctx.fillStyle = "rgba(190,215,255," + (.18 + s.z * .5) + ")";
+    ctx.fillRect(s.x, s.y, 1.2, 1.2 + s.z * 2.2);
+  }
+  for (const d of drops) {
+    const em = d.k === "w" ? "🔫" : d.k === "m" ? "🛩" : d.k === "h" ? "❤️" : "🛡";
+    ctx.font = "15px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.globalAlpha = .85 + Math.sin(d.t * 9) * .15;
+    ctx.fillText(em, d.x, d.y); ctx.globalAlpha = 1;
+  }
+  for (const f of foes) drawFoe(f);
+  if (boss) drawBoss();
+  ctx.fillStyle = "#ffe08a";
+  for (const b of bullets) { ctx.fillRect(b.x - b.r / 2, b.y - b.r * 2, b.r, b.r * 3.2); }
+  ctx.fillStyle = "#ff6b6b";
+  for (const b of ebullets) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); }
+  for (const p of parts) {
+    ctx.globalAlpha = clamp(1 - p.t / p.life, 0, 1);
+    ctx.fillStyle = p.col; ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+  }
+  ctx.globalAlpha = 1;
+  if (state !== "over" && P) {
+    if (!(invuln > 0 && Math.floor(invuln * 12) % 2)) {
+      for (let i = 0; i < wings; i++) drawPlane(P.x + (i === 0 ? -26 : 26), P.y + 6, .55, "#7fd1e8");
+      drawPlane(P.x, P.y, 1, "#6fa8ff");
+      ctx.fillStyle = "rgba(255,190,80,.85)";                   // plamen
+      ctx.fillRect(P.x - 2, P.y + 11, 4, 4 + Math.random() * 4);
+    }
+    if (shield > 0) {
+      ctx.strokeStyle = "rgba(120,220,255," + (.4 + Math.sin(performance.now() / 90) * .2) + ")";
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(P.x, P.y, 17, 0, 7); ctx.stroke();
+    }
+  }
+}
+
+/* ---------- ulaz ---------- */
+let dragging = false, dragDX = 0, dragDY = 0;
+cv.addEventListener("pointerdown", e => {
+  if (state !== "play") return;
+  cv.setPointerCapture(e.pointerId);
+  const p = toLogic(e);
+  dragging = true; dragDX = P.x - p.x; dragDY = P.y - p.y;
+});
+cv.addEventListener("pointermove", e => {
+  if (!dragging || state !== "play") return;
+  const p = toLogic(e);
+  P.tx = clamp(p.x + dragDX, 12, LW - 12);
+  P.ty = clamp(p.y + dragDY, 40, LH - 14);
+});
+for (const ev of ["pointerup", "pointercancel", "pointerleave"]) cv.addEventListener(ev, () => dragging = false);
+function toLogic(e) {
+  const r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width * LW, y: (e.clientY - r.top) / r.height * LH };
+}
+const keys = {};
+document.addEventListener("keydown", e => {
+  keys[e.key] = true;
+  if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " "].includes(e.key)) e.preventDefault();
+  if (e.key === "p" || e.key === "P") togglePause();
+});
+document.addEventListener("keyup", e => keys[e.key] = false);
+setInterval(() => {                                   // tastatura pomera cilj
+  if (state !== "play" || !P) return;
+  const s = 12;
+  if (keys.ArrowLeft) P.tx = clamp(P.tx - s, 12, LW - 12);
+  if (keys.ArrowRight) P.tx = clamp(P.tx + s, 12, LW - 12);
+  if (keys.ArrowUp) P.ty = clamp(P.ty - s, 40, LH - 14);
+  if (keys.ArrowDown) P.ty = clamp(P.ty + s, 40, LH - 14);
+}, 40);
+function togglePause() {
+  if (state === "play") {
+    state = "pause";
+    showOverlay('<h2>⏸ Pauza</h2><p>Poeni: <b style="color:#eef2f9">' + score + '</b></p><button id="resBtn">▶ Nastavi</button>');
+    $("#resBtn").onclick = togglePause;
+  } else if (state === "pause") { state = "play"; hideOverlay(); lastTs = 0; }
+}
+$("#bPause").onclick = togglePause;
+$("#theme").onclick = () => {
+  const b = document.body;
+  b.dataset.theme = b.dataset.theme === "dark" ? "light" : "dark";
+  try { localStorage.setItem("sudoku.theme", b.dataset.theme); } catch (e) { }
+};
+document.addEventListener("visibilitychange", () => { if (document.hidden && state === "play") togglePause(); });
+
+/* ---------- veličina ---------- */
+function fit() {
+  const wrap = document.querySelector(".wrap"), nav = document.querySelector(".gamenav");
+  const stage = document.querySelector(".stage");
+  const limit = (nav ? nav.getBoundingClientRect().top : window.innerHeight);
+  const others = [...wrap.children].filter(el => el !== stage && el.offsetParent !== null)
+    .reduce((a, el) => a + el.getBoundingClientRect().height, 0);
+  const cs = getComputedStyle(wrap);
+  const gaps = (parseFloat(cs.rowGap) || 0) * Math.max(0, [...wrap.children].filter(el => el.offsetParent !== null).length - 1);
+  const availH = limit - wrap.getBoundingClientRect().top - others - gaps - (parseFloat(cs.paddingBottom) || 0) - 12;
+  const availW = Math.min(window.innerWidth - 20, 460);
+  let w = Math.min(availW, availH * LW / LH);
+  w = Math.max(150, Math.floor(w));
+  const h = Math.round(w * LH / LW);
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(LW * dpr); cv.height = Math.round(LH * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+}
+window.addEventListener("resize", fit);
+window.addEventListener("DOMContentLoaded", fit);     // traka se ubacuje tek tada
+window.addEventListener("load", fit);
+window.addEventListener("orientationchange", () => setTimeout(fit, 150));
+
+/* ---------- start ---------- */
+try { const t = localStorage.getItem("sudoku.theme"); if (t) document.body.dataset.theme = t; } catch (e) { }
+resetPlayer();
+bullets = []; ebullets = []; foes = []; drops = []; parts = []; boss = null;
+stars = Array.from({ length: 46 }, () => ({ x: rnd(0, LW), y: rnd(0, LH), z: rnd(.35, 1) }));
+fit(); updHud(); draw(); intro();
+raf = requestAnimationFrame(loop);
+
+window.A = {
+  get state() { return state; }, get score() { return score; }, get level() { return level; },
+  get lives() { return lives; }, get wep() { return wep; }, get wings() { return wings; },
+  get foes() { return foes; }, get bullets() { return bullets; }, get ebullets() { return ebullets; },
+  get boss() { return boss; }, get P() { return P; }, get drops() { return drops; },
+  newGame, shoot, hit, update, mkBoss, spawnWave, levelWaves,
+  setWep: v => { wep = v; updHud(); }, setWings: v => { wings = v; updHud(); },
+  setBoss: b => { boss = b; }, addDrop: (x, y, k) => drops.push({ x, y, k, t: 0 }),
+  step: (dt, n) => { for (let i = 0; i < (n || 1); i++) update(dt); }
+};
+</script>
+</body>
+</html>

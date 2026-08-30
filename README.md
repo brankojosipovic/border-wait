@@ -90,6 +90,17 @@ današnji rezultat, stanje kredita). `igre.js` je zajednički za svih pet igara 
 - **zvuk** sintetizovan preko WebAudio (bez ijednog audio fajla, pa sve i dalje radi offline) —
   prekidač 🔊/🔇 stoji u traci, važi za sve igre i pamti se (`igre.sound`).
 
+## Tetris i Avioni
+
+`tetris.html` — klasika sa pravim **SRS** rotacijama i wall-kickovima, 7-bag izvlačenjem komada,
+ghost prikazom, čuvanjem komada (hold), redom sledećih, nivoima i rekordom. Veličina table se
+binarnom pretragom podešava na najveću koja staje u ekran; poseban raspored za položen telefon.
+
+`avioni.html` — vertikalna pucačina na canvas-u: prevlačiš prstom, top puca sam. Oružje ide od
+1 do 6 cevi (kupljena pojačanja pune krila), pratioci uz krila, štit i životi; četiri talasa pa
+**bos** sa trakom života i dve faze pucanja, pa sledeći nivo. Izdržljivost bosa raste kvadratno
+sa nivoom da prati rast oružja — borba traje 7–11 s kroz sve nivoe.
+
 ## Ograničenja podataka
 
 Prijave su anonimne i neravnomerne (rupe po satima, vrednosti skaču). Korisno za grubi
