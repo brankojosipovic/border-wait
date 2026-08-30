@@ -134,7 +134,20 @@ let P, bullets, ebullets, foes, drops, parts, stars, boss;
 let level = 1, score = 0, lives = 3, wep = 1, wings = 0, shield = 0, best = 0;
 let state = "intro";                            // intro | play | pause | levelup | over
 let waveIdx = 0, waveT = 0, spawnT = 0, fireT = 0, invuln = 0, raf = 0, lastTs = 0, flash = 0;
-try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s && s.best) best = s.best; } catch (e) { }
+let sacuvana = null;                            // prekinuti let čeka da ga nastaviš
+try {
+  const s = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (s) { best = s.best || 0; if (s.igra && s.igra.level) sacuvana = s.igra; }
+} catch (e) { }
+function sacuvaj() {
+  try {
+    const zivo = (state === "play" || state === "levelup" || state === "pause") && lives > 0;
+    localStorage.setItem(KEY, JSON.stringify({
+      best: best,
+      igra: zivo ? { level: level, score: score, lives: lives, wep: wep, wings: wings } : null
+    }));
+  } catch (e) { }
+}
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -204,21 +217,26 @@ function boom(x, y, n, col) {
 }
 
 /* ---------- tok ---------- */
-function newGame() {
+function pocniNivo(lv, poeni, zivota, oruzje, krila) {   // start nivoa je i tačka snimanja
   bullets = []; ebullets = []; foes = []; drops = []; parts = []; boss = null;
   stars = Array.from({ length: 46 }, () => ({ x: rnd(0, LW), y: rnd(0, LH), z: rnd(.35, 1) }));
-  level = 1; score = 0; lives = 3; wep = 1; wings = 0; shield = 0;
-  waves = levelWaves(1); waveIdx = 0; waveT = 1.2; spawnT = 0; fireT = 0; invuln = 1.5;
+  level = lv; score = poeni; lives = zivota; wep = oruzje; wings = krila; shield = 0;
+  waves = levelWaves(level); waveIdx = 0; waveT = 1.2; spawnT = 0; fireT = 0; invuln = 1.5;
   resetPlayer(); hideOverlay(); state = "play"; lastTs = 0; fit();
   window.SFX && SFX.engine();
-  updHud();
+  updHud(); sacuvaj();
   if (!raf) raf = requestAnimationFrame(loop);
+}
+function newGame() { sacuvana = null; pocniNivo(1, 0, 3, 1, 0); }
+function nastaviIgru() {
+  const g = sacuvana; if (!g) return newGame();
+  pocniNivo(g.level || 1, g.score || 0, Math.max(1, g.lives || 3), g.wep || 1, g.wings || 0);
 }
 function nextLevel() {
   level++; score += 250;
   waves = levelWaves(level); waveIdx = 0; waveT = 1.6; boss = null;
   ebullets = []; foes = [];
-  state = "levelup";
+  state = "levelup"; sacuvaj();
   window.SFX && SFX.win();
   showOverlay('<h2>Nivo ' + level + '</h2><p>Bos je pao! Poeni: <b style="color:#eef2f9">' + score + '</b></p>' +
     '<button id="goBtn">▶ Dalje</button>');
@@ -233,12 +251,13 @@ function hit() {
   ebullets = [];
   updHud();
   if (lives <= 0) gameOver();
-  else resetPlayer();
+  else { resetPlayer(); sacuvaj(); }
 }
 function gameOver() {
   state = "over";
   const rek = score > best;
-  if (rek) { best = score; try { localStorage.setItem(KEY, JSON.stringify({ best })); } catch (e) { } }
+  if (rek) best = score;
+  sacuvana = null; sacuvaj();                   // let je gotov; rekord ostaje
   showOverlay('<h2>Oboren si</h2>' +
     '<div class="res"><span>Poeni</span><b>' + score + '</b><span>Nivo</span><b>' + level + '</b>' +
     '<span>Rekord</span><b>' + best + '</b></div>' +
@@ -253,7 +272,11 @@ function intro() {
     '<li>Kupi <b>🔫</b> za jače oružje (do 6 cevi), <b>🛩</b> za pratioca uz krilo, <b>❤️</b> život, <b>🛡</b> štit.</li>' +
     '<li>Posle četiri talasa dolazi <b>bos</b> — jači je i puca u nizovima.</li></ul>' +
     (best ? '<p>Rekord: <b style="color:#eef2f9">' + best + '</b></p>' : '') +
-    '<button id="startBtn">▶ Poleti</button>');
+    '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
+    (sacuvana ? '<button id="nastBtn">▶ Nastavi — nivo ' + sacuvana.level + ', ' + (sacuvana.score || 0) + ' poena</button>' : '') +
+    '<button id="startBtn">' + (sacuvana ? "⟲ Nova igra" : "▶ Poleti") + '</button></div>' +
+    (sacuvana ? '<p><small>Prekinuti let te čeka dok sam ne kreneš ispočetka.</small></p>' : ''));
+  const nb = $("#nastBtn"); if (nb) nb.onclick = nastaviIgru;
   $("#startBtn").onclick = newGame;
 }
 function showOverlay(html) { const o = $("#overlay"); o.innerHTML = html; o.hidden = false; }
@@ -607,7 +630,8 @@ window.A = {
   get lives() { return lives; }, get wep() { return wep; }, get wings() { return wings; },
   get foes() { return foes; }, get bullets() { return bullets; }, get ebullets() { return ebullets; },
   get boss() { return boss; }, get P() { return P; }, get drops() { return drops; },
-  newGame, shoot, hit, update, mkBoss, spawnWave, levelWaves,
+  newGame, nextLevel, nastaviIgru, shoot, hit, update, mkBoss, spawnWave, levelWaves,
+  get sacuvana() { return sacuvana; },
   setWep: v => { wep = v; updHud(); }, setWings: v => { wings = v; updHud(); },
   setBoss: b => { boss = b; }, addDrop: (x, y, k) => drops.push({ x, y, k, t: 0 }),
   step: (dt, n) => { for (let i = 0; i < (n || 1); i++) update(dt); }

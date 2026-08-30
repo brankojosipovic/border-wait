@@ -578,16 +578,19 @@ window.addEventListener("orientationchange", () => setTimeout(fit, 120));
 /* ---------- meni ---------- */
 function meni() {
   ocistiTajmere(); stopTraka();
-  const nast = sacuvanaMreza && G && !G.gotovo;
+  const nast = G && !G.gotovo && G.red && (sacuvanaMreza || G.rezim !== "mreza");
+  const opis = sacuvanaMreza ? " (" + sacuvanaMreza.kod + ")" : " — pitanje " + (G && G.red ? (G.k + 1) + "/" + G.red.length : "");
   showOverlay('<h2>🌍 Geo</h2>' +
     '<div class="btns">' +
-    (nast ? '<button id="nastBtn">▶ Nastavi kviz (' + sacuvanaMreza.kod + ')</button>' : '') +
+    (nast ? '<button id="nastBtn">▶ Nastavi kviz' + opis + '</button>' : '') +
     '<button id="samBtn">👤 Vežbanje</button>' +
     '<button id="sobaBtn">🌐 Napravi sobu</button>' +
     '<button id="udjiBtn">🔗 Uđi u sobu</button>' +
     '<button id="pravBtn">❔ Pravila</button></div>' +
-    '<p>' + (nast ? "Prekinuti kviz se čuva — pritisnite „Nastavi kviz“ oba."
-                  : "Deset pitanja iz geografije. U dvoje: oba telefona vide isto pitanje, a poene nosi onaj ko brže pogodi.") + '</p>');
+    '<p>' + (nast
+      ? (sacuvanaMreza ? "Prekinuti kviz se čuva — pritisnite „Nastavi kviz“ oba."
+                       : "Prekinuti kviz te čeka dok sam ne kreneš iznova.")
+      : "Deset pitanja iz geografije. U dvoje: oba telefona vide isto pitanje, a poene nosi onaj ko brže pogodi.") + '</p>');
   if (nast) $("#nastBtn").onclick = nastaviKviz;
   $("#samBtn").onclick = () => novaIgra("sam");
   $("#sobaBtn").onclick = napraviSobu;
@@ -605,7 +608,12 @@ function pravila() {
   $("#nazadBtn2").onclick = meni;
 }
 function nastaviKviz() {
-  if (!sacuvanaMreza) return meni();
+  if (!sacuvanaMreza) {                        // vežbanje: samo nastavi tamo gde si stao
+    if (!G || G.gotovo) return novaIgra("sam");
+    hideOverlay(); zadnjiK = -1; mojIzbor = null;
+    if (G.faza === "pitanje") pocniPitanje(); else dalje();
+    return;
+  }
   nastavljam = true;
   if (sacuvanaMreza.uloga === "domacin") { mojIndex = 0; napraviSobu(sacuvanaMreza.kod); }
   else { mojIndex = sacuvanaMreza.mojIndex || 1; pridruziSe(sacuvanaMreza.kod, true); }

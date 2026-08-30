@@ -202,13 +202,25 @@ const COLS = 8, BW = LW / COLS, BH = 14, TOP = 34;
 /* ---------- stanje ---------- */
 let bricks, balls, pad, drops, parts, zrna;
 let level = 1, score = 0, lives = 3, best = 0, startLv = 1;
-let lvBest = {}, maxLv = 1, kodOtkljucan = false;
+let lvBest = {}, maxLv = 1, kodOtkljucan = false, sacuvana = null;
 let state = "intro", stuck = true, raf = 0, lastTs = 0;
 try {
   const s = JSON.parse(localStorage.getItem(KEY) || "null");
-  if (s) { best = s.best || 0; lvBest = s.lvBest || {}; maxLv = s.maxLv || 1; kodOtkljucan = !!s.kod; }
+  if (s) {
+    best = s.best || 0; lvBest = s.lvBest || {}; maxLv = s.maxLv || 1; kodOtkljucan = !!s.kod;
+    if (s.tok && s.tok.level) sacuvana = s.tok;
+  }
 } catch (e) { }
-function saveRec() { try { localStorage.setItem(KEY, JSON.stringify({ best, lvBest, maxLv, kod: kodOtkljucan })); } catch (e) { } }
+function saveRec() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({ best, lvBest, maxLv, kod: kodOtkljucan, tok: sacuvana }));
+  } catch (e) { }
+}
+function zapamtiTok() {                       // dokle si stigao: nivo, poeni i životi
+  if (trka) return;                           // trka se ne pamti — to je jedna runda
+  sacuvana = { level: level, score: score, lives: lives, startLv: startLv };
+  saveRec();
+}
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const rnd = (a, b) => a + Math.random() * (b - a);
 
@@ -235,14 +247,23 @@ function newBall(speedUp) {
   return { x: pad.x, y: PADY - 8, vx: rnd(-.4, .4) * sp, vy: -sp, r: 4, slow: 0 };
 }
 function newGame(od) {
+  if (trka) trkaKraj();
   level = od || 1; startLv = level; score = 0; lives = 3;
   startLevel();
   window.SFX && SFX.shuffle();
+}
+function nastaviTok() {                       // vrati se tačno gde si stao — na početak tog nivoa
+  const t = sacuvana; if (!t) return newGame(1);
+  if (trka) trkaKraj();
+  level = t.level; startLv = t.startLv || t.level; score = t.score || 0; lives = Math.max(1, t.lives || 3);
+  startLevel();
+  window.SFX && SFX.tap();
 }
 function startLevel() {
   buildLevel(level); resetPad();
   balls = [newBall()]; drops = []; parts = []; zrna = [];
   stuck = true; state = "play"; hideOverlay(); lastTs = 0; fit(); updHud();
+  zapamtiTok();
   if (!raf) raf = requestAnimationFrame(loop);
 }
 function updHud() {
@@ -391,6 +412,7 @@ function loseLife() {
   lives--; updHud(); window.SFX && SFX.bad();
   if (lives <= 0) return gameOver();
   resetPad(); balls = [newBall()]; drops = []; zrna = []; stuck = true;
+  zapamtiTok();
 }
 function winLevel() {
   score += 100 * level;
@@ -412,6 +434,7 @@ function gameOver() {
   const rek = score > best;
   if (rek) best = score;
   if (score > (lvBest[startLv] || 0)) lvBest[startLv] = score;
+  sacuvana = null;                            // partija je gotova; rekordi ostaju
   saveRec();
   window.SFX && SFX.siren();
   if (trka) return trkaIspao();
@@ -460,13 +483,15 @@ function pocetak() {
     '<p>Ide se redom, od 1. do ' + UKUPNO_NIVOA + '. nivoa. Rekord: <b style="color:#eef2f9">' + best + '</b>' +
     (maxLv > 1 ? ' · najdalje: <b style="color:#eef2f9">nivo ' + maxLv + '</b>' : '') + '</p>' +
     '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
-    (maxLv > 1 ? '<button id="nastaviBtn">▶ Nastavi — nivo ' + sledeci + '</button>' : '') +
+    (sacuvana ? '<button id="tokBtn">▶ Nastavi — nivo ' + sacuvana.level + ', ' + sacuvana.score + ' poena</button>' : '') +
+    (maxLv > 1 ? '<button id="nastaviBtn">🆕 Nova igra od nivoa ' + sledeci + '</button>' : '') +
     '<button id="odPocBtn">' + (maxLv > 1 ? "⟲ Od prvog nivoa" : "▶ Počni") + '</button>' +
     '<button id="trkaBtn">🏁 Trka u dvoje</button>' +
     '<button id="pravBtn">❔ Pravila</button>' +
     (kodOtkljucan ? '<button id="izborBtn">📋 Izbor nivoa</button>' : '<button id="kodBtn">🔒 Kod</button>') +
     '</div>');
   $("#trkaBtn").onclick = trkaMeni;
+  const tb = $("#tokBtn"); if (tb) tb.onclick = nastaviTok;
   const nb = $("#nastaviBtn"); if (nb) nb.onclick = () => newGame(sledeci);
   $("#odPocBtn").onclick = () => newGame(1);
   $("#pravBtn").onclick = intro;
@@ -609,7 +634,7 @@ function izborTrke() {                      // domaćin bira nivo za sledeću ru
 }
 function pocniRundu(n) {
   trka.nivo = n; trka.moj = praznaStrana(); trka.prot = praznaStrana();
-  level = n; startLv = n; score = 0; lives = 3;
+  level = n; startLv = n; score = 0; lives = 3;   // trka ide mimo sačuvane partije za jednog
   trka.moj.cigle = 0;
   startLevel();
   trka.t0 = performance.now();
@@ -833,6 +858,7 @@ window.C = {
   get lvBest() { return lvBest; }, get maxLv() { return maxLv; }, get best() { return best; },
   setBricks: a => { bricks = a; }, setLives: n => { lives = n; updHud(); },
   setLevel: n => { level = n; startLevel(); }, launch: () => { stuck = false; },
+  get sacuvanaPartija() { return sacuvana; }, nastaviTok, dodajPoene: n => { score += n; updHud(); zapamtiTok(); },
   run: (dt, n) => { for (let i = 0; i < n; i++) step(dt); },
   get trka() { return trka; }, get cigle() { return brickLeft(); }, trkaMeni, trkaKraj,
   ocistiSve: () => { bricks = bricks.filter(b => b.steel); if (state === "play") winLevel(); },
