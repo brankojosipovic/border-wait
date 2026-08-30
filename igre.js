@@ -11,7 +11,9 @@ var GAMES = [
   { id: "tetris",    href: "tetris.html",    em: "🧱", nm: "Tetris" },
   { id: "avioni",    href: "avioni.html",    em: "✈️", nm: "Avioni" },
   { id: "cigle",     href: "cigle.html",     em: "🕹️", nm: "Cigle" },
-  { id: "stvorenja", href: "stvorenja.html", em: "🐉", nm: "Bića" }
+  { id: "stvorenja", href: "stvorenja.html", em: "🐉", nm: "Bića" },
+  { id: "tablic",    href: "tablic.html",    em: "🃏", nm: "Tablić" },
+  { id: "jamb",      href: "jamb.html",      em: "🎲", nm: "Jamb" }
 ];
 var SKEY = "igre.sound";
 
@@ -101,7 +103,7 @@ window.IGRE = GAMES;
 /* ---------- donja traka ---------- */
 var CSS =
 '.gamenav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;' +
-'grid-template-columns:repeat(10,1fr);align-items:stretch;' +
+'grid-template-columns:repeat(12,1fr);align-items:stretch;' +
 'background:var(--panel);border-top:1px solid var(--line);' +
 'padding-bottom:env(safe-area-inset-bottom, 0px);box-shadow:0 -4px 18px rgba(0,0,0,.22)}' +
 '.gamenav a,.gamenav button{display:flex;flex-direction:column;align-items:center;justify-content:center;' +

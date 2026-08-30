@@ -119,7 +119,9 @@ Nova verzija se objavljuje dizanjem `VERSION` u `sw.js`; stari keš se tada bri�
 
 ## Cigle i Stvorenja
 
-`cigle.html` — breakout: palica, loptica i 10 ručno složenih nivoa. Zelena cigla puca iz prve,
+`cigle.html` — breakout: palica, loptica i 16 imenovanih nivoa sa oblicima (srce, piramida, tvrđava,
+osmeh, strela…). Na startu se bira nivo iz mreže minijatura, uz rekord po nivou i najdalje
+dostignut nivo. Palica stoji 62 px iznad dna da je prst ne pokriva, sa senkom-pokazivačem ispod. Zelena cigla puca iz prve,
 žuta traži dva, crvena tri udarca, a čelična se ne razbija — samo odbija. Bonusi padaju
 (šira palica, tri loptice, sporija loptica, život). Ugao odbijanja zavisi od mesta udara u
 palicu, a loptica se pomera u sitnim koracima da ne proleti kroz ciglu pri velikoj brzini.
@@ -129,6 +131,24 @@ ime su tuđa svojina, pa se ne koriste). Šetnja po mapi, susreti u travi, tipov
 (🔥 > 🌿 > 💧 > 🔥) sa dvostrukom štetom u prednosti, hvatanje loptom (šansa zavisi od
 preostalog zdravlja), tim do šest, iskustvo i nivoi, evolucija, tri arene sa po tri protivnika
 i vidar koji leči. Partija se čuva u `localStorage`.
+
+## Tablić i Jamb (igra u dvoje)
+
+`tablic.html` — kartaška klasika: kupi se ista vrednost (7 kupi 7) ili zbir (7 kupi 3+4, samo A–10),
+žandar kupi sve sa stola ali njime nema table, tabla nosi +1, na kraju +3 onome ko ima više karata,
+a poeni su asovi, desetke (10♦ vredi 2) i 2♣. Protiv računara, u dvoje na jednom telefonu ili preko
+interneta. Kad izabereš kartu, igra ponudi sve moguće ulove i označi karte koje bi otišle.
+
+`jamb.html` — listić sa četiri kolone (↓ redom odozgo, ↑ odozdo, ⇅ slobodno, N uz najavu dugim
+pritiskom posle prvog bacanja), tri bacanja po potezu, bonus +30 na gornji deo, (maks−min)×jedinice,
+kenta 66/56/46, triling +20, ful +30, poker +40, jamb +50.
+
+`mreza.js` — igra u dvoje preko interneta bez sopstvenog servera: jedan napravi sobu i dobije
+petoznakovni kod, drugi ga ukuca, pa telefoni razgovaraju **direktno** (WebRTC). Javni PeerJS
+server služi samo da se nađu. Biblioteka se skida tek kad se izabere mrežna igra, pa offline rad
+ostaje netaknut. U tabliću je domaćin autoritet (deli karte i drži stanje), u jambu svaki igrač
+šalje svoj potez. Modul ima i lokalni kanal (`BroadcastChannel`) kojim se protokol testira između
+dva prozora bez interneta.
 
 ## Ograničenja podataka
 
