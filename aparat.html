@@ -164,6 +164,7 @@
     <span class="win" id="lastWin"></span>
     <div class="spacer"></div>
     <button id="refill" class="hidden">＋100 (kuća časti)</button>
+    <button id="reset" title="Vrati na početnih 100 kredita">⟲</button>
   </div>
 
   <div class="machine col" id="pokerPane">
@@ -502,6 +503,11 @@ $("#sGo").onclick = slotGo;
 $("#tabPoker").onclick = () => setMode("poker");
 $("#tabSlot").onclick = () => setMode("slot");
 $("#refill").onclick = () => { ST.credits += 100; ST.refills++; window.SFX && SFX.coin(); save(); renderWallet(); renderPoker(); renderSlot(); };
+$("#reset").onclick = () => {                     // brisanje je samo na tvoje traženje
+  if (!confirm("Ispočetka? Krediti se vraćaju na 100, a zapisi se brišu.")) return;
+  ST = { credits: 100, mode: ST.mode, pBet: 2, sBet: 10, best: 0, hands: 0, spins: 0, refills: 0, inHand: 0, pending: 0 };
+  window.SFX && SFX.tick(); save(); renderWallet(); renderPoker(); renderSlot();
+};
 $("#theme").onclick = () => {
   const b = document.body;
   b.dataset.theme = b.dataset.theme === "dark" ? "light" : "dark";
