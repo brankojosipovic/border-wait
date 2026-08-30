@@ -65,24 +65,24 @@
   .list { width: 100%; border-collapse: collapse; background: var(--panel);
           border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
   .list th, .list td { border: 1px solid var(--line); padding: 0; text-align: center; }
-  .list th { font-size: calc(var(--rh, 24px) * .45); color: var(--ink-dim); font-weight: 700; padding: 2px 0; background: var(--panel-2); }
+  .list th { font-size: calc(var(--rh, 24px) * .55); color: var(--ink-dim); font-weight: 700; padding: 2px 0; background: var(--panel-2); }
   .list th.rw { text-align: left; padding-left: 6px; }
-  .list td.rw { font-size: calc(var(--rh, 24px) * .46); color: var(--ink-dim); text-align: left; padding: 0 4px; white-space: nowrap; }
-  .list td.sum { background: var(--panel-2); font-weight: 700; font-size: calc(var(--rh, 24px) * .48); color: var(--ink); }
+  .list td.rw { font-size: calc(var(--rh, 24px) * .54); color: var(--ink-dim); text-align: left; padding: 0 4px; white-space: nowrap; }
+  .list td.sum { background: var(--panel-2); font-weight: 700; font-size: calc(var(--rh, 24px) * .56); color: var(--ink); }
   .cell { width: 100%; height: 100%; min-height: var(--rh, 24px); display: flex; align-items: center; justify-content: center;
-          font-size: calc(var(--rh, 24px) * .52); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+          font-size: calc(var(--rh, 24px) * .62); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
   .cell.prazna { color: var(--ink-dim); font-weight: 400; }
   .cell.moze { background: color-mix(in srgb, var(--good) 22%, transparent); color: var(--good); cursor: pointer; }
   .cell.moze:active { background: color-mix(in srgb, var(--good) 38%, transparent); }
   .cell.najava { box-shadow: inset 0 0 0 2px var(--gold); }
 
   /* kockice */
-  .kocke { display: flex; gap: 6px; justify-content: center; }
-  .k { width: var(--kw, 46px); height: var(--kw, 46px); border-radius: 10px; background: #f4f6fb; color: #16223a;
-       display: flex; align-items: center; justify-content: center; font-size: calc(var(--kw, 46px) * .62);
+  .kocke { display: flex; gap: 8px; justify-content: center; }
+  .k { width: var(--kw, 58px); height: var(--kw, 58px); border-radius: 12px; background: #f4f6fb; color: #16223a;
+       display: flex; align-items: center; justify-content: center; font-size: calc(var(--kw, 58px) * .68);
        font-weight: 700; box-shadow: 0 2px 0 rgba(0,0,0,.25); cursor: pointer; position: relative; }
   .k.drzim { background: var(--gold); box-shadow: 0 0 0 2px var(--ink) inset, 0 2px 0 rgba(0,0,0,.25); }
-  .k .lb { position: absolute; bottom: 1px; left: 0; right: 0; font-size: 8px; font-weight: 700; opacity: .6; }
+  .k .lb { position: absolute; bottom: 2px; left: 0; right: 0; font-size: 9px; font-weight: 700; opacity: .6; }
   .roll { width: 100%; padding: 10px; font-size: 16px; font-weight: 700; border-color: var(--gold); }
 
   .msg { text-align: center; font-size: 13px; color: var(--ink-dim); min-height: 20px; }
@@ -108,7 +108,12 @@
   .foot a { color: var(--ink-dim); }
   @media (max-height: 780px) { .foot { display: none; } }
   @media (max-height: 680px) { header .sub { display: none; } }
-  @media (max-height: 620px) { header h1 { font-size: 15px; } .wrap { gap: 5px; } }
+  @media (max-height: 620px) {
+    header h1 { font-size: 15px; } .wrap { gap: 4px; padding: 4px 10px 6px; }
+    .roll { padding: 8px; font-size: 15px; }
+    .msg { min-height: 16px; font-size: 12px; }
+    .kocke { gap: 6px; }
+  }
   @media (orientation: landscape) and (max-height: 520px) {
     header .sub, .foot { display: none; }
     header { padding: 0 0 0 10px; grid-column: 1 / -1; } header h1 { font-size: 15px; }
@@ -163,8 +168,8 @@ const KOL = [
   { id: "n", nm: "N", opis: "najava posle prvog bacanja" }
 ];
 const RED = [
-  { id: "1", nm: "Jedinice" }, { id: "2", nm: "Dvojke" }, { id: "3", nm: "Trojke" },
-  { id: "4", nm: "Četvorke" }, { id: "5", nm: "Petice" }, { id: "6", nm: "Šestice" },
+  { id: "1", nm: "1 · jedinice" }, { id: "2", nm: "2 · dvojke" }, { id: "3", nm: "3 · trojke" },
+  { id: "4", nm: "4 · četvorke" }, { id: "5", nm: "5 · petice" }, { id: "6", nm: "6 · šestice" },
   { id: "max", nm: "Maksimum" }, { id: "min", nm: "Minimum" },
   { id: "kenta", nm: "Kenta" }, { id: "triling", nm: "Triling" },
   { id: "ful", nm: "Ful" }, { id: "poker", nm: "Poker" }, { id: "jamb", nm: "Jamb" }
@@ -445,18 +450,26 @@ function fit() {
   if (!wrap || !listWrap) return;
   const root = document.documentElement;
   const sirina = Math.min(window.innerWidth - 20, 460);
-  root.style.setProperty("--kw", Math.max(30, Math.min(46, Math.floor((sirina - 30) / 5) - 4)) + "px");
+  const poSirini = Math.floor((sirina - 40) / 5);
   const limit = nav ? nav.getBoundingClientRect().top : window.innerHeight;
-  const kids = [...wrap.children].filter(el => el.offsetParent !== null);
-  const cs = getComputedStyle(wrap);
-  const ostalo = kids.filter(el => el !== listWrap)
-    .reduce((a, el) => a + el.getBoundingClientRect().height, 0) +
-    (parseFloat(cs.rowGap) || 0) * Math.max(0, kids.length - 1) +
-    (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
-  const redova = Math.max(1, $("#list").rows.length - 1);          // bez zaglavlja
-  const zaListic = limit - wrap.getBoundingClientRect().top - ostalo - 8;
-  const rh = Math.max(13, Math.min(30, Math.floor((zaListic - 20) / redova)));
-  root.style.setProperty("--rh", rh + "px");
+  const redova = Math.max(1, $("#list").rows.length - 1);
+  const MIN_RH = 17, MIN_KW = 36;
+
+  let kw = Math.min(66, poSirini);                       // kreni od krupnih kockica
+  for (let i = 0; i < 10; i++) {                         // pa ih smanjuj samo dok listić ne dobije čitljiv red
+    root.style.setProperty("--kw", kw + "px");
+    const kids = [...wrap.children].filter(el => el.offsetParent !== null);
+    const cs = getComputedStyle(wrap);
+    const ostalo = kids.filter(el => el !== listWrap)
+      .reduce((a, el) => a + el.getBoundingClientRect().height, 0) +
+      (parseFloat(cs.rowGap) || 0) * Math.max(0, kids.length - 1) +
+      (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const zaListic = limit - wrap.getBoundingClientRect().top - ostalo - 14;
+    const rh = Math.floor((zaListic - 20) / redova);
+    if (rh >= MIN_RH) { root.style.setProperty("--rh", Math.min(32, rh) + "px"); return; }
+    if (kw <= MIN_KW) { root.style.setProperty("--rh", Math.max(13, rh) + "px"); return; }  // sasvim mali ekran
+    kw -= 4;
+  }
 }
 window.addEventListener("resize", fit);
 window.addEventListener("load", fit);

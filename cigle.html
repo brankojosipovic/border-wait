@@ -116,7 +116,7 @@
   </div>
 
   <div class="foot col">
-    Tapni da ispališ lopticu. 🟦 široka palica · ⬤ tri loptice · 🐢 sporije · ❤️ život.
+    Tapni da ispališ. 🟦 široka palica · ⬤ tri loptice · 🐢 sporije · ❤️ život. Čuvaj se 🔫 ljubičastih cigli.
     <br><a href="igre.html">🎮 Sve igre</a> · <a href="index.html">← Border Wait</a>
   </div>
 </div>
@@ -147,31 +147,79 @@ const LEVELS = [
   { nm: "Krst",        m: ["...22...", "...22...", "22222222", "22222222", "...22...", "...33..."] },
   { nm: "Češalj",      m: ["3.3.3.3.", "3.3.3.3.", "3.3.3.3.", "33333333", "X......X"] },
   { nm: "Sendvič",     m: ["33333333", "XXXXXXXX", "22222222", "XXXXXXXX", "11111111"] },
-  { nm: "Lavirint",    m: ["3X2222X3", "3X2..2X3", "3X2.32X3", "3X2222X3", "33XXXX33"] }
+  { nm: "Lavirint",    m: ["3X2222X3", "3X2..2X3", "3X2.32X3", "3X2222X3", "33XXXX33"] },
+  { nm: "Straža",      m: ["P.2222.P", "22222222", ".3XXXX3.", "11111111"] },
+  { nm: "Topovi",      m: ["P111111P", ".2S22S2.", "P333333P", "..2222.."] },
+  { nm: "Kapije",      m: ["X2P22P2X", "X111111X", "XS3333SX", "X222222X"] },
+  { nm: "Osinjak",     m: ["S.S.S.S.", ".P.P.P.P", "S.S.S.S.", "33333333"] }
 ];
+
+/* Nivoi 21–50 se prave po obrascu — teži i teži, uvek isti za isti broj. */
+function nasumican(seed) { let a = seed * 9301 + 49297; return () => ((a = (a * 9301 + 49297) % 233280) / 233280); }
+function generisi(n) {
+  const r = nasumican(n * 7 + 13);
+  const tez = Math.min(1, (n - 20) / 30);                       // 0 → 1 kako nivo raste
+  const redova = 4 + Math.round(tez * 2);
+  const obrazac = n % 5;
+  const m = [];
+  for (let y = 0; y < redova; y++) {
+    let red = "";
+    for (let x = 0; x < COLS; x++) {
+      const sim = Math.min(x, COLS - 1 - x);                    // simetrično levo-desno
+      let c = ".";
+      const val = r();
+      const gust = .55 + tez * .35;
+      let ima = false;
+      if (obrazac === 0) ima = val < gust;
+      else if (obrazac === 1) ima = (sim + y) % 2 === 0 || val < gust * .6;
+      else if (obrazac === 2) ima = y === 0 || y === redova - 1 || sim === 0 || val < gust * .5;
+      else if (obrazac === 3) ima = sim >= y % 4 && val < gust + .2;
+      else ima = (x + y) % 3 !== 1 || val < gust * .4;
+      if (!ima) { red += "."; continue; }
+      const t = r();
+      if (t < .10 + tez * .10) c = "X";
+      else if (t < .18 + tez * .16) c = "P";
+      else if (t < .26 + tez * .18) c = "S";
+      else if (t < .48 + tez * .22) c = "3";
+      else if (t < .74) c = "2";
+      else c = "1";
+      red += c;
+    }
+    if (!/[123PS]/.test(red)) red = red.slice(0, 3) + "2" + red.slice(4);   // svaki red mora imati bar nešto
+    m.push(red);
+  }
+  return { nm: "Nivo " + n, m };
+}
+const UKUPNO_NIVOA = 50;
+function nivo(n) { return n <= LEVELS.length ? LEVELS[n - 1] : generisi(n); }
 const COLS = 8, BW = LW / COLS, BH = 14, TOP = 34;
 
 /* ---------- stanje ---------- */
-let bricks, balls, pad, drops, parts;
+let bricks, balls, pad, drops, parts, zrna;
 let level = 1, score = 0, lives = 3, best = 0, startLv = 1;
-let lvBest = {}, maxLv = 1;
+let lvBest = {}, maxLv = 1, kodOtkljucan = false;
 let state = "intro", stuck = true, raf = 0, lastTs = 0;
 try {
   const s = JSON.parse(localStorage.getItem(KEY) || "null");
-  if (s) { best = s.best || 0; lvBest = s.lvBest || {}; maxLv = s.maxLv || 1; }
+  if (s) { best = s.best || 0; lvBest = s.lvBest || {}; maxLv = s.maxLv || 1; kodOtkljucan = !!s.kod; }
 } catch (e) { }
-function saveRec() { try { localStorage.setItem(KEY, JSON.stringify({ best, lvBest, maxLv })); } catch (e) { } }
+function saveRec() { try { localStorage.setItem(KEY, JSON.stringify({ best, lvBest, maxLv, kod: kodOtkljucan })); } catch (e) { } }
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 function buildLevel(n) {
-  const map = LEVELS[(n - 1) % LEVELS.length].m;
+  const map = nivo(((n - 1) % UKUPNO_NIVOA) + 1).m;
   bricks = [];
   for (let r = 0; r < map.length; r++) for (let c = 0; c < COLS; c++) {
     const ch = map[r][c];
     if (!ch || ch === ".") continue;
-    bricks.push({ x: c * BW, y: TOP + r * BH, w: BW, h: BH,
-                  hp: ch === "X" ? Infinity : +ch, max: ch === "X" ? 0 : +ch, steel: ch === "X" });
+    const pucac = ch === "P", smanj = ch === "S", celik = ch === "X";
+    bricks.push({
+      x: c * BW, y: TOP + r * BH, w: BW, h: BH, x0: c * BW, y0: TOP + r * BH,
+      hp: celik ? Infinity : pucac ? 2 : smanj ? 3 : +ch,
+      max: celik ? 0 : pucac ? 2 : smanj ? 3 : +ch,
+      steel: celik, pucac, smanj, t: 1 + Math.random() * 2.5
+    });
   }
 }
 const brickLeft = () => bricks.filter(b => !b.steel).length;
@@ -188,12 +236,12 @@ function newGame(od) {
 }
 function startLevel() {
   buildLevel(level); resetPad();
-  balls = [newBall()]; drops = []; parts = [];
+  balls = [newBall()]; drops = []; parts = []; zrna = [];
   stuck = true; state = "play"; hideOverlay(); lastTs = 0; fit(); updHud();
   if (!raf) raf = requestAnimationFrame(loop);
 }
 function updHud() {
-  $("#hLevel").textContent = level + (LEVELS[(level - 1) % LEVELS.length] ? " · " + LEVELS[(level - 1) % LEVELS.length].nm : "");
+  $("#hLevel").textContent = level + " · " + nivo(((level - 1) % UKUPNO_NIVOA) + 1).nm;
   $("#hScore").textContent = score;
   $("#hLives").textContent = "❤️".repeat(Math.max(0, lives));
 }
@@ -235,6 +283,21 @@ function step(dt) {
   balls = balls.filter(b => b.y < LH + 12);
   if (!stuck && balls.length === 0) loseLife();
 
+  for (const b of bricks) {                              // cigle-pucači gađaju palicu
+    if (!b.pucac) continue;
+    b.t -= dt;
+    if (b.t <= 0) {
+      b.t = 2.4 + Math.random() * 2.2;
+      zrna.push({ x: b.x + b.w / 2, y: b.y + b.h, vy: 96 + level * 3 });
+      window.SFX && SFX.tick();
+    }
+  }
+  for (const z of zrna) z.y += z.vy * dt;
+  for (const z of zrna) {
+    if (z.y > PADY - 2 && z.y < PADY + 10 && Math.abs(z.x - pad.x) < pad.w / 2 + 2) { z.dead = true; pogodjen(); }
+  }
+  zrna = zrna.filter(z => !z.dead && z.y < LH + 8);
+
   for (const d of drops) { d.y += 68 * dt; d.t += dt; }
   for (const d of drops) {
     if (d.y > PADY - 6 && d.y < PADY + 10 && Math.abs(d.x - pad.x) < pad.w / 2 + 8) { d.dead = true; takeDrop(d.k); }
@@ -257,6 +320,11 @@ function hitBricks(b) {
     else { b.vy = -b.vy; b.y += b.vy > 0 ? oy : -oy; }
     if (br.steel) { window.SFX && SFX.stamp(); boom(b.x, b.y, 2, "#9fb0cc"); return; }
     br.hp--;
+    if (br.smanj && br.hp > 0) {                         // smanjujuća cigla se skuplja i teže se pogađa
+      const nw = br.w * .68, nh = br.h * .78;
+      br.x += (br.w - nw) / 2; br.y += (br.h - nh) / 2;
+      br.w = nw; br.h = nh;
+    }
     if (br.hp <= 0) {
       score += 10 * br.max;
       boom(br.x + br.w / 2, br.y + br.h / 2, 8, brickColor(br.max));
@@ -288,24 +356,30 @@ function takeDrop(k) {
   else if (k === "h") { lives = Math.min(5, lives + 1); }
   score += 25; window.SFX && SFX.coin(); updHud();
 }
+function pogodjen() {                                    // zrno je pogodilo palicu
+  window.SFX && SFX.siren();
+  boom(pad.x, PADY, 14, "#d65a4e");
+  zrna = [];
+  loseLife();
+}
 function loseLife() {
   lives--; updHud(); window.SFX && SFX.bad();
   if (lives <= 0) return gameOver();
-  resetPad(); balls = [newBall()]; drops = []; stuck = true;
+  resetPad(); balls = [newBall()]; drops = []; zrna = []; stuck = true;
 }
 function winLevel() {
   score += 100 * level;
-  if (level + 1 > maxLv) { maxLv = Math.min(LEVELS.length, level + 1); saveRec(); }
+  if (level + 1 > maxLv) { maxLv = Math.min(UKUPNO_NIVOA, level + 1); saveRec(); }
   window.SFX && SFX.win();
   state = "levelup";
-  const zadnji = level >= LEVELS.length;
+  const zadnji = level >= UKUPNO_NIVOA;
   showOverlay('<h2>' + (zadnji ? "🏆 Sve prošao!" : "Nivo " + level + " očišćen") + '</h2>' +
     '<p>Poeni: <b style="color:#eef2f9">' + score + '</b></p>' +
     '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
-    '<button id="nextBtn">' + (zadnji ? "⟲ Ispočetka" : "▶ Nivo " + (level + 1) + ": " + LEVELS[level % LEVELS.length].nm) + '</button>' +
-    '<button id="pickBtn2">📋 Izbor nivoa</button></div>');
+    '<button id="nextBtn">' + (zadnji ? "⟲ Ispočetka" : "▶ Nivo " + (level + 1) + ": " + nivo(level + 1).nm) + '</button>' +
+    '<button id="pickBtn2">📋 Meni</button></div>');
   $("#nextBtn").onclick = () => { level++; startLevel(); };
-  $("#pickBtn2").onclick = levelPicker;
+  $("#pickBtn2").onclick = pocetak;
 }
 function gameOver() {
   state = "over";
@@ -319,11 +393,11 @@ function gameOver() {
     '<span>Rekord</span><b>' + best + '</b></div>' +
     (rek ? '<p style="color:#2e9e6b;font-weight:700">Novi rekord! 🎉</p>' : '') +
     '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
-    '<button id="againBtn">⟲ Isti nivo</button><button id="pickBtn3">📋 Izbor nivoa</button></div>');
+    '<button id="againBtn">⟲ Isti nivo</button><button id="pickBtn3">📋 Meni</button></div>');
   $("#againBtn").onclick = () => newGame(startLv);
-  $("#pickBtn3").onclick = levelPicker;
+  $("#pickBtn3").onclick = pocetak;
 }
-const MINI_COL = { "1": "#3fb96a", "2": "#e0a53a", "3": "#d8534a", "X": "#7c8aa6" };
+const MINI_COL = { "1": "#3fb96a", "2": "#e0a53a", "3": "#d8534a", "X": "#7c8aa6", "P": "#a45cd8", "S": "#2fb3b3" };
 function miniHTML(m) {
   let h = '<div class="mini">';
   for (let r = 0; r < Math.min(5, m.length); r++)
@@ -334,32 +408,76 @@ function miniHTML(m) {
   return h + "</div>";
 }
 function levelPicker() {
+  if (!kodOtkljucan) return pocetak();
   state = "intro";
   let cards = "";
-  for (let i = 0; i < LEVELS.length; i++) {
-    const n = i + 1, L = LEVELS[i], rec = lvBest[n];
-    cards += '<div class="lvCard' + (n === 1 ? " on" : "") + '" data-lv="' + n + '">' +
+  for (let n = 1; n <= UKUPNO_NIVOA; n++) {
+    const L = nivo(n), rec = lvBest[n];
+    cards += '<div class="lvCard" data-lv="' + n + '">' +
       miniHTML(L.m) + '<div class="nm">' + n + '. ' + L.nm + '</div>' +
       '<div class="rec">' + (rec ? rec : "&nbsp;") + '</div></div>';
   }
   showOverlay('<h2>Izaberi nivo</h2>' +
-    '<p>Rekord: <b style="color:#eef2f9">' + best + '</b> · najdalje stigao: <b style="color:#eef2f9">nivo ' + maxLv + '</b></p>' +
+    '<p>🔓 otključano kodom · rekord <b style="color:#eef2f9">' + best + '</b> · najdalje: <b style="color:#eef2f9">nivo ' + maxLv + '</b></p>' +
     '<div class="lvGrid">' + cards + '</div>' +
-    '<p>Zeleno puca iz prve, žuto traži dva, crveno tri, sivo se ne razbija.</p>' +
-    '<button id="rulesBtn">❔ Pravila</button>');
+    '<div class="btns" style="display:flex;gap:8px;justify-content:center"><button id="nazadBtn">← Nazad</button></div>');
   for (const c of document.querySelectorAll(".lvCard"))
     c.onclick = () => { window.SFX && SFX.tap(); newGame(+c.dataset.lv); };
-  $("#rulesBtn").onclick = intro;
+  $("#nazadBtn").onclick = pocetak;
 }
+
+function pocetak() {
+  state = "intro";
+  const sledeci = Math.min(UKUPNO_NIVOA, maxLv);
+  showOverlay('<h2>🧱 Cigle</h2>' +
+    '<p>Ide se redom, od 1. do ' + UKUPNO_NIVOA + '. nivoa. Rekord: <b style="color:#eef2f9">' + best + '</b>' +
+    (maxLv > 1 ? ' · najdalje: <b style="color:#eef2f9">nivo ' + maxLv + '</b>' : '') + '</p>' +
+    '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
+    (maxLv > 1 ? '<button id="nastaviBtn">▶ Nastavi — nivo ' + sledeci + '</button>' : '') +
+    '<button id="odPocBtn">' + (maxLv > 1 ? "⟲ Od prvog nivoa" : "▶ Počni") + '</button>' +
+    '<button id="pravBtn">❔ Pravila</button>' +
+    (kodOtkljucan ? '<button id="izborBtn">📋 Izbor nivoa</button>' : '<button id="kodBtn">🔒 Kod</button>') +
+    '</div>');
+  const nb = $("#nastaviBtn"); if (nb) nb.onclick = () => newGame(sledeci);
+  $("#odPocBtn").onclick = () => newGame(1);
+  $("#pravBtn").onclick = intro;
+  const ib = $("#izborBtn"); if (ib) ib.onclick = levelPicker;
+  const kb = $("#kodBtn"); if (kb) kb.onclick = unosKoda;
+}
+
+function unosKoda() {
+  showOverlay('<h2>🔒 Skriveni kod</h2><p>Ako znaš kod, otvara ti se izbor bilo kog nivoa.</p>' +
+    '<input id="kodIn" placeholder="kod" autocapitalize="none" autocomplete="off" spellcheck="false" ' +
+    'style="font:inherit;color:#eef2f9;background:#1b2a4a;border:1px solid #283a5e;border-radius:10px;padding:9px 11px;width:200px;text-align:center;letter-spacing:2px">' +
+    '<div class="btns" style="display:flex;gap:8px;justify-content:center">' +
+    '<button id="okBtn">Potvrdi</button><button id="nazadBtn2">← Nazad</button></div>' +
+    '<p id="kodPoruka">&nbsp;</p>');
+  $("#nazadBtn2").onclick = pocetak;
+  $("#okBtn").onclick = () => {
+    const v = ($("#kodIn").value || "").trim().toLowerCase().replace(/\s/g, "");
+    if (v === "cigla52") {
+      kodOtkljucan = true; saveRec();
+      window.SFX && SFX.jackpot();
+      levelPicker();
+    } else {
+      $("#kodPoruka").innerHTML = '<span style="color:#d65a4e">Pogrešan kod.</span>';
+      window.SFX && SFX.bad();
+    }
+  };
+  setTimeout(() => { const i = $("#kodIn"); if (i) i.focus(); }, 100);
+}
+
 function intro() {
   state = "intro";
   showOverlay('<h2>🧱 Cigle</h2>' +
     '<ul><li><b>Prevlači prstom</b> ispod palice da je pomeriš, tapni da ispališ lopticu.</li>' +
-    '<li>Cigle: <b>zelena</b> puca iz prve, <b>žuta</b> traži dva, <b>crvena</b> tri udarca. <b>Čelična</b> se ne razbija — samo odbija.</li>' +
+    '<li>Cigle: <b>zelena</b> puca iz prve, <b>žuta</b> traži dva, <b>crvena</b> tri udarca. <b>Siva čelična</b> se ne razbija — samo odbija.</li>' +
+    '<li><b>Ljubičasta ima pištolj</b> 🔫 — s vremena na vreme ispali metak nadole; ako pogodi palicu, gubiš život. Puca dok je ne razbiješ (dva udarca).</li>' +
+    '<li><b>Tirkizna se smanjuje</b> pri svakom pogotku — treba tri, a svaki put je manja i teže se gađa.</li>' +
     '<li>Bonusi padaju: 🟦 šira palica, ⬤ tri loptice, 🐢 sporije, ❤️ život.</li>' +
     '<li>Ugao odbijanja zavisi od toga gde loptica pogodi palicu — tako biraš smer.</li></ul>' +
-    '<button id="pickBtn">▶ Izbor nivoa</button>');
-  $("#pickBtn").onclick = levelPicker;
+    '<button id="pickBtn">← Nazad</button>');
+  $("#pickBtn").onclick = pocetak;
 }
 function showOverlay(h) { const o = $("#overlay"); o.innerHTML = h; o.hidden = false; }
 function hideOverlay() { $("#overlay").hidden = true; }
@@ -371,7 +489,7 @@ function draw() {
   ctx.fillStyle = "#0a1120"; ctx.fillRect(0, 0, LW, LH);
   ctx.fillStyle = "rgba(255,255,255,.05)"; ctx.fillRect(0, 0, LW, 8);
   for (const b of bricks) {
-    const col = b.steel ? "#7c8aa6" : brickColor(b.hp);
+    const col = b.steel ? "#7c8aa6" : b.pucac ? "#a45cd8" : b.smanj ? "#2fb3b3" : brickColor(b.hp);
     ctx.fillStyle = col;
     ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
     ctx.fillStyle = "rgba(255,255,255,.18)";
@@ -379,6 +497,16 @@ function draw() {
     if (b.steel) {
       ctx.strokeStyle = "rgba(255,255,255,.4)"; ctx.lineWidth = 1;
       ctx.strokeRect(b.x + 3, b.y + 3, b.w - 6, b.h - 6);
+    } else if (b.pucac) {
+      ctx.fillStyle = "rgba(255,255,255,.85)";           // cev okrenuta nadole
+      ctx.fillRect(b.x + b.w / 2 - 1.5, b.y + b.h - 4, 3, 4);
+      ctx.font = "bold 8px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillText(b.hp, b.x + b.w / 2, b.y + b.h / 2 - 1);
+    } else if (b.smanj) {
+      ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 1;
+      ctx.strokeRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
+      ctx.font = "bold 8px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillText(b.hp, b.x + b.w / 2, b.y + b.h / 2);
     } else if (b.hp > 1) {
       ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.font = "bold 8px system-ui";
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -397,6 +525,8 @@ function draw() {
   ctx.fillRect(pad.x - pad.w / 2, PADY, pad.w, 2);
   ctx.fillStyle = "rgba(201,162,39,.25)";                      // pokazivač ispod prsta
   ctx.fillRect(pad.x - pad.w / 2, PADY + 22, pad.w, 3);
+  ctx.fillStyle = "#ff6b6b";                              // zrna koja cigle ispaljuju
+  for (const z of zrna) { ctx.fillRect(z.x - 1.5, z.y - 5, 3, 7); }
   ctx.fillStyle = "#eef2f9";
   for (const b of balls) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); }
   for (const p of parts) {
@@ -478,15 +608,17 @@ window.addEventListener("orientationchange", () => setTimeout(fit, 150));
 
 /* ---------- start ---------- */
 try { const t = localStorage.getItem("sudoku.theme"); if (t) document.body.dataset.theme = t; } catch (e) { }
-buildLevel(1); resetPad(); balls = [newBall()]; drops = []; parts = [];
-fit(); updHud(); draw(); if (best > 0) levelPicker(); else intro();
+buildLevel(1); resetPad(); balls = [newBall()]; drops = []; parts = []; zrna = [];
+fit(); updHud(); draw(); pocetak();
 raf = requestAnimationFrame(loop);
 
 window.C = {
   get state() { return state; }, get score() { return score; }, get level() { return level; },
   get lives() { return lives; }, get bricks() { return bricks; }, get balls() { return balls; },
   get pad() { return pad; }, get drops() { return drops; }, get stuck() { return stuck; },
-  LEVELS, brickLeft, newGame, startLevel, step, takeDrop, loseLife, hitBricks, levelPicker,
+  LEVELS, UKUPNO_NIVOA, nivo, generisi, brickLeft, newGame, startLevel, step, takeDrop, loseLife, hitBricks,
+  levelPicker, pocetak, unosKoda, get zrna() { return zrna; }, get kodOtkljucan() { return kodOtkljucan; },
+  setKod: v => { kodOtkljucan = v; saveRec(); },
   get lvBest() { return lvBest; }, get maxLv() { return maxLv; }, get best() { return best; },
   setBricks: a => { bricks = a; }, setLives: n => { lives = n; updHud(); },
   setLevel: n => { level = n; startLevel(); }, launch: () => { stuck = false; },
