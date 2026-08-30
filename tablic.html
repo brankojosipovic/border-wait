@@ -157,8 +157,9 @@ const KEY = "tablic.v1";
 const ZNAK = ["♠", "♥", "♦", "♣"], IME = { 1: "A", 11: "J", 12: "Q", 13: "K" };
 const crvena = s => s === 1 || s === 2;
 const ime = c => (IME[c.r] || c.r) + ZNAK[c.s];
-const vred = c => c.r;                                  // A=1 … 10=10, J=žandar, Q=12, K=13
-const zbirljiva = c => c.r <= 10;                        // samo A–10 ulaze u zbirove
+const vred = c => c.r === 12 ? 13 : c.r === 13 ? 14 : c.r === 11 ? 12 : c.r;
+                                                         // A=1 … 10=10, J=12 (kupi sve), Q=13, K=14
+const zbirljiva = c => c.r <= 10;                        // u zbir ulaze samo A–10, ne i figure
 
 /* ---------- špil ---------- */
 function spil() {
@@ -177,7 +178,7 @@ function ulovi(karta, sto) {
   }
   const v = vred(karta);
   for (let i = 0; i < sto.length; i++) if (vred(sto[i]) === v) out.push({ karte: [sto[i]], opis: ime(sto[i]) });
-  if (v <= 10) {                                         // zbirovi samo brojevima
+  {                                                      // zbir važi i za damu (13) i kralja (14)
     const kand = sto.map((c, i) => ({ c, i })).filter(x => zbirljiva(x.c));
     const n = kand.length;
     for (let mask = 1; mask < (1 << n); mask++) {
@@ -467,7 +468,9 @@ function meni() {
   $("#pravBtn").onclick = () => {
     showOverlay('<h2>Pravila ukratko</h2>' +
       '<ul><li>Svako dobija 6 karata, na stolu su 4. Bacaš kartu i kupiš njome sa stola.</li>' +
-      '<li>Kupi se <b>ista vrednost</b> (7 kupi 7) ili <b>zbir</b> (7 kupi 3+4). Zbirovi važe samo za A–10.</li>' +
+      '<li>Kupi se <b>ista vrednost</b> (7 kupi 7) ili <b>zbir</b> (7 kupi 3+4).</li>' +
+      '<li>Vrednosti: as = 1, <b>dama = 13</b>, <b>kralj = 14</b> — i one kupe zbir (dama 7+4+2). ' +
+      'U zbir ulaze samo karte A–10; figure sa stola se ne sabiraju.</li>' +
       '<li><b>Žandar (J)</b> kupi sve sa stola, ali njime se ne dobija tabla.</li>' +
       '<li><b>Tabla</b> = pokupiš sve sa stola: +1 poen.</li>' +
       '<li>Poeni: svaki as 1, svaka desetka 1 (10♦ vredi 2), 2♣ 1, i +3 onome ko ima više karata.</li>' +
