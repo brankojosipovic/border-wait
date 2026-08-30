@@ -68,6 +68,12 @@
   .row + .row { margin-top: 10px; }
   .row .lbl { font-size: 13px; }
   .row .hint { font-size: 11px; color: var(--ink-dim); }
+  .pomocBtn { display: inline-flex; align-items: center; justify-content: center;
+              font: inherit; font-size: 15px; color: var(--ink); background: var(--panel);
+              border: 1px solid var(--line); border-radius: 10px; padding: 6px 11px;
+              text-decoration: none; cursor: pointer; touch-action: manipulation; }
+  .pomocBtn:active { transform: translateY(1px); }
+  @media (hover: hover) { .pomocBtn:hover { border-color: var(--gold); } }
   .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.5; text-align: center; }
   .foot a { color: var(--ink-dim); }
 </style>
@@ -80,6 +86,7 @@
       <div class="sub">Sve rade offline, na telefonu, bez reklama i naloga</div>
     </div>
     <div class="spacer"></div>
+    <a class="pomocBtn" href="pomoc.html" title="Pomoć — soba, nastavak partije, offline">❔</a>
     <button id="theme" title="Svetla/tamna tema">☀︎ / ☾</button>
   </header>
 
@@ -103,6 +110,12 @@
       <div class="spacer"></div>
       <button id="updBtn">🔄 Proveri novu verziju</button>
     </div>
+    <div class="row" style="border-top:1px dashed var(--line); padding-top:10px">
+      <span class="lbl">❔ Kako se šta radi</span>
+      <div class="spacer"></div>
+      <a class="pomocBtn" href="pomoc.html">Otvori pomoć</a>
+    </div>
+    <div class="row"><span class="hint">Soba za igru u dvoje, nastavak započete partije, rad bez interneta i šta kad spajanje ne uspe.</span></div>
   </div>
 
   <div class="foot col">
