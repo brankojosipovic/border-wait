@@ -134,8 +134,9 @@ i vidar koji leči. Partija se čuva u `localStorage`.
 
 ## Tablić i Jamb (igra u dvoje)
 
-`tablic.html` — kartaška klasika: kupi se ista vrednost (7 kupi 7) ili zbir (7 kupi 3+4, samo A–10),
-žandar kupi sve sa stola ali njime nema table, tabla nosi +1, na kraju +3 onome ko ima više karata,
+`tablic.html` — kartaška klasika: kupi se ista vrednost (7 kupi 7) ili zbir (7 kupi 3+4).
+Vrednosti su A = 1, dama = 13, kralj = 14 — i figure kupe zbir (dama uzme 7+4+2), ali se u zbir
+sabiraju samo karte A–10, ne i figure sa stola. Žandar kupi sve sa stola ali njime nema table, tabla nosi +1, na kraju +3 onome ko ima više karata,
 a poeni su asovi, desetke (10♦ vredi 2) i 2♣. Protiv računara, u dvoje na jednom telefonu ili preko
 interneta. Kad izabereš kartu, igra ponudi sve moguće ulove i označi karte koje bi otišle.
 
