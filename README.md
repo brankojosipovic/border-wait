@@ -101,6 +101,16 @@ binarnom pretragom podešava na najveću koja staje u ekran; poseban raspored za
 **bos** sa trakom života i dve faze pucanja, pa sledeći nivo. Izdržljivost bosa raste kvadratno
 sa nivoom da prati rast oružja — borba traje 7–11 s kroz sve nivoe.
 
+## Rad bez interneta (PWA)
+
+`sw.js` je service worker koji pri prvom otvaranju sačuva sve igre na telefon i posle ih
+servira iz keša (keš prvo, a nova verzija se povlači u pozadini za sledeće pokretanje).
+`manifest.webmanifest` + ikone u `icons/` daju pravu prečicu na početnom ekranu — otvara se
+preko celog ekrana, bez adresne trake, i radi kad nema signala. Svaka igra ima svoju ikonu.
+
+Hub (`igre.html`) pokazuje stanje: „✓ spremno" i koliko je fajlova sačuvano. Keš se menja
+dizanjem `VERSION` u `sw.js` — stari se tada briše sam.
+
 ## Ograničenja podataka
 
 Prijave su anonimne i neravnomerne (rupe po satima, vrednosti skaču). Korisno za grubi

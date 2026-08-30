@@ -168,4 +168,24 @@ function build() {
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", build);
 else build();
+
+/* ---------- offline: service worker ---------- */
+(function () {
+  if (!("serviceWorker" in navigator)) return;
+  var ok = location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  if (!ok) return;                                   // sa file:// SW ne radi — tada je stranica ionako lokalna
+  var reg = function () {
+    navigator.serviceWorker.register("sw.js").then(function (r) {
+      r.addEventListener("updatefound", function () {
+        var w = r.installing;
+        if (!w) return;
+        w.addEventListener("statechange", function () {
+          if (w.state === "installed" && navigator.serviceWorker.controller) w.postMessage("skipWaiting");
+        });
+      });
+    }).catch(function () { });
+  };
+  if (document.readyState === "complete") reg();
+  else window.addEventListener("load", reg);
+})();
 })();
