@@ -55,6 +55,15 @@ vrtenje špila, poništavanje poteza, savet („Potez"), auto-završetak kad su 
 ponovno deljenje istog špila (deljenja su seed-ovana) i čuvanje partije u `localStorage`.
 Igra se tapkanjem: tapni kartu pa odredište, a drugi tap na istu kartu je šalje sam gde može.
 
+## Kolona
+
+`kolona.html` — originalna igra rođena u ovom repou: strategija biranja trake pred rampom.
+Svaki tap je 1 minut; rampe obrađuju kolone (🚗 1′ · 🚐 2′ · 🚌 3′ · 🚚 4′, 🔍 pregled +3′),
+a u susednu traku možeš da pređeš — ali staješ na njen kraj. I NPC vozila love kraću traku.
+Svet je deterministički po seed-u i ne zavisi od igračevih poteza, pa igra na kraju izračuna
+(dinamičkim programiranjem) i savršenu liniju i „da si samo stajao" — i kaže ti koliko si
+minuta istrgovao. Dnevna kolona: isti seed za sve, rezultat može da se podeli.
+
 ## Ograničenja podataka
 
 Prijave su anonimne i neravnomerne (rupe po satima, vrednosti skaču). Korisno za grubi
