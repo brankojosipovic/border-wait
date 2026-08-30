@@ -17,7 +17,7 @@
     --gold: #c9a227; --good: #2e9e6b; --bad: #d65a4e;
     --road: #171d29; --lane-line: #3a4664; --booth: #223354;
     --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.35);
-    --rows: 13; --chrome: 365px;
+    --rows: 13; --chrome: calc(365px + var(--navh, 0px));
   }
   [data-theme="light"] {
     color-scheme: light;
@@ -110,8 +110,8 @@
   .foot a { color: var(--ink-dim); }
 
   @media (orientation: landscape) and (max-height: 620px) {
-    :root { --chrome: 250px; }
-    .roadWrap { overflow-y: auto; max-height: calc(100dvh - 152px); }
+    :root { --chrome: calc(268px + var(--navh, 0px)); }
+    .roadWrap { overflow-y: auto; max-height: calc(100dvh - 176px - var(--navh, 0px)); }
     .col { width: min(88vw, 640px); }
     header .sub, .foot { display: none; }
     header { padding: 0 0 0 10px; } header h1 { font-size: 15px; }
@@ -154,10 +154,11 @@
 
   <div class="foot col">
     🚗 1′ · 🚐 2′ · 🚌 3′ · 🚚 4′ · 🔍 pregled +3′. Pređeš li u susednu traku, staješ na njen kraj.
-    <br><a href="index.html">← Border Wait</a> · <a href="sudoku.html">Sudoku</a> · <a href="solitaire.html">Solitaire</a> · <a href="aparat.html">Aparat</a> · <a href="svercer.html">Švercer</a>
+    <br><a href="igre.html">🎮 Sve igre</a> · <a href="index.html">← Border Wait</a>
   </div>
 </div>
 
+<script src="igre.js"></script>
 <script>
 "use strict";
 /* ---------- svet (deterministički po seed-u, ne zavisi od igrača) ---------- */
@@ -247,6 +248,7 @@ function dayLabel() { const d = new Date(); return d.getDate() + "." + (d.getMon
 function newRun(mode, seed) {
   W = buildWorld(seed, 320);
   ST = { mode, seed, t: 0, L: W.startLane, row: W.startRow, sw: 0, done: false, minutes: 0 };
+  window.SFX && SFX.engine();
   msg = "Tapni ⏳ ili susednu traku. Rampa je gore.";
   hideOverlay(); render(); save();
 }
@@ -264,16 +266,17 @@ function doAct(d) {                            // d: -1 levo, 0 čekaj, 1 desno
   if (d !== 0) {
     const M = ST.L + d; if (M < 0 || M > 4) return;
     ST.L = M; ST.row = W.tape[t + 1][M].length; ST.sw++;
+    window.SFX && SFX.whoosh();
     msg = "Prešao si u traku " + (M + 1) + " — na kraj njene kolone.";
   } else {
-    if (W.shifted[t][ST.L]) ST.row = Math.max(0, ST.row - 1);
+    if (W.shifted[t][ST.L]) { ST.row = Math.max(0, ST.row - 1); window.SFX && SFX.tick(); }
   }
   ST.t = t + 1;
   for (const e of W.events) if (e.t === ST.t) {
-    if (e.k === "insp") msg = "🔍 Traka " + (e.L + 1) + ": detaljan pregled (+3 min).";
+    if (e.k === "insp") { msg = "🔍 Traka " + (e.L + 1) + ": detaljan pregled (+3 min)."; window.SFX && SFX.bad(); }
     else if (e.k === "merge" && d === 0) msg = "Neko je pobegao iz trake " + (e.L + 1) + " u traku " + (e.to + 1) + ".";
   }
-  if (ST.row === 0) { ST.done = true; ST.minutes = ST.t + 1; finish(); }
+  if (ST.row === 0) { ST.done = true; ST.minutes = ST.t + 1; window.SFX && (SFX.stamp(), setTimeout(SFX.win, 260)); finish(); }
   render(); save();
 }
 

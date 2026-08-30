@@ -163,10 +163,11 @@
 
   <div class="foot col">
     Zabava bez pravog novca: krediti su virtuelni i ništa ne vrede — kad potrošiš, kuća časti nove.
-    <br><a href="index.html">← Border Wait</a> · <a href="sudoku.html">Sudoku</a> · <a href="solitaire.html">Solitaire</a> · <a href="kolona.html">Kolona</a>
+    <br><a href="igre.html">🎮 Sve igre</a> · <a href="index.html">← Border Wait</a>
   </div>
 </div>
 
+<script src="igre.js"></script>
 <script>
 "use strict";
 const KEY = "aparat.v1", THEME_KEY = "sudoku.theme";
@@ -242,7 +243,7 @@ function renderPoker(winMask) {
     if (winMask && winMask.includes(i)) card.classList.add("winpart");
     card.onclick = () => {
       if (PK.phase !== "dealt") return;
-      PK.held[i] = !PK.held[i]; renderPoker();
+      PK.held[i] = !PK.held[i]; window.SFX && SFX.tick(); renderPoker();
     };
     el.appendChild(card);
   }
@@ -260,6 +261,7 @@ function pokerGo() {
     ST.credits -= ST.pBet; ST.inHand = ST.pBet; ST.hands++;
     PK.deck = newDeck(); PK.hand = PK.deck.splice(0, 5); PK.held = [false, false, false, false, false];
     PK.phase = "dealt";
+    if (window.SFX) for (let k = 0; k < 5; k++) setTimeout(SFX.card, k * 70);
     const pre = evalHand(PK.hand);
     $("#pMsg").innerHTML = pre.mult ? '<span class="l">Na stolu: ' + pre.name + ' — zadrži pa menjaj</span>' : '<span class="l">Zadrži karte pa MENJAJ</span>';
     save(); renderPoker(); renderWallet();
@@ -269,10 +271,12 @@ function pokerGo() {
     const r = evalHand(PK.hand);
     const win = r.mult * ST.pBet;
     if (win > 0) {
+      window.SFX && (r.mult >= 25 ? SFX.jackpot() : r.mult >= 6 ? SFX.win() : SFX.coin());
       $("#pMsg").innerHTML = '<span class="w">' + r.name + " — dobitak " + win + " kr</span>";
       offerDup("p", win);
     } else {
       $("#pMsg").innerHTML = '<span class="l">Ništa. Nova ruka?</span>';
+      window.SFX && SFX.bad();
       PK.phase = "idle";
     }
     save(); renderPoker(r.mask); renderWallet();
@@ -328,13 +332,15 @@ function slotGo() {
     if (!SL.grid) SL.grid = spinGrid(Math.random);
     for (let c = 0; c < 3; c++) if (dt < stops[c]) for (let r = 0; r < 3; r++) SL.grid[r][c] = drawSym(Math.random);
       else for (let r = 0; r < 3; r++) SL.grid[r][c] = grid[r][c];
+    if (window.SFX) for (let c = 0; c < 3; c++) if (dt >= stops[c] && dt - 70 < stops[c]) SFX.reel();
     renderSlot();
     if (dt >= 1100) {
       clearInterval(anim); SL.spinning = false; SL.grid = grid;
       if (res.win > 0) {
+        window.SFX && (res.win >= ST.sBet * 20 ? SFX.jackpot() : res.win >= ST.sBet * 5 ? SFX.win() : SFX.coin());
         $("#sMsg").innerHTML = '<span class="w">Dobitak ' + res.win + ' kr!</span>';
         offerDup("s", res.win);
-      } else $("#sMsg").innerHTML = '<span class="l">Ništa. Još jednom?</span>';
+      } else { $("#sMsg").innerHTML = '<span class="l">Ništa. Još jednom?</span>'; window.SFX && SFX.bad(); }
       renderSlot(res.cells); renderWallet();
     }
   }, 70);
@@ -366,13 +372,14 @@ function dupPick(red) {
   const c = { r: 2 + ((Math.random() * 13) | 0), s: (Math.random() * 4) | 0 };
   const hit = isRedS(c.s) === red;
   if (hit) {
-    DUP.win *= 2; DUP.count++;
+    DUP.win *= 2; DUP.count++; window.SFX && SFX.good();
     ST.pending = DUP.win; save();
     renderDup(c);
     $("#" + DUP.host + "Msg").innerHTML = '<span class="w">Pogodak! Sad je ' + DUP.win + ' kr</span>';
     if (DUP.count >= 5) setTimeout(dupTake, 900);
   } else {
     ST.pending = 0; DUP.on = false; save();
+    window.SFX && SFX.bad();
     const el = $("#" + DUP.host + "Dup");
     el.innerHTML = cardHTML(c) + '<div class="info">Odnela ' + (isRedS(c.s) ? "crvena" : "crna") + '. Dobitak ode.</div>';
     $("#" + DUP.host + "Msg").innerHTML = '<span class="l">Izgubljen dobitak. Ide dalje…</span>';
@@ -381,7 +388,7 @@ function dupPick(red) {
   }
 }
 function dupTake() {
-  ST.credits += DUP.win; ST.pending = 0;
+  ST.credits += DUP.win; ST.pending = 0; window.SFX && SFX.coin();
   if (DUP.win > ST.best) ST.best = DUP.win;
   $("#" + DUP.host + "Msg").innerHTML = '<span class="w">Naplaćeno ' + DUP.win + ' kr ✔</span>';
   DUP.on = false; save();
@@ -423,7 +430,7 @@ $("#pGo").onclick = pokerGo;
 $("#sGo").onclick = slotGo;
 $("#tabPoker").onclick = () => setMode("poker");
 $("#tabSlot").onclick = () => setMode("slot");
-$("#refill").onclick = () => { ST.credits += 100; ST.refills++; save(); renderWallet(); renderPoker(); renderSlot(); };
+$("#refill").onclick = () => { ST.credits += 100; ST.refills++; window.SFX && SFX.coin(); save(); renderWallet(); renderPoker(); renderSlot(); };
 $("#theme").onclick = () => {
   const b = document.body;
   b.dataset.theme = b.dataset.theme === "dark" ? "light" : "dark";

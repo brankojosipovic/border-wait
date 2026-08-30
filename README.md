@@ -80,6 +80,16 @@ punkta biraš: prodaj (×1,5 pa ×2) ili teraj do pijace (×3). Pad na pregledu 
 Pet tura po sezoni, dnevna sezona sa istim seed-om za sve, a na kraju te igra uporedi sa
 „savršenim švercerom" (sveznajućim oraklom).
 
+## Igre — zajednička traka i zvuk
+
+`igre.html` je poseban ulaz za sve igre (kartice + statistika iz `localStorage`: partija u toku,
+današnji rezultat, stanje kredita). `igre.js` je zajednički za svih pet igara i daje:
+
+- **donju traku** sa izborom igre (aktivna je označena) — fiksirana, sa svojom visinom merenom
+  u JS-u i upisanom u `--navh`, pa se rasporedi igara same skupe za tačno toliko;
+- **zvuk** sintetizovan preko WebAudio (bez ijednog audio fajla, pa sve i dalje radi offline) —
+  prekidač 🔊/🔇 stoji u traci, važi za sve igre i pamti se (`igre.sound`).
+
 ## Ograničenja podataka
 
 Prijave su anonimne i neravnomerne (rupe po satima, vrednosti skaču). Korisno za grubi

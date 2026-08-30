@@ -19,7 +19,7 @@
     --grid: #2c3f66; --grid-strong: #56709e;
     --cell: #16223a; --cell-sel: #2b4272; --cell-peer: #1e2f51; --cell-same: #24395f;
     --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.35);
-    --size: min(96vw, 480px, calc(100dvh - 300px));
+    --size: min(96vw, 480px, calc(100dvh - 292px - var(--navh, 0px)));
   }
   [data-theme="light"] {
     color-scheme: light;
@@ -57,13 +57,14 @@
   .spacer { flex: 1; }
   header button { padding: 6px 10px; }
 
-  .bar { width: var(--size); display: flex; align-items: center; gap: 6px; }
+  .bar { width: min(96vw, 480px); display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+  .bar #newGame { white-space: nowrap; }
   .bar select, .bar button { padding: 6px 9px; }
   .bar #diff { max-width: 42vw; }
   .bar .stat { color: var(--ink-dim); font-size: 13px; white-space: nowrap; }
   .bar .stat b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 700; }
 
-  .boardWrap { position: relative; width: var(--size); min-width: 260px; }
+  .boardWrap { position: relative; width: var(--size); min-width: 200px; }
   .board {
     display: grid; grid-template-columns: repeat(9, 1fr); aspect-ratio: 1 / 1;
     width: 100%; container-type: inline-size;
@@ -112,13 +113,24 @@
   .tools button.on { border-color: var(--gold); background: var(--panel-2); }
   .tools button.on .lb { color: var(--gold); }
 
-  .foot { width: var(--size); color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
+  .foot { width: min(96vw, 480px); color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
   .foot a { color: var(--ink-dim); }
 
+  @media (max-height: 700px) { .foot { display: none; } }
+  @media (max-width: 385px) {
+    .bar { gap: 4px; }
+    .bar select, .bar button { padding: 5px 7px; font-size: 13px; }
+    .bar .stat { font-size: 12px; }
+    .bar #diff { max-width: 34vw; }
+  }
   @media (orientation: landscape) and (max-height: 560px) {
-    .wrap { flex-direction: row; flex-wrap: wrap; align-items: flex-start; justify-content: center; }
+    .wrap { flex-direction: row; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 6px; padding: 4px 10px 6px; }
     header, .bar { max-width: none; width: 100%; }
-    .boardWrap { width: min(52vw, 88dvh); min-width: 0; }
+    header { padding: 0 0 0 10px; }
+    header h1 { font-size: 15px; }
+    header .sub { display: none; }
+    .foot { display: none; }
+    .boardWrap { width: min(52vw, calc(100dvh - 105px - var(--navh, 0px))); min-width: 0; }
     .side { --size: min(38vw, 300px); }
     .side { display: flex; flex-direction: column; gap: 8px; width: min(38vw, 300px); }
     .pad, .tools, .foot { width: 100%; }
@@ -170,11 +182,12 @@
     </div>
     <div class="foot">
       Tapni polje pa broj. „Beleške“ upisuje sitne kandidate. Igra se sama čuva u pregledaču.
-      <br><a href="index.html">← Border Wait</a> · <a href="solitaire.html">Solitaire</a> · <a href="kolona.html">Kolona</a> · <a href="aparat.html">Aparat</a> · <a href="svercer.html">Švercer</a>
+      <br><a href="igre.html">🎮 Sve igre</a> · <a href="index.html">← Border Wait</a>
     </div>
   </div>
 </div>
 
+<script src="igre.js"></script>
 <script>
 "use strict";
 /* ---------- indeksi ---------- */
@@ -319,6 +332,7 @@ function enter(n) {
     if (S.values[i]) return;
     pushHist({ t: "n", i, notes: S.notes[i] });
     S.notes[i] ^= (1 << n);
+    window.SFX && SFX.tick();
   } else {
     if (S.values[i] === n) return;
     const h = { t: "v", i, val: S.values[i], notes: S.notes[i], hint: S.hintCells.includes(i), peers: [] };
@@ -326,7 +340,8 @@ function enter(n) {
     S.hintCells = S.hintCells.filter(x => x !== i);
     for (const j of PEERS[i]) if (S.notes[j] & (1 << n)) { h.peers.push([j, S.notes[j]]); S.notes[j] &= ~(1 << n); }
     pushHist(h);
-    if (n !== S.solution[i]) S.mistakes++;
+    if (n !== S.solution[i]) { S.mistakes++; window.SFX && SFX.bad(); }
+    else window.SFX && SFX.tap();
   }
   afterMove();
 }
@@ -338,6 +353,7 @@ function erase() {
   pushHist({ t: "v", i, val: S.values[i], notes: S.notes[i], hint: S.hintCells.includes(i), peers: [] });
   S.values[i] = 0; S.notes[i] = 0;
   S.hintCells = S.hintCells.filter(x => x !== i);
+  window.SFX && SFX.tick();
   afterMove();
 }
 
@@ -352,6 +368,7 @@ function undo() {
     for (const [j, m] of h.peers) S.notes[j] = m;
   }
   sel = h.i;
+  window.SFX && SFX.tick();
   afterMove();
 }
 
@@ -370,6 +387,7 @@ function hint() {
   for (const j of PEERS[i]) if (S.notes[j] & (1 << S.values[i])) { h.peers.push([j, S.notes[j]]); S.notes[j] &= ~(1 << S.values[i]); }
   pushHist(h);
   S.hints++; sel = i;
+  window.SFX && SFX.good();
   afterMove();
 }
 
@@ -379,6 +397,7 @@ function afterMove() {
 
 function win() {
   S.done = true; stopTimer(); render(); save();
+  window.SFX && SFX.win();
   const label = $("#diff").selectedOptions[0].textContent;
   showOverlay("Bravo! 🎉",
     label + " · vreme " + fmt(S.elapsed) + " · greške " + S.mistakes + " · saveti " + S.hints,
@@ -428,6 +447,7 @@ function newGame() {
     };
     history = []; sel = -1; noteMode = false;
     $("#ovBtn").style.display = "";
+    window.SFX && SFX.shuffle();
     hideOverlay(); render(); save(); startTimer();
   }, 30);
 }
