@@ -124,7 +124,7 @@
   @media (max-height: 780px) { .foot { display: none; } }
   @media (max-height: 680px) { header .sub { display: none; } }
   @media (max-height: 600px) { .stats { display: none; } .machine { padding: 9px; } }
-  @media (orientation: landscape) and (max-height: 480px) {
+  @media (orientation: landscape) and (max-height: 520px) {
     .paytable, .stats { display: none; }
     .wrap { gap: 5px; padding: 4px 10px 6px; }
     header { padding: 0 0 0 10px; }
@@ -437,7 +437,8 @@ function fit() {                            // najveća mreža/karte koje još s
   const slot = ST.mode === "slot";
   const wMax = Math.min(window.innerWidth - 20, 440) - 22;   // minus padding aparata
   const hi = slot ? (wMax - 12) / 3 : (wMax - 24) / 5;       // ograničenje po širini
-  const lo = slot ? 34 : 28;                                 // ispod ovoga se ne ide
+  const land = window.matchMedia("(orientation: landscape) and (max-height: 520px)").matches;
+  const lo = land ? (slot ? 24 : 20) : (slot ? 34 : 28);   // u položenom telefonu sme i sitnije                                 // ispod ovoga se ne ide
   const setv = v => root.style.setProperty(slot ? "--cell" : "--pcw", Math.floor(v) + "px");
   const wrap = document.querySelector(".wrap"), nav = document.querySelector(".gamenav");
   const fits = () => {                                     // .wrap ima min-height na ceo ekran,
@@ -462,6 +463,9 @@ function fit() {                            // najveća mreža/karte koje još s
 }
 
 window.addEventListener("resize", scheduleFit);
+window.addEventListener("DOMContentLoaded", scheduleFit);   // traka se ubacuje tek tada
+window.addEventListener("load", scheduleFit);
+window.addEventListener("orientationchange", () => setTimeout(scheduleFit, 150));
 
 /* ---------- zajedničko ---------- */
 function renderWallet() {

@@ -111,6 +111,19 @@ preko celog ekrana, bez adresne trake, i radi kad nema signala. Svaka igra ima s
 Hub (`igre.html`) pokazuje stanje: „✓ spremno" i koliko je fajlova sačuvano. Keš se menja
 dizanjem `VERSION` u `sw.js` — stari se tada briše sam.
 
+## Cigle i Stvorenja
+
+`cigle.html` — breakout: palica, loptica i 10 ručno složenih nivoa. Zelena cigla puca iz prve,
+žuta traži dva, crvena tri udarca, a čelična se ne razbija — samo odbija. Bonusi padaju
+(šira palica, tri loptice, sporija loptica, život). Ugao odbijanja zavisi od mesta udara u
+palicu, a loptica se pomera u sitnim koracima da ne proleti kroz ciglu pri velikoj brzini.
+
+`stvorenja.html` — sakupljanje i borba na poteze sa **originalnim bićima** (Pokémon likovi i
+ime su tuđa svojina, pa se ne koriste). Šetnja po mapi, susreti u travi, tipovi
+(🔥 > 🌿 > 💧 > 🔥) sa dvostrukom štetom u prednosti, hvatanje loptom (šansa zavisi od
+preostalog zdravlja), tim do šest, iskustvo i nivoi, evolucija, tri arene sa po tri protivnika
+i vidar koji leči. Partija se čuva u `localStorage`.
+
 ## Ograničenja podataka
 
 Prijave su anonimne i neravnomerne (rupe po satima, vrednosti skaču). Korisno za grubi

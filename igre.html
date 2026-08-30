@@ -116,7 +116,9 @@ var DESC = {
   aparat:    "Poker aparat i voćkice, virtuelni krediti",
   svercer:   "Natovari gepek, prođi punktove, prodaj na vreme",
   tetris:    "Kockice, nivoi i rekord — klasika za čekanje",
-  avioni:    "Pucačina: jače oružje na krila, nivoi i bosovi"
+  avioni:    "Pucačina: jače oružje na krila, nivoi i bosovi",
+  cigle:     "Palica i loptica — 10 nivoa, čelične cigle i bonusi",
+  stvorenja: "Hvataj bića, treniraj tim i osvoji tri arene"
 };
 function ls(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
 function dayNum() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
@@ -149,6 +151,14 @@ function stat(id) {
   if (id === "avioni") {
     s = ls("avioni.v1");
     if (s && s.best) return "rekord: " + s.best;
+  }
+  if (id === "cigle") {
+    s = ls("cigle.v1");
+    if (s && s.best) return "rekord: " + s.best;
+  }
+  if (id === "stvorenja") {
+    s = ls("stvorenja.v1");
+    if (s && s.team) return "tim: " + s.team.length + " · značke " + (s.badges || 0) + "/3";
   }
   if (id === "aparat") {
     s = ls("aparat.v1");

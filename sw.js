@@ -1,6 +1,6 @@
 /* Service Worker — igre rade bez interneta.
    Strategija: keš prvo (brzo i offline), a u pozadini se povlači nova verzija za sledeći put. */
-const VERSION = "igre-v1";
+const VERSION = "igre-v2";
 const CORE = [
   "./",
   "./igre.html",
@@ -12,6 +12,8 @@ const CORE = [
   "./svercer.html",
   "./tetris.html",
   "./avioni.html",
+  "./cigle.html",
+  "./stvorenja.html",
   "./manifest.webmanifest",
   "./icons/igre-180.png",
   "./icons/igre-192.png",
@@ -22,7 +24,9 @@ const CORE = [
   "./icons/aparat-180.png",
   "./icons/svercer-180.png",
   "./icons/tetris-180.png",
-  "./icons/avioni-180.png"
+  "./icons/avioni-180.png",
+  "./icons/cigle-180.png",
+  "./icons/stvorenja-180.png"
 ];
 
 self.addEventListener("install", e => {
