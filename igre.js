@@ -124,6 +124,10 @@ var CSS =
 '.homeBtn:active{transform:translateY(1px)}' +
 '@media (hover:hover){.homeBtn:hover{border-color:var(--gold)}}' +
 '@media (max-height:600px){.homeBtn{padding:4px 8px;font-size:13px}}' +
+/* iPhone sam uveća stranicu kad tapneš u polje sa slovom manjim od 16 px, i ne vrati je
+   nazad — zato su sva polja bar 16 px. touch-action gasi i uvećavanje na dvostruki tap. */
+'input,textarea,select{font-size:16px !important}' +
+'html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}' +
 ':root{--navh:52px;--sat:env(safe-area-inset-top, 0px)}' +
 'html,body{height:auto !important}' +
 'body.duga-strana .wrap{padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 26px) !important}' +
