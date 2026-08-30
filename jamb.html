@@ -52,29 +52,46 @@
   .col { width: min(100vw - 20px, 460px); }
   header { display: flex; align-items: center; gap: 10px;
            border-left: 4px solid var(--gold); padding: 3px 0 3px 10px; }
-  header h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
+  header h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.2px; }
   header .sub { color: var(--ink-dim); font-size: 12px; }
   .spacer { flex: 1; }
 
-  .hud { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-dim); }
+  .hud { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--ink-dim);
+         white-space: nowrap; overflow: hidden; }
   .hud b { color: var(--ink); font-weight: 700; }
-  .hud .ko { padding: 2px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); }
+  .hud .ko { padding: 2px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line);
+             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hud .ko.on { border-color: var(--gold); color: var(--gold); font-weight: 700; }
   .hud .ko { cursor: pointer; }
-  .hud button { padding: 4px 9px; font-size: 13px; }
+  .hud button { padding: 4px 9px; font-size: 15px; }
   .hud button.on { border-color: var(--gold); color: var(--gold); }
   .tudji { box-shadow: inset 0 0 0 2px var(--gold); }
+
+  /* poruka protivniku */
+  .cet { position: fixed; left: 50%; transform: translateX(-50%) translateY(-8px);
+         top: 0; z-index: 50; pointer-events: none;
+         background: var(--panel); border: 1px solid var(--gold); border-radius: 999px;
+         box-shadow: var(--shadow); padding: 8px 16px; font-size: 20px; font-weight: 700;
+         color: var(--ink); max-width: calc(100vw - 24px); text-align: center;
+         opacity: 0; transition: opacity .18s ease, transform .18s ease; }
+  .cet.vidi { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .cet .ko { font-size: 13px; font-weight: 400; color: var(--ink-dim); margin-right: 8px; }
+  .emGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; width: min(100%, 320px); }
+  .emGrid button { font-size: 30px; padding: 8px 0; line-height: 1; }
+  .recGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: min(100%, 340px); }
+  .recGrid button { font-size: 15px; padding: 10px 8px; }
 
   /* listić */
   .list { width: 100%; border-collapse: collapse; background: var(--panel);
           border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
   .list th, .list td { border: 1px solid var(--line); padding: 0; text-align: center; }
-  .list th { font-size: calc(var(--rh, 24px) * .55); color: var(--ink-dim); font-weight: 700; padding: 2px 0; background: var(--panel-2); }
+  .list th { line-height: 1.1; font-size: min(calc(var(--rh, 24px) * .64), 19px); color: var(--ink-dim); font-weight: 700; padding: 2px 0; background: var(--panel-2); }
   .list th.rw { text-align: left; padding-left: 6px; }
-  .list td.rw { font-size: calc(var(--rh, 24px) * .54); color: var(--ink-dim); text-align: left; padding: 0 4px; white-space: nowrap; }
-  .list td.sum { background: var(--panel-2); font-weight: 700; font-size: calc(var(--rh, 24px) * .56); color: var(--ink); }
-  .cell { width: 100%; height: 100%; min-height: var(--rh, 24px); display: flex; align-items: center; justify-content: center;
-          font-size: calc(var(--rh, 24px) * .62); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .list td.rw { line-height: 1.1; font-size: min(calc(var(--rh, 24px) * .62), 17px); color: var(--ink-dim); text-align: left;
+                padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 42%; }
+  .list td.sum { background: var(--panel-2); line-height: 1.1; font-weight: 700; font-size: min(calc(var(--rh, 24px) * .64), 20px); color: var(--ink); }
+  .cell { width: 100%; height: 100%; min-height: var(--rh, 24px); line-height: 1; display: flex; align-items: center; justify-content: center;
+          font-size: min(calc(var(--rh, 24px) * .72), 24px); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
   .cell.prazna { color: var(--ink-dim); font-weight: 400; }
   .cell.moze { background: color-mix(in srgb, var(--good) 22%, transparent); color: var(--good); cursor: pointer; }
   .cell.moze:active { background: color-mix(in srgb, var(--good) 38%, transparent); }
@@ -89,7 +106,7 @@
   .k .lb { position: absolute; bottom: 2px; left: 0; right: 0; font-size: 9px; font-weight: 700; opacity: .6; }
   .roll { width: 100%; padding: 10px; font-size: 16px; font-weight: 700; border-color: var(--gold); }
 
-  .msg { text-align: center; font-size: 13px; color: var(--ink-dim); min-height: 20px; }
+  .msg { text-align: center; font-size: 15px; color: var(--ink-dim); min-height: 20px; }
   .msg b { color: var(--ink); }
 
   .overlay { position: fixed; inset: 0 0 var(--navh, 0px) 0; display: flex; flex-direction: column; gap: 10px;
@@ -110,12 +127,12 @@
 
   .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
   .foot a { color: var(--ink-dim); }
-  @media (max-height: 780px) { .foot { display: none; } }
-  @media (max-height: 680px) { header .sub { display: none; } }
+  @media (max-height: 1000px) { .foot { display: none; } }
+  @media (max-height: 900px) { header .sub { display: none; } }
   @media (max-height: 620px) {
     header h1 { font-size: 15px; } .wrap { gap: 4px; padding: 4px 10px 6px; }
     .roll { padding: 8px; font-size: 15px; }
-    .msg { min-height: 16px; font-size: 12px; }
+    .msg { min-height: 16px; font-size: 13px; }
     .kocke { gap: 6px; }
   }
   @media (orientation: landscape) and (max-height: 520px) {
@@ -155,6 +172,7 @@
     <br><a href="igre.html">🎮 Sve igre</a> · <a href="pomoc.html">❔ Pomoć</a> · <a href="index.html">← Border Wait</a>
   </div>
 </div>
+<div class="cet" id="cet" hidden></div>
 <div class="overlay" id="overlay" hidden></div>
 
 <script src="igre.js"></script>
@@ -347,8 +365,48 @@ function posaljiStanje() {
   if (G && G.rezim === "mreza" && window.Mreza && Mreza.povezan())
     Mreza.posalji({ t: "stanje", g: { igraci: G.igraci, naRedu: G.naRedu, kocke: G.kocke, drzim: G.drzim, bacanje: G.bacanje, najava: G.najava, gotovo: G.gotovo } });
 }
+const EMODZI = ["👍", "👏", "😄", "😮", "😅", "🎉", "🍀", "😤", "🔥", "😭", "🙈", "🤝"];
+const RECI = ["Bravo!", "Jao!", "Idemo!", "Ma nemoj!", "Sreća prava", "Baci već jednom 😄"];
+let cetKad = 0, cetTajmer = null;
+function izborPoruke() {
+  showOverlay('<h2>💬 Pošalji protivniku</h2>' +
+    '<div class="emGrid">' + EMODZI.map(e => '<button data-em="' + e + '">' + e + '</button>').join("") + '</div>' +
+    '<div class="recGrid">' + RECI.map(r => '<button data-rec="' + r + '">' + r + '</button>').join("") + '</div>' +
+    '<div class="btns"><button id="cetNazad">← Nazad</button></div>');
+  for (const b of document.querySelectorAll("[data-em], [data-rec]"))
+    b.onclick = () => { posaljiPoruku(b.dataset.em || b.dataset.rec); hideOverlay(); };
+  $("#cetNazad").onclick = hideOverlay;
+}
+function posaljiPoruku(tekst) {
+  if (!tekst || !G || G.rezim !== "mreza") return;
+  const sad = Date.now();
+  if (sad - cetKad < 1200) return pokaziPoruku("Polako, sačekaj sekund…", null);   // da se ne zatrpava
+  cetKad = sad;
+  Mreza.posalji({ t: "cet", tekst: String(tekst).slice(0, 40) });
+  window.SFX && SFX.tap();
+  pokaziPoruku(tekst, "Ti");
+}
+function pokaziPoruku(tekst, ko) {
+  const el = $("#cet");
+  el.innerHTML = (ko ? '<span class="ko">' + ko + ":</span>" : "") + String(tekst).replace(/[<>]/g, "");
+  el.hidden = false;
+  const lista = $("#list");                            // oblačić staje preko vrha listića, ne preko dugmadi
+  el.style.top = Math.max(8, (lista ? lista.getBoundingClientRect().top : 60) + 6) + "px";
+  requestAnimationFrame(() => el.classList.add("vidi"));
+  clearTimeout(cetTajmer);
+  cetTajmer = setTimeout(() => {
+    el.classList.remove("vidi");
+    setTimeout(() => { el.hidden = true; }, 220);
+  }, 3600);
+}
 function primi(m) {
-  if (!m || m.t !== "stanje" || !G) return;
+  if (!m || !G) return;
+  if (m.t === "cet") {
+    pokaziPoruku(m.tekst, "Protivnik");
+    window.SFX && SFX.coin();
+    return;
+  }
+  if (m.t !== "stanje") return;
   Object.assign(G, m.g);
   G.rezim = "mreza";                                   // primljeno stanje uvek znači mrežnu partiju
   if (G.naRedu === mojIndex) gledam = null;            // kad dođeš na red, vraća te na tvoj listić
@@ -392,16 +450,19 @@ function pokaziKod(kod) {
 function render() {
   if (!G) return;
   // HUD
-  const jaIdx = G.rezim === "mreza" ? mojIndex : G.naRedu;
+  const dvoje = G.rezim === "mreza";
+  const jaIdx = dvoje ? mojIndex : G.naRedu;
   const drugi = G.igraci.length > 1 ? (jaIdx === 0 ? 1 : 0) : null;
   if (gledam != null && !G.igraci[gledam]) gledam = null;
   $("#hud").innerHTML = G.igraci.map((p, i) =>
     '<span class="ko' + (i === G.naRedu ? " on" : "") + '" data-i="' + i + '">' + imeIgraca(i) + ' <b>' + ukupnoListic(p.listic) + '</b></span>').join("") +
     '<div class="spacer"></div>' +
-    (G.rezim === "mreza" ? '<span>' + (Mreza.povezan() ? "🟢" : "🔴") + " " + (Mreza.kod() || "") + '</span>' : '') +
+    (dvoje ? '<span title="' + (Mreza.kod() || "") + '">' + (Mreza.povezan() ? "🟢" : "🔴 " + (Mreza.kod() || "")) + '</span>' : '') +
     (drugi != null ? '<button id="gledajBtn" class="' + (gledam != null ? "on" : "") + '" title="Vidi protivnikov listić">👁</button>' : '') +
+    (dvoje ? '<button id="cetBtn" title="Pošalji poruku protivniku">💬</button>' : '') +
     '<button id="meniBtn2" title="Meni">☰</button>';
   $("#meniBtn2").onclick = meni;
+  if (dvoje) $("#cetBtn").onclick = izborPoruke;
   if (drugi != null) $("#gledajBtn").onclick = () => { gledam = gledam == null ? drugi : null; window.SFX && SFX.tick(); render(); };
   for (const c of document.querySelectorAll(".hud .ko"))
     c.onclick = () => { const i = +c.dataset.i; gledam = i === jaIdx ? null : i; render(); };
@@ -515,7 +576,7 @@ function fit() {
       (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
     const zaListic = limit - wrap.getBoundingClientRect().top - ostalo - 14;
     const rh = Math.floor((zaListic - 20) / redova);
-    if (rh >= MIN_RH) { root.style.setProperty("--rh", Math.min(32, rh) + "px"); return; }
+    if (rh >= MIN_RH) { root.style.setProperty("--rh", Math.min(38, rh) + "px"); return; }
     if (kw <= MIN_KW) { root.style.setProperty("--rh", Math.max(13, rh) + "px"); return; }  // sasvim mali ekran
     kw -= 4;
   }
@@ -550,7 +611,8 @@ function pravila() {
     '<li>Kolone: <b>↓</b> popunjavaš redom odozgo, <b>↑</b> odozdo, <b>⇅</b> slobodno, <b>N</b> samo uz najavu.</li>' +
     '<li><b>Najava</b>: posle prvog bacanja drži prst na praznom polju u koloni N.</li>' +
     '<li>Gornji deo: bonus +30 ako je zbir jedinica–šestica bar 60. Sredina: (maks − min) × broj jedinica.</li>' +
-    '<li>Kenta 66/56/46 po bacanju, triling +20, ful +30, poker +40, jamb +50.</li></ul>' +
+    '<li>Kenta 66/56/46 po bacanju, triling +20, ful +30, poker +40, jamb +50.</li>' +
+    '<li>U igri u dvoje: <b>👁</b> gleda protivnikov listić, <b>💬</b> mu šalje emodži ili kratku poruku.</li></ul>' +
     '<div class="btns"><button id="nazadBtn2">← Nazad</button></div>');
   $("#nazadBtn2").onclick = meni;
 }
@@ -605,6 +667,7 @@ window.J = {
   get mojIndex() { return mojIndex; },
   get gledam() { return gledam; }, gledaj: i => { gledam = i; render(); },
   save, load, meni, nastaviPartiju, get sacuvanaMreza() { return sacuvanaMreza; },
+  posaljiPoruku, izborPoruke, EMODZI, RECI,
   setKocke: k => { G.kocke = k.slice(); render(); }, setBacanje: n => { G.bacanje = n; render(); },
   setListic: (i, l) => { G.igraci[i].listic = l; render(); }
 };
