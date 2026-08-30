@@ -48,6 +48,13 @@ i u objekat `CROSSINGS` u `index.html`. Slug = deo URL-a posle `/bottlenecks/`.
 u `localStorage`. Zagonetke se generišu u pregledaču i uvek imaju **tačno jedno rešenje**.
 Link stoji u zaglavlju dashboarda (🎲 Sudoku).
 
+## Solitaire
+
+`solitaire.html` — klasični Klondike, takođe samostalan i offline. Vuci 1 ili 3, neograničeno
+vrtenje špila, poništavanje poteza, savet („Potez"), auto-završetak kad su sve karte okrenute,
+ponovno deljenje istog špila (deljenja su seed-ovana) i čuvanje partije u `localStorage`.
+Igra se tapkanjem: tapni kartu pa odredište, a drugi tap na istu kartu je šalje sam gde može.
+
 ## Ograničenja podataka
 
 Prijave su anonimne i neravnomerne (rupe po satima, vrednosti skaču). Korisno za grubi
