@@ -116,7 +116,7 @@
   </div>
 
   <div class="foot col">
-    Tapni da ispališ. 🟦 široka palica · ⬤ tri loptice · 🐢 sporije · ❤️ život. Čuvaj se 🔫 ljubičastih cigli.
+    Tapni da ispališ. Bonusi: 🟦 šira palica · ⬤ tri loptice · 🐢 sporije · 🔫 palica puca · ❤️ život.
     <br><a href="igre.html">🎮 Sve igre</a> · <a href="index.html">← Border Wait</a>
   </div>
 </div>
@@ -148,10 +148,10 @@ const LEVELS = [
   { nm: "Češalj",      m: ["3.3.3.3.", "3.3.3.3.", "3.3.3.3.", "33333333", "X......X"] },
   { nm: "Sendvič",     m: ["33333333", "XXXXXXXX", "22222222", "XXXXXXXX", "11111111"] },
   { nm: "Lavirint",    m: ["3X2222X3", "3X2..2X3", "3X2.32X3", "3X2222X3", "33XXXX33"] },
-  { nm: "Straža",      m: ["P.2222.P", "22222222", ".3XXXX3.", "11111111"] },
-  { nm: "Topovi",      m: ["P111111P", ".2S22S2.", "P333333P", "..2222.."] },
-  { nm: "Kapije",      m: ["X2P22P2X", "X111111X", "XS3333SX", "X222222X"] },
-  { nm: "Osinjak",     m: ["S.S.S.S.", ".P.P.P.P", "S.S.S.S.", "33333333"] }
+  { nm: "Straža",      m: ["3.2222.3", "22222222", ".3XXXX3.", "11111111"] },
+  { nm: "Topovi",      m: ["3111111 3".replace(" ", ""), ".2S22S2.", "S333333S", "..2222.."] },
+  { nm: "Kapije",      m: ["X2S22S2X", "X111111X", "XS3333SX", "X222222X"] },
+  { nm: "Osinjak",     m: ["S.S.S.S.", ".3.3.3.3", "S.S.S.S.", "33333333"] }
 ];
 
 /* Nivoi 21–50 se prave po obrascu — teži i teži, uvek isti za isti broj. */
@@ -178,14 +178,13 @@ function generisi(n) {
       if (!ima) { red += "."; continue; }
       const t = r();
       if (t < .10 + tez * .10) c = "X";
-      else if (t < .18 + tez * .16) c = "P";
-      else if (t < .26 + tez * .18) c = "S";
+      else if (t < .26 + tez * .22) c = "S";
       else if (t < .48 + tez * .22) c = "3";
       else if (t < .74) c = "2";
       else c = "1";
       red += c;
     }
-    if (!/[123PS]/.test(red)) red = red.slice(0, 3) + "2" + red.slice(4);   // svaki red mora imati bar nešto
+    if (!/[123S]/.test(red)) red = red.slice(0, 3) + "2" + red.slice(4);   // svaki red mora imati bar nešto
     m.push(red);
   }
   return { nm: "Nivo " + n, m };
@@ -213,18 +212,18 @@ function buildLevel(n) {
   for (let r = 0; r < map.length; r++) for (let c = 0; c < COLS; c++) {
     const ch = map[r][c];
     if (!ch || ch === ".") continue;
-    const pucac = ch === "P", smanj = ch === "S", celik = ch === "X";
+    const smanj = ch === "S", celik = ch === "X";
     bricks.push({
-      x: c * BW, y: TOP + r * BH, w: BW, h: BH, x0: c * BW, y0: TOP + r * BH,
-      hp: celik ? Infinity : pucac ? 2 : smanj ? 3 : +ch,
-      max: celik ? 0 : pucac ? 2 : smanj ? 3 : +ch,
-      steel: celik, pucac, smanj, t: 1 + Math.random() * 2.5
+      x: c * BW, y: TOP + r * BH, w: BW, h: BH,
+      hp: celik ? Infinity : smanj ? 3 : +ch,
+      max: celik ? 0 : smanj ? 3 : +ch,
+      steel: celik, smanj
     });
   }
 }
 const brickLeft = () => bricks.filter(b => !b.steel).length;
 
-function resetPad() { pad = { x: LW / 2, w: 52, base: 52, wide: 0 }; }
+function resetPad() { pad = { x: LW / 2, w: 52, base: 52, wide: 0, top: 0, topT: 0 }; }
 function newBall(speedUp) {
   const sp = 132 + (level - 1) * 7 + (speedUp || 0);
   return { x: pad.x, y: PADY - 8, vx: rnd(-.4, .4) * sp, vy: -sp, r: 4, slow: 0 };
@@ -255,6 +254,15 @@ function boom(x, y, n, col) {
 /* ---------- fizika ---------- */
 function step(dt) {
   if (pad.wide > 0) { pad.wide -= dt; if (pad.wide <= 0) pad.w = pad.base; }
+  if (pad.top > 0) {                                     // pištolj na palici puca sam
+    pad.top -= dt; pad.topT -= dt;
+    if (pad.topT <= 0 && !stuck) {
+      pad.topT = .34;
+      zrna.push({ x: pad.x - pad.w / 2 + 3, y: PADY - 2, vy: -240 });
+      zrna.push({ x: pad.x + pad.w / 2 - 3, y: PADY - 2, vy: -240 });
+      window.SFX && SFX.tick();
+    }
+  }
   if (stuck) { for (const b of balls) { b.x = pad.x; b.y = PADY - 8; } }
 
   for (const b of balls) {
@@ -283,20 +291,29 @@ function step(dt) {
   balls = balls.filter(b => b.y < LH + 12);
   if (!stuck && balls.length === 0) loseLife();
 
-  for (const b of bricks) {                              // cigle-pucači gađaju palicu
-    if (!b.pucac) continue;
-    b.t -= dt;
-    if (b.t <= 0) {
-      b.t = 2.4 + Math.random() * 2.2;
-      zrna.push({ x: b.x + b.w / 2, y: b.y + b.h, vy: 96 + level * 3 });
-      window.SFX && SFX.tick();
+  for (const z of zrna) {                                // meci iz palice ruše cigle
+    z.y += z.vy * dt;
+    for (const br of bricks) {
+      if (z.x < br.x || z.x > br.x + br.w || z.y > br.y + br.h || z.y < br.y) continue;
+      z.dead = true;
+      if (br.steel) { boom(z.x, z.y, 2, "#9fb0cc"); window.SFX && SFX.stamp(); break; }
+      br.hp--;
+      if (br.smanj && br.hp > 0) {
+        const nw = br.w * .68, nh = br.h * .78;
+        br.x += (br.w - nw) / 2; br.y += (br.h - nh) / 2; br.w = nw; br.h = nh;
+      }
+      if (br.hp <= 0) {
+        score += 10 * br.max;
+        boom(br.x + br.w / 2, br.y + br.h / 2, 7, brickColor(br.max));
+        maybeDrop(br.x + br.w / 2, br.y + br.h / 2);
+        bricks = bricks.filter(x => x !== br);
+        window.SFX && SFX.card();
+      } else { score += 5; boom(z.x, z.y, 3, "#ffd166"); }
+      updHud();
+      break;
     }
   }
-  for (const z of zrna) z.y += z.vy * dt;
-  for (const z of zrna) {
-    if (z.y > PADY - 2 && z.y < PADY + 10 && Math.abs(z.x - pad.x) < pad.w / 2 + 2) { z.dead = true; pogodjen(); }
-  }
-  zrna = zrna.filter(z => !z.dead && z.y < LH + 8);
+  zrna = zrna.filter(z => !z.dead && z.y > -8);
 
   for (const d of drops) { d.y += 68 * dt; d.t += dt; }
   for (const d of drops) {
@@ -339,7 +356,8 @@ function hitBricks(b) {
 function maybeDrop(x, y) {
   const r = Math.random();
   let k = null;
-  if (r < .07) k = "w"; else if (r < .12) k = "m"; else if (r < .16) k = "s"; else if (r < .18) k = "h";
+  if (r < .07) k = "w"; else if (r < .12) k = "m"; else if (r < .16) k = "s";
+  else if (r < .195) k = "p"; else if (r < .215) k = "h";
   if (k) drops.push({ x, y, k, t: 0 });
 }
 function takeDrop(k) {
@@ -353,14 +371,9 @@ function takeDrop(k) {
     stuck = false;
   }
   else if (k === "s") for (const b of balls) b.slow = 9;
+  else if (k === "p") { pad.top = 12; pad.topT = 0; window.SFX && SFX.good(); }
   else if (k === "h") { lives = Math.min(5, lives + 1); }
   score += 25; window.SFX && SFX.coin(); updHud();
-}
-function pogodjen() {                                    // zrno je pogodilo palicu
-  window.SFX && SFX.siren();
-  boom(pad.x, PADY, 14, "#d65a4e");
-  zrna = [];
-  loseLife();
 }
 function loseLife() {
   lives--; updHud(); window.SFX && SFX.bad();
@@ -397,7 +410,7 @@ function gameOver() {
   $("#againBtn").onclick = () => newGame(startLv);
   $("#pickBtn3").onclick = pocetak;
 }
-const MINI_COL = { "1": "#3fb96a", "2": "#e0a53a", "3": "#d8534a", "X": "#7c8aa6", "P": "#a45cd8", "S": "#2fb3b3" };
+const MINI_COL = { "1": "#3fb96a", "2": "#e0a53a", "3": "#d8534a", "X": "#7c8aa6", "S": "#2fb3b3" };
 function miniHTML(m) {
   let h = '<div class="mini">';
   for (let r = 0; r < Math.min(5, m.length); r++)
@@ -472,9 +485,9 @@ function intro() {
   showOverlay('<h2>🧱 Cigle</h2>' +
     '<ul><li><b>Prevlači prstom</b> ispod palice da je pomeriš, tapni da ispališ lopticu.</li>' +
     '<li>Cigle: <b>zelena</b> puca iz prve, <b>žuta</b> traži dva, <b>crvena</b> tri udarca. <b>Siva čelična</b> se ne razbija — samo odbija.</li>' +
-    '<li><b>Ljubičasta ima pištolj</b> 🔫 — s vremena na vreme ispali metak nadole; ako pogodi palicu, gubiš život. Puca dok je ne razbiješ (dva udarca).</li>' +
     '<li><b>Tirkizna se smanjuje</b> pri svakom pogotku — treba tri, a svaki put je manja i teže se gađa.</li>' +
-    '<li>Bonusi padaju: 🟦 šira palica, ⬤ tri loptice, 🐢 sporije, ❤️ život.</li>' +
+    '<li>Bonus <b>🔫 pištolj</b> — palica dobija dve cevi i 12 sekundi sama puca nagore i ruši cigle.</li>' +
+    '<li>Bonusi padaju: 🟦 šira palica, ⬤ tri loptice, 🐢 sporije, 🔫 pištolj na palici, ❤️ život.</li>' +
     '<li>Ugao odbijanja zavisi od toga gde loptica pogodi palicu — tako biraš smer.</li></ul>' +
     '<button id="pickBtn">← Nazad</button>');
   $("#pickBtn").onclick = pocetak;
@@ -489,7 +502,7 @@ function draw() {
   ctx.fillStyle = "#0a1120"; ctx.fillRect(0, 0, LW, LH);
   ctx.fillStyle = "rgba(255,255,255,.05)"; ctx.fillRect(0, 0, LW, 8);
   for (const b of bricks) {
-    const col = b.steel ? "#7c8aa6" : b.pucac ? "#a45cd8" : b.smanj ? "#2fb3b3" : brickColor(b.hp);
+    const col = b.steel ? "#7c8aa6" : b.smanj ? "#2fb3b3" : brickColor(b.hp);
     ctx.fillStyle = col;
     ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
     ctx.fillStyle = "rgba(255,255,255,.18)";
@@ -497,11 +510,6 @@ function draw() {
     if (b.steel) {
       ctx.strokeStyle = "rgba(255,255,255,.4)"; ctx.lineWidth = 1;
       ctx.strokeRect(b.x + 3, b.y + 3, b.w - 6, b.h - 6);
-    } else if (b.pucac) {
-      ctx.fillStyle = "rgba(255,255,255,.85)";           // cev okrenuta nadole
-      ctx.fillRect(b.x + b.w / 2 - 1.5, b.y + b.h - 4, 3, 4);
-      ctx.font = "bold 8px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillText(b.hp, b.x + b.w / 2, b.y + b.h / 2 - 1);
     } else if (b.smanj) {
       ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 1;
       ctx.strokeRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4);
@@ -515,7 +523,7 @@ function draw() {
   }
   for (const d of drops) {
     ctx.font = "13px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(d.k === "w" ? "🟦" : d.k === "m" ? "⬤" : d.k === "s" ? "🐢" : "❤️", d.x, d.y);
+    ctx.fillText(d.k === "w" ? "🟦" : d.k === "m" ? "⬤" : d.k === "s" ? "🐢" : d.k === "p" ? "🔫" : "❤️", d.x, d.y);
   }
   ctx.fillStyle = "rgba(255,255,255,.05)";                     // zona za prst ispod palice
   ctx.fillRect(0, PADY + 16, LW, LH - PADY - 16);
@@ -523,10 +531,17 @@ function draw() {
   ctx.fillRect(pad.x - pad.w / 2, PADY, pad.w, 7);
   ctx.fillStyle = "rgba(255,255,255,.3)";
   ctx.fillRect(pad.x - pad.w / 2, PADY, pad.w, 2);
+  if (pad.top > 0) {                                           // cevi kad palica ima pištolj
+    ctx.fillStyle = "#ffe08a";
+    ctx.fillRect(pad.x - pad.w / 2 + 1, PADY - 4, 4, 4);
+    ctx.fillRect(pad.x + pad.w / 2 - 5, PADY - 4, 4, 4);
+    ctx.fillStyle = "rgba(255,224,138,.75)"; ctx.font = "8px system-ui"; ctx.textAlign = "center";
+    ctx.fillText("🔫 " + Math.ceil(pad.top) + "s", pad.x, PADY + 14);
+  }
   ctx.fillStyle = "rgba(201,162,39,.25)";                      // pokazivač ispod prsta
   ctx.fillRect(pad.x - pad.w / 2, PADY + 22, pad.w, 3);
-  ctx.fillStyle = "#ff6b6b";                              // zrna koja cigle ispaljuju
-  for (const z of zrna) { ctx.fillRect(z.x - 1.5, z.y - 5, 3, 7); }
+  ctx.fillStyle = "#ffe08a";                              // meci iz palice
+  for (const z of zrna) { ctx.fillRect(z.x - 1.5, z.y - 2, 3, 7); }
   ctx.fillStyle = "#eef2f9";
   for (const b of balls) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); }
   for (const p of parts) {

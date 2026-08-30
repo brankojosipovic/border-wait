@@ -170,9 +170,10 @@ function spil() {
 }
 
 /* ---------- mogući ulovi ---------- */
-function ulovi(karta, sto) {
+function ulovi(karta, sto, sve) {
   const out = [];
-  if (karta.r === 11) {                                  // žandar kupi sve
+  const kupiSve = sve === undefined ? zandarSve : sve;
+  if (karta.r === 11 && kupiSve) {                        // pravilo kuće: žandar čisti sto
     if (sto.length) out.push({ karte: sto.slice(), opis: "sve sa stola", zandar: true });
     return out;
   }
@@ -207,6 +208,9 @@ function poeni(karte) {
 
 /* ---------- stanje ---------- */
 let G = null, izabrana = -1, mojIndex = 0;
+let zandarSve = false;                                   // pravilo kuće: podrazumevano žandar vredi 12
+try { zandarSve = JSON.parse(localStorage.getItem("tablic.zandar") || "false"); } catch (e) { }
+function postaviZandara(v) { zandarSve = !!v; try { localStorage.setItem("tablic.zandar", JSON.stringify(zandarSve)); } catch (e) { } }
 /* G = {rezim, spil, sto, ruke:[[],[]], kupio:[[],[]], table:[0,0], naRedu, poslednji, imena, gotovo, deljenje} */
 
 function novaIgra(rezim, imena, seedStanje) {
@@ -216,7 +220,7 @@ function novaIgra(rezim, imena, seedStanje) {
     G = {
       rezim, imena: imena || ["Ti", "Računar"],
       spil: d, sto: [], ruke: [[], []], kupio: [[], []], table: [0, 0],
-      naRedu: 0, poslednji: 0, gotovo: false, deljenje: 0
+      naRedu: 0, poslednji: 0, gotovo: false, deljenje: 0, zandarSve
     };
     for (let i = 0; i < 4; i++) G.sto.push(G.spil.pop());
     podeli();
@@ -331,7 +335,11 @@ function posaljiStanje() {
 }
 function primi(m) {
   if (!m) return;
-  if (m.t === "stanje") { G = m.g; G.rezim = "mreza"; izabrana = -1; render(); if (G.gotovo && $("#overlay").hidden) zavrsi(); return; }
+  if (m.t === "stanje") {
+    G = m.g; G.rezim = "mreza"; izabrana = -1;
+    if (typeof G.zandarSve === "boolean") zandarSve = G.zandarSve;   // domaćin diktira pravilo
+    render(); if (G.gotovo && $("#overlay").hidden) zavrsi(); return;
+  }
   if (m.t === "potez" && Mreza.uloga() === "domacin" && G && G.naRedu === 1) odigraj(1, m.karta, m.ulov);
 }
 function statusMreze(st, detalj) {
@@ -369,7 +377,8 @@ function render() {
     (G.table[ja] ? ' · <b>' + G.table[ja] + '</b> tabl' : '') + '</span>' +
     '<span class="ko' + (G.naRedu === on ? " on" : "") + '">' + G.imena[on] + ' <b>' + G.kupio[on].length + '</b> kar' +
     (G.table[on] ? ' · <b>' + G.table[on] + '</b> tabl' : '') + '</span>' +
-    '<div class="spacer"></div><span>špil <b>' + G.spil.length + '</b></span>' +
+    '<div class="spacer"></div><span>špil <b>' + G.spil.length + '</b>/52</span>' +
+    '<span title="pravilo o žandaru">J' + (zandarSve ? "✱" : "12") + '</span>' +
     (G.rezim === "mreza" ? '<span>' + (Mreza.povezan() ? "🟢" : "🔴") + '</span>' : '') +
     '<button id="meniBtn2" title="Meni">☰</button>';
   $("#meniBtn2").onclick = meni;
@@ -444,8 +453,11 @@ function meni() {
     '<button id="dvojeBtn">👥 Dvoje na ovom telefonu</button>' +
     '<button id="sobaBtn">🌐 Napravi sobu</button>' +
     '<button id="udjiBtn">🔗 Uđi u sobu</button>' +
-    '<button id="pravBtn">❔ Pravila</button></div>' +
-    '<p>Za igru preko interneta oba telefona moraju imati signal.</p>');
+    '<button id="pravBtn">❔ Pravila</button>' +
+    '<button id="zandarBtn">🃏 Žandar: ' + (zandarSve ? "kupi sve" : "vredi 12") + '</button></div>' +
+    '<p>Za igru preko interneta oba telefona moraju imati signal. Pravilo o žandaru se pamti — ' +
+    'podesi ga pre partije, obojica isto.</p>');
+  $("#zandarBtn").onclick = () => { postaviZandara(!zandarSve); window.SFX && SFX.tick(); meni(); };
   $("#samBtn").onclick = () => novaIgra("sam", ["Ti", "Računar"]);
   $("#dvojeBtn").onclick = () => novaIgra("dvoje", ["Igrač 1", "Igrač 2"]);
   $("#sobaBtn").onclick = () => {
@@ -471,7 +483,8 @@ function meni() {
       '<li>Kupi se <b>ista vrednost</b> (7 kupi 7) ili <b>zbir</b> (7 kupi 3+4).</li>' +
       '<li>Vrednosti: as = 1, <b>dama = 13</b>, <b>kralj = 14</b> — i one kupe zbir (dama 7+4+2). ' +
       'U zbir ulaze samo karte A–10; figure sa stola se ne sabiraju.</li>' +
-      '<li><b>Žandar (J)</b> kupi sve sa stola, ali njime se ne dobija tabla.</li>' +
+      '<li><b>Žandar (J)</b> — po podrazumevanom pravilu vredi <b>12</b> i kupi kao svaka druga karta. ' +
+      'U meniju se može uključiti staro pravilo „žandar kupi sve sa stola" (tada njime nema table).</li>' +
       '<li><b>Tabla</b> = pokupiš sve sa stola: +1 poen.</li>' +
       '<li>Poeni: svaki as 1, svaka desetka 1 (10♦ vredi 2), 2♣ 1, i +3 onome ko ima više karata.</li>' +
       '<li>Poslednje karte sa stola uzima onaj ko je poslednji kupio.</li></ul>' +
@@ -493,6 +506,7 @@ if (load()) { render(); mozdaRacunar(); } else { novaIgra("sam", ["Ti", "Računa
 
 window.T = {
   get G() { return G; }, ulovi, poeni, vred, ime, spil, odigraj, novaIgra, potezRacunara, render, zavrsi,
+  get zandarSve() { return zandarSve; }, postaviZandara,
   primi, statusMreze, posaljiStanje,
   poveziLokalno: u => { mojIndex = u === "gost" ? 1 : 0; return Mreza.lokalno("tablic-test", { uloga: u, poruka: primi, status: statusMreze }); },
   get mojIndex() { return mojIndex; },
