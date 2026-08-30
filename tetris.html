@@ -438,6 +438,9 @@ function fit() {
   root.style.setProperty("--mini", Math.max(7, Math.round(a * .5)) + "px");
 }
 window.addEventListener("resize", scheduleFit);
+window.addEventListener("DOMContentLoaded", scheduleFit);   // traka se ubacuje tek tada
+window.addEventListener("load", scheduleFit);
+window.addEventListener("orientationchange", () => setTimeout(scheduleFit, 150));
 
 /* ---------- ulaz ---------- */
 function repeat(btn, fn, first, rep) {
