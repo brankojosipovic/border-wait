@@ -99,7 +99,7 @@ var CSS =
 '.gamenav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;' +
 'grid-template-columns:repeat(6,1fr);align-items:stretch;' +
 'background:var(--panel);border-top:1px solid var(--line);' +
-'padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -4px 18px rgba(0,0,0,.22)}' +
+'padding-bottom:env(safe-area-inset-bottom, 0px);box-shadow:0 -4px 18px rgba(0,0,0,.22)}' +
 '.gamenav a,.gamenav button{display:flex;flex-direction:column;align-items:center;justify-content:center;' +
 'gap:1px;padding:5px 1px;background:transparent;border:0;border-radius:0;color:var(--ink-dim);' +
 'text-decoration:none;font:inherit;cursor:pointer;touch-action:manipulation;min-height:46px}' +
@@ -109,10 +109,10 @@ var CSS =
 'background:color-mix(in srgb, var(--gold) 9%, transparent)}' +
 '.gamenav button.off{opacity:.6}' +
 '.gamenav a:active,.gamenav button:active{transform:none;background:color-mix(in srgb, var(--ink) 8%, transparent)}' +
-':root{--navh:52px}' +
+':root{--navh:52px;--sat:env(safe-area-inset-top, 0px)}' +
 'html,body{height:auto !important}' +
 'body{padding-bottom:calc(var(--navh) + 4px) !important}' +
-'.wrap{min-height:calc(100dvh - var(--navh) - 4px) !important}' +
+'.wrap{min-height:calc(100dvh - var(--navh) - var(--sat) - 4px) !important}' +
 '@media (orientation:landscape) and (max-height:620px){' +
 ':root{--navh:38px}.gamenav .t{display:none}.gamenav .e{font-size:17px}.gamenav a,.gamenav button{min-height:34px}}';
 

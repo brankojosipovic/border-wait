@@ -35,7 +35,7 @@
     font: 15px/1.5 Calibri, "Segoe UI", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none; user-select: none; -webkit-user-select: none;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   }
   button { font: inherit; color: var(--ink); background: var(--panel);
     border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer;
@@ -44,17 +44,17 @@
   button:disabled { opacity: .4; cursor: default; }
   @media (hover: hover) { button:hover { border-color: var(--gold); } }
 
-  .wrap { display: flex; flex-direction: column; align-items: center; gap: 10px;
-          min-height: 100dvh; padding: 8px 10px 12px; }
+  .wrap { display: flex; flex-direction: column; align-items: center; gap: 8px;
+          min-height: 100dvh; padding: 6px 10px 8px; }
   .col { width: min(100vw - 20px, 440px); }
   header { display: flex; align-items: center; gap: 10px;
            border-left: 4px solid var(--gold); padding: 4px 0 4px 10px; }
-  header h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.2px; }
+  header h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
   header .sub { color: var(--ink-dim); font-size: 12px; }
   .spacer { flex: 1; }
 
   .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .tabs button { padding: 10px; font-weight: 700; }
+  .tabs button { padding: 8px; font-weight: 700; }
   .tabs button.on { border-color: var(--gold); background: var(--panel-2); color: var(--gold); }
 
   .wallet { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--ink-dim); }
@@ -62,17 +62,17 @@
   .wallet .win { color: var(--good); font-weight: 700; }
 
   .machine { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-             padding: 14px; box-shadow: var(--shadow); }
+             padding: 11px; box-shadow: var(--shadow); }
 
   /* poker karte */
-  .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-  .pcard { position: relative; aspect-ratio: 2 / 3; border-radius: 9px; background: var(--face);
+  .cards { display: grid; grid-template-columns: repeat(5, var(--pcw, 62px)); gap: 6px; justify-content: center; }
+  .pcard { position: relative; width: var(--pcw, 62px); height: calc(var(--pcw, 62px) * 1.5); border-radius: 9px; background: var(--face);
            color: var(--face-ink); cursor: pointer; overflow: hidden;
            box-shadow: 0 1px 2px rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.18); }
   .pcard.red { color: var(--red); }
   .pcard .corner { position: absolute; top: 4%; left: 8%; font-weight: 700; line-height: 1.05;
-                   font-size: clamp(13px, 4.6vw, 21px); white-space: pre-line; }
-  .pcard .pip { position: absolute; right: 8%; bottom: 4%; font-size: clamp(16px, 6vw, 28px); line-height: 1; }
+                   font-size: calc(var(--pcw, 62px) * .32); white-space: pre-line; }
+  .pcard .pip { position: absolute; right: 8%; bottom: 4%; font-size: calc(var(--pcw, 62px) * .4); line-height: 1; }
   .pcard.back { background: repeating-linear-gradient(45deg, var(--back-1) 0 4px, var(--back-2) 4px 8px);
                 box-shadow: inset 0 0 0 2px var(--face); }
   .pcard.back .corner, .pcard.back .pip { display: none; }
@@ -84,13 +84,13 @@
   .pcard.winpart { box-shadow: 0 0 0 2px var(--good), 0 1px 2px rgba(0,0,0,.35); }
 
   /* vockice */
-  .reels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .rc { aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  .reels { display: grid; grid-template-columns: repeat(3, var(--cell, 90px)); gap: 6px; justify-content: center; }
+  .rc { width: var(--cell, 90px); height: var(--cell, 90px); display: flex; align-items: center; justify-content: center;
         background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
-        font-size: clamp(30px, 12vw, 54px); }
+        font-size: calc(var(--cell, 90px) * .56); }
   .rc.hit { border-color: var(--good); box-shadow: inset 0 0 0 2px var(--good); }
 
-  .msg { min-height: 24px; text-align: center; font-size: 15px; font-weight: 700; margin: 10px 0 4px; }
+  .msg { min-height: 22px; text-align: center; font-size: 15px; font-weight: 700; margin: 8px 0 3px; }
   .msg .w { color: var(--good); }
   .msg .l { color: var(--ink-dim); font-weight: 400; }
 
@@ -98,22 +98,43 @@
   .betrow .lbl { font-size: 12px; color: var(--ink-dim); }
   .betrow .chip { min-width: 44px; padding: 7px 0; font-weight: 700; font-variant-numeric: tabular-nums; }
   .betrow .chip.on { border-color: var(--gold); color: var(--gold); background: var(--panel-2); }
-  .go { width: 100%; margin-top: 8px; padding: 13px; font-size: 17px; font-weight: 700;
+  .go { width: 100%; margin-top: 7px; padding: 11px; font-size: 17px; font-weight: 700;
         border-color: var(--gold); }
 
   /* dupliraj */
-  .dup { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 10px;
-         display: flex; align-items: center; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .dup { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 8px;
+         display: flex; align-items: center; gap: 7px; justify-content: center; flex-wrap: wrap; }
   .dup[hidden] { display: none; }
-  .dup .pcard { width: 52px; cursor: default; }
-  .dup .info { font-size: 13px; color: var(--ink-dim); }
+  .dup .pcard { width: 34px; height: 51px; cursor: default; flex: 0 0 auto; }
+  .dup .pcard .corner { font-size: 11px; } .dup .pcard .pip { font-size: 13px; }
+  .dup .info { font-size: 12px; color: var(--ink-dim); line-height: 1.25; }
+  .dup button { padding: 7px 9px; font-size: 13px; }
   .dup .info b { color: var(--ink); }
   .dup button { font-weight: 700; }
   #dupRed { color: #e05a4e; } #dupBlack { color: inherit; }
 
-  .paytable { font-size: 11px; color: var(--ink-dim); line-height: 1.5; text-align: center; margin-top: 8px; }
+  .paytable { font-size: 10.5px; color: var(--ink-dim); line-height: 1.4; text-align: center; margin-top: 6px; }
+  body.dup-on .paytable, body.dup-on .betrow, body.dup-on .stats { display: none; }                 /* dok traje Dupliraj, tabela ustupa mesto */
   .stats { font-size: 11px; color: var(--ink-dim); text-align: center; }
   .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
+  @media (max-height: 780px) { .foot { display: none; } }
+  @media (max-height: 680px) { header .sub { display: none; } }
+  @media (max-height: 600px) { .stats { display: none; } .machine { padding: 9px; } }
+  @media (orientation: landscape) and (max-height: 480px) {
+    .paytable, .stats { display: none; }
+    .wrap { gap: 5px; padding: 4px 10px 6px; }
+    header { padding: 0 0 0 10px; }
+    .tabs button { padding: 5px; font-size: 14px; }
+    .machine { padding: 8px; }
+  }
+  @media (max-height: 560px) {
+    header h1 { font-size: 15px; }
+    .tabs button { padding: 6px; }
+    .go { padding: 9px; font-size: 16px; }
+    .msg { min-height: 18px; font-size: 14px; margin: 5px 0 2px; }
+    .wallet b { font-size: 15px; }
+    .betrow .chip { padding: 5px 0; }
+  }
   .foot a { color: var(--ink-dim); }
   .hidden { display: none !important; }
 </style>
@@ -253,6 +274,7 @@ function renderPoker(winMask) {
     b.classList.toggle("on", +b.dataset.v === ST.pBet);
     b.disabled = PK.phase === "dealt" || ST.pending > 0;
   }
+  scheduleFit();
 }
 function pokerGo() {
   if (ST.pending > 0) return;
@@ -317,6 +339,7 @@ function renderSlot(hit) {
     b.classList.toggle("on", +b.dataset.v === ST.sBet);
     b.disabled = SL.spinning || ST.pending > 0;
   }
+  scheduleFit();
 }
 function slotGo() {
   if (SL.spinning || ST.credits < ST.sBet || ST.pending > 0) return;
@@ -355,14 +378,16 @@ function offerDup(host, win) {
 }
 function renderDup(reveal) {
   const el = $("#" + DUP.host + "Dup");
+  document.body.classList.toggle("dup-on", DUP.on);
   $("#pDup").hidden = true; $("#sDup").hidden = true;
   if (!DUP.on) { renderPoker(); renderSlot(); return; }
   el.hidden = false;
   el.innerHTML =
     (reveal ? cardHTML(reveal) : '<div class="pcard back"></div>') +
-    '<div class="info">Dobitak: <b>' + DUP.win + ' kr</b><br>duplo ili ništa' + (DUP.count ? " (×" + DUP.count + ")" : "") + '</div>' +
     '<button id="dupRed">🔴 crveno</button><button id="dupBlack">⚫ crno</button>' +
-    '<button id="dupTake">💰 Naplati</button>';
+    '<button id="dupTake">💰 Naplati ' + DUP.win + '</button>';
+  $("#" + DUP.host + "Msg").innerHTML = '<span class="w">' + DUP.win + ' kr — duplo ili ništa?' +
+    (DUP.count ? " (×" + DUP.count + ")" : "") + '</span>';
   $("#dupRed").onclick = () => dupPick(true);
   $("#dupBlack").onclick = () => dupPick(false);
   $("#dupTake").onclick = dupTake;
@@ -375,10 +400,11 @@ function dupPick(red) {
     DUP.win *= 2; DUP.count++; window.SFX && SFX.good();
     ST.pending = DUP.win; save();
     renderDup(c);
-    $("#" + DUP.host + "Msg").innerHTML = '<span class="w">Pogodak! Sad je ' + DUP.win + ' kr</span>';
+    $("#" + DUP.host + "Msg").innerHTML = '<span class="w">Pogodak! ' + DUP.win + ' kr — dalje?</span>';
     if (DUP.count >= 5) setTimeout(dupTake, 900);
   } else {
     ST.pending = 0; DUP.on = false; save();
+    document.body.classList.remove("dup-on");
     window.SFX && SFX.bad();
     const el = $("#" + DUP.host + "Dup");
     el.innerHTML = cardHTML(c) + '<div class="info">Odnela ' + (isRedS(c.s) ? "crvena" : "crna") + '. Dobitak ode.</div>';
@@ -392,10 +418,46 @@ function dupTake() {
   if (DUP.win > ST.best) ST.best = DUP.win;
   $("#" + DUP.host + "Msg").innerHTML = '<span class="w">Naplaćeno ' + DUP.win + ' kr ✔</span>';
   DUP.on = false; save();
+  document.body.classList.remove("dup-on");
   $("#pDup").hidden = true; $("#sDup").hidden = true;
   if (DUP.host === "p") PK.phase = "idle";
   renderPoker(); renderSlot(); renderWallet();
 }
+
+/* ---------- uklapanje u jedan ekran ---------- */
+let fitReq = 0;
+function scheduleFit() { if (fitReq) return; fitReq = requestAnimationFrame(() => { fitReq = 0; fit(); }); }
+function fit() {                            // najveća mreža/karte koje još staju u ekran
+  const root = document.documentElement;
+  if (!document.querySelector(".wrap")) return;
+  const slot = ST.mode === "slot";
+  const wMax = Math.min(window.innerWidth - 20, 440) - 22;   // minus padding aparata
+  const hi = slot ? (wMax - 12) / 3 : (wMax - 24) / 5;       // ograničenje po širini
+  const lo = slot ? 34 : 28;                                 // ispod ovoga se ne ide
+  const setv = v => root.style.setProperty(slot ? "--cell" : "--pcw", Math.floor(v) + "px");
+  const wrap = document.querySelector(".wrap"), nav = document.querySelector(".gamenav");
+  const fits = () => {                                     // .wrap ima min-height na ceo ekran,
+    const cs = getComputedStyle(wrap);                     // pa se meri sadržaj naspram trake
+    const kids = [...wrap.children].filter(el => el.offsetParent !== null);
+    const h = kids.reduce((a, el) => a + el.getBoundingClientRect().height, 0) +
+      (parseFloat(cs.rowGap) || 0) * Math.max(0, kids.length - 1) +
+      (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const limit = (nav ? nav.getBoundingClientRect().top : window.innerHeight) - wrap.getBoundingClientRect().top;
+    return h <= limit - 4;
+  };
+  root.style.setProperty(slot ? "--pcw" : "--cell", (slot ? 40 : 44) + "px");
+  setv(hi);
+  if (fits()) return;                                        // najveća varijanta već staje
+  let a = lo, b = hi;
+  for (let i = 0; i < 7; i++) {                              // binarna pretraga po stvarnoj visini
+    const mid = (a + b) / 2;
+    setv(mid);
+    if (fits()) a = mid; else b = mid;
+  }
+  setv(a);
+}
+
+window.addEventListener("resize", scheduleFit);
 
 /* ---------- zajedničko ---------- */
 function renderWallet() {
@@ -412,6 +474,7 @@ function setMode(m) {
   $("#slotPane").classList.toggle("hidden", m !== "slot");
   $("#tabPoker").classList.toggle("on", m === "poker");
   $("#tabSlot").classList.toggle("on", m === "slot");
+  scheduleFit();
 }
 
 for (const v of P_BETS) {
