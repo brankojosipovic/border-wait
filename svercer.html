@@ -123,10 +123,11 @@
 
   <div class="foot col">
     ☕ 2p/rizik 1 · 👖 3p/2 · ⛽ 4p/3 · 🚬 6p/5 · 💎 10p/8 · prodaja: posle 1. punkta ×1,5 · posle 2. ×2 · pijaca ×3.
-    <br><a href="index.html">← Border Wait</a> · <a href="sudoku.html">Sudoku</a> · <a href="solitaire.html">Solitaire</a> · <a href="kolona.html">Kolona</a> · <a href="aparat.html">Aparat</a>
+    <br><a href="igre.html">🎮 Sve igre</a> · <a href="index.html">← Border Wait</a>
   </div>
 </div>
 
+<script src="igre.js"></script>
 <script>
 "use strict";
 const KEY = "svercer.v1", DKEY = "svercer.daily", THEME_KEY = "sudoku.theme";
@@ -347,15 +348,15 @@ function wireIntro() {
 }
 function wire() {
   for (const b of document.querySelectorAll(".goods button"))
-    b.onclick = () => { if (ST.cargo.length < CAP) { ST.cargo.push(+b.dataset.g); render(); save(); } };
+    b.onclick = () => { if (ST.cargo.length < CAP) { ST.cargo.push(+b.dataset.g); window.SFX && SFX.tap(); render(); save(); } };
   for (const d of document.querySelectorAll(".trunk .slotc[data-i]"))
     d.onclick = () => {
       if (ST.phase !== "shop" && ST.phase !== "punkt") return;
-      ST.cargo.splice(+d.dataset.i, 1); render(); save();
+      ST.cargo.splice(+d.dataset.i, 1); window.SFX && SFX.tick(); render(); save();
     };
   const go = $("#goBtn");
   if (go) go.onclick = () => {
-    if (ST.phase === "shop") { ST.phase = "punkt"; ST.punkt = 0; render(); save(); }
+    if (ST.phase === "shop") { ST.phase = "punkt"; ST.punkt = 0; window.SFX && SFX.engine(); render(); save(); }
     else if (ST.phase === "punkt") roll();
     else if (ST.phase === "summary") nextTura();
     else if (ST.phase === "final") newRun("free", (Math.random() * 2 ** 31) | 0);
@@ -364,10 +365,11 @@ function wire() {
   if (sb) sb.onclick = () => {
     const val = cargoVal(ST.cargo), k = ST.punkt;
     const pts = k === 0 ? Math.round(val * MULT[0]) : val * MULT[k];
+    window.SFX && SFX.coin();
     turaEnd(pts, "Prodao si na " + W.ture[ST.tura].route[k] + " uz množilac ×" + MULT[k] + ".");
   };
   const pb = $("#pushBtn");
-  if (pb) pb.onclick = () => { ST.punkt++; ST.phase = "punkt"; render(); save(); };
+  if (pb) pb.onclick = () => { ST.punkt++; ST.phase = "punkt"; window.SFX && SFX.engine(); render(); save(); };
   const shb = $("#shareBtn");
   if (shb) shb.onclick = () => {
     try { navigator.clipboard.writeText(ST.shareTxt).then(() => shb.textContent = "✔ Kopirano", () => prompt("Kopiraj:", ST.shareTxt)); }
@@ -383,14 +385,17 @@ function roll() {
   const st = $("#stage");
   st.innerHTML = '<h2>🛂 ' + T.route[k] + '</h2>' + roadHTML() +
     '<div class="big">🔦</div><div class="dim" style="text-align:center">Carinik gleda…</div>' + trunkHTML(false);
+  window.SFX && SFX.drum();
   setTimeout(() => {
     if (caught) {
+      window.SFX && SFX.siren();
       const lost = cargoVal(ST.cargo);
       ST.cargo = [];
       turaEnd(0, "Pregled na " + T.route[k] + "! Oduzeše ti robu vrednu " + lost + "p (na pijaci bi bila " + lost * 3 + "p).");
     } else if (k >= 2) {
+      window.SFX && (SFX.stamp(), setTimeout(SFX.win, 250));
       turaEnd(cargoVal(ST.cargo) * 3, "Stigao si do pijace — pun pazar ×3!");
-    } else { ST.phase = "passed"; render(); save(); }
+    } else { ST.phase = "passed"; window.SFX && SFX.stamp(); render(); save(); }
   }, 900);
 }
 function nextTura() {

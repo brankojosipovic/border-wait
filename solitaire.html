@@ -171,10 +171,11 @@
   <div class="foot col">
     Tapni kartu pa odredište; drugi tap na istu kartu šalje je sam gde može.
     Igra se čuva u pregledaču.
-    <br><a href="index.html">← Border Wait</a> · <a href="sudoku.html">Sudoku</a> · <a href="kolona.html">Kolona</a> · <a href="aparat.html">Aparat</a> · <a href="svercer.html">Švercer</a>
+    <br><a href="igre.html">🎮 Sve igre</a> · <a href="index.html">← Border Wait</a>
   </div>
 </div>
 
+<script src="igre.js"></script>
 <script>
 "use strict";
 const SUITS = ["♠", "♥", "♦", "♣"];            // 0,3 crne · 1,2 crvene
@@ -239,7 +240,7 @@ function drawStock() {
   } else {
     for (let k = 0; k < S.draw && S.stock.length; k++) { const c = S.stock.pop(); c.u = true; S.waste.push(c); }
   }
-  S.moves++; sel = null; done();
+  S.moves++; sel = null; window.SFX && SFX.card(); done();
 }
 
 function moveCards(cards, dest) {          // dest: {t:"f", i} | {t:"t", i}
@@ -255,7 +256,9 @@ function tryMove(src, dest) {
   snapshot();
   if (src.from === "waste") S.waste.pop(); else S.tab[src.pile].length = src.idx;
   moveCards(cards, dest);
-  S.moves++; flipUp(); sel = null; done();
+  S.moves++; flipUp(); sel = null;
+  window.SFX && (dest.t === "f" ? SFX.coin() : SFX.card());
+  done();
   return true;
 }
 
@@ -304,7 +307,7 @@ function findHint() {                        // 1) na temelj  2) otvaranje skriv
 
 function undo() {
   if (!hist.length || S.done) return;
-  stopAuto(); S = JSON.parse(hist.pop()); sel = null; render(); save();
+  stopAuto(); S = JSON.parse(hist.pop()); sel = null; window.SFX && SFX.tick(); render(); save();
 }
 
 /* ---------- auto završetak ---------- */
@@ -370,7 +373,8 @@ function paint(el, cards, opts) {
 
 let hintMark = null;
 function render() {
-  const avail = Math.max(180, window.innerHeight - $("#tabRow").getBoundingClientRect().top - 110);
+  const navEl = document.querySelector(".gamenav");
+  const avail = Math.max(150, window.innerHeight - $("#tabRow").getBoundingClientRect().top - 110 - (navEl ? navEl.offsetHeight : 0));
   paint(pileEl("p-stock"), S.stock.map(c => ({ ...c, u: false })), {});
   paint(pileEl("p-waste"), S.waste, {
     spread: true,
@@ -395,6 +399,7 @@ const fmt = s => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(
 function done() {
   if (S.found.every(f => f.length === 13)) {
     S.done = true; stopAuto(); stopTimer(); save(); render();
+    window.SFX && SFX.win();
     showOverlay("Rešeno! 🎉", "Vreme " + fmt(S.elapsed) + " · poteza " + S.moves, "Novo deljenje", newGame);
   }
 }
@@ -420,6 +425,7 @@ function stopTimer() { if (tick) clearInterval(tick); tick = null; }
 function newGame(seed) {
   stopAuto(); hideOverlay();
   S = deal(typeof seed === "number" ? seed : (Math.random() * 2 ** 31) | 0, +$("#draw").value);
+  window.SFX && SFX.shuffle();
   hist = []; sel = null; hintMark = null;
   render(); save(); startTimer();
 }
