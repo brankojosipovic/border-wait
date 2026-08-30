@@ -342,7 +342,10 @@ function primi(m) {
   }
   if (m.t === "potez" && Mreza.uloga() === "domacin" && G && G.naRedu === 1) odigraj(1, m.karta, m.ulov);
 }
+let ponoviVezu = null;                       // šta pokušati ponovo posle neuspeha
 function statusMreze(st, detalj) {
+  if (st === "spajam") showOverlay('<h2>Spajam se…</h2><p>' + (detalj || "Tražim server za upoznavanje igrača.") + '</p>' +
+    '<div class="btns"><button id="odBtn">Odustani</button></div>'), $("#odBtn").onclick = () => { Mreza.zatvori(); meni(); };
   if (st === "cekam") pokaziKod(detalj);
   if (st === "povezan") {
     if (Mreza.uloga() === "domacin") { mojIndex = 0; novaIgra("mreza", ["Ti", "Protivnik"]); }
@@ -350,7 +353,14 @@ function statusMreze(st, detalj) {
     hideOverlay(); poruka("Povezani ste!");
   }
   if (st === "prekinuto") poruka("⚠️ Veza je prekinuta.");
-  if (st === "greska") { showOverlay('<h2>Spajanje nije uspelo</h2><p>' + (detalj || "") + '</p><div class="btns"><button id="nb">← Nazad</button></div>'); $("#nb").onclick = meni; }
+  if (st === "greska") {
+    showOverlay('<h2>Spajanje nije uspelo</h2><p>' + (detalj || "") + '</p>' +
+      '<p><small>Ako ne ide ni iz drugog pokušaja, probajte oba telefona na Wi-Fi mreži.</small></p>' +
+      '<div class="btns">' + (ponoviVezu ? '<button id="opetBtn">↻ Probaj ponovo</button>' : '') +
+      '<button id="nb">← Nazad</button></div>');
+    if (ponoviVezu) $("#opetBtn").onclick = () => { const f = ponoviVezu; Mreza.zatvori(); f(); };
+    $("#nb").onclick = meni;
+  }
 }
 function pokaziKod(kod) {
   showOverlay('<h2>Kod sobe</h2><div class="kodBox">' + kod + '</div>' +
@@ -460,23 +470,8 @@ function meni() {
   $("#zandarBtn").onclick = () => { postaviZandara(!zandarSve); window.SFX && SFX.tick(); meni(); };
   $("#samBtn").onclick = () => novaIgra("sam", ["Ti", "Računar"]);
   $("#dvojeBtn").onclick = () => novaIgra("dvoje", ["Igrač 1", "Igrač 2"]);
-  $("#sobaBtn").onclick = () => {
-    showOverlay('<h2>Pravim sobu…</h2><p>Spajam se na server za upoznavanje igrača.</p>');
-    Mreza.napravi({ poruka: primi, status: statusMreze }).catch(() => { });
-  };
-  $("#udjiBtn").onclick = () => {
-    showOverlay('<h2>Uđi u sobu</h2><p>Ukucaj kod koji ti je poslao drugi igrač.</p>' +
-      '<input id="kodIn" maxlength="5" placeholder="KOD" autocapitalize="characters" autocomplete="off">' +
-      '<div class="btns"><button id="idiBtn">🔗 Poveži se</button><button id="nazadBtn">← Nazad</button></div>');
-    $("#nazadBtn").onclick = meni;
-    $("#idiBtn").onclick = () => {
-      const k = $("#kodIn").value.trim(); if (k.length < 4) return;
-      showOverlay('<h2>Spajam se…</h2><p>Tražim sobu <b style="color:var(--gold)">' + k.toUpperCase() + '</b></p>');
-      mojIndex = 1;
-      Mreza.pridruzi(k, { poruka: primi, status: statusMreze }).catch(() => { });
-    };
-    setTimeout(() => { const i = $("#kodIn"); if (i) i.focus(); }, 100);
-  };
+  $("#sobaBtn").onclick = napraviSobu;
+  $("#udjiBtn").onclick = udjiUSobu;
   $("#pravBtn").onclick = () => {
     showOverlay('<h2>Pravila ukratko</h2>' +
       '<ul><li>Svako dobija 6 karata, na stolu su 4. Bacaš kartu i kupiš njome sa stola.</li>' +
@@ -491,6 +486,27 @@ function meni() {
       '<div class="btns"><button id="nazadBtn2">← Nazad</button></div>');
     $("#nazadBtn2").onclick = meni;
   };
+}
+function napraviSobu() {
+  if (!Mreza.podrzana()) { showOverlay('<h2>Nije podržano</h2><p>Ovaj pregledač ne ume direktnu vezu.</p><div class="btns"><button id="nb2">← Nazad</button></div>'); $("#nb2").onclick = meni; return; }
+  ponoviVezu = napraviSobu;
+  showOverlay('<h2>Pravim sobu…</h2><p>Spajam se na server za upoznavanje igrača.</p>');
+  Mreza.napravi({ poruka: primi, status: statusMreze }).catch(() => { });
+}
+function udjiUSobu(unapred) {
+  showOverlay('<h2>Uđi u sobu</h2><p>Ukucaj kod koji ti je poslao drugi igrač.</p>' +
+    '<input id="kodIn" maxlength="5" placeholder="KOD" autocapitalize="characters" autocomplete="off">' +
+    '<div class="btns"><button id="idiBtn">🔗 Poveži se</button><button id="nazadBtn">← Nazad</button></div>');
+  $("#nazadBtn").onclick = meni;
+  if (typeof unapred === "string") $("#kodIn").value = unapred;
+  $("#idiBtn").onclick = () => {
+    const k = $("#kodIn").value.trim(); if (k.length < 4) return;
+    ponoviVezu = () => udjiUSobu(k.toUpperCase());
+    showOverlay('<h2>Spajam se…</h2><p>Tražim sobu <b style="color:var(--gold)">' + k.toUpperCase() + '</b></p>');
+    mojIndex = 1;
+    Mreza.pridruzi(k, { poruka: primi, status: statusMreze }).catch(() => { });
+  };
+  setTimeout(() => { const i = $("#kodIn"); if (i) i.focus(); }, 100);
 }
 function showOverlay(h) { const o = $("#overlay"); o.innerHTML = h; o.hidden = false; }
 function hideOverlay() { $("#overlay").hidden = true; }

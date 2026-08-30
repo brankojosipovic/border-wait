@@ -331,8 +331,11 @@ function primi(m) {
   render();
   if (G.gotovo && $("#overlay").hidden) kraj();
 }
+let ponoviVezu = null;                       // šta pokušati ponovo posle neuspeha
 function statusMreze(st, detalj) {
   mrezaStanje = st;
+  if (st === "spajam") { showOverlay('<h2>Spajam se…</h2><p>' + (detalj || "Tražim server za upoznavanje igrača.") + '</p>' +
+    '<div class="btns"><button id="odBtn">Odustani</button></div>'); $("#odBtn").onclick = () => { Mreza.zatvori(); meni(); }; }
   if (st === "cekam") pokaziKod(detalj);
   if (st === "povezan") {
     if (Mreza.uloga() === "domacin") { novaIgra("mreza", ["Ti", "Protivnik"]); mojIndex = 0; posaljiStanje(); }
@@ -340,8 +343,14 @@ function statusMreze(st, detalj) {
     hideOverlay(); poruka("Povezani ste — igra počinje.");
   }
   if (st === "prekinuto") poruka("⚠️ Veza je prekinuta.");
-  if (st === "greska") showOverlay('<h2>Spajanje nije uspelo</h2><p>' + (detalj || "") + '</p>' +
-    '<div class="btns"><button id="nazadBtn">← Nazad</button></div>'), $("#nazadBtn").onclick = meni;
+  if (st === "greska") {
+    showOverlay('<h2>Spajanje nije uspelo</h2><p>' + (detalj || "") + '</p>' +
+      '<p><small>Ako ne ide ni iz drugog pokušaja, probajte oba telefona na Wi-Fi mreži.</small></p>' +
+      '<div class="btns">' + (ponoviVezu ? '<button id="opetBtn">↻ Probaj ponovo</button>' : '') +
+      '<button id="nazadBtn">← Nazad</button></div>');
+    if (ponoviVezu) $("#opetBtn").onclick = () => { const f = ponoviVezu; Mreza.zatvori(); f(); };
+    $("#nazadBtn").onclick = meni;
+  }
 }
 function pokaziKod(kod) {
   showOverlay('<h2>Kod sobe</h2><div class="kodBox">' + kod + '</div>' +
@@ -502,17 +511,20 @@ function pravila() {
 }
 function napraviSobu() {
   if (!Mreza.podrzana()) { showOverlay('<h2>Nije podržano</h2><p>Ovaj pregledač ne ume direktnu vezu.</p><div class="btns"><button id="nb">← Nazad</button></div>'); $("#nb").onclick = meni; return; }
+  ponoviVezu = napraviSobu;
   showOverlay('<h2>Pravim sobu…</h2><p>Spajam se na server za upoznavanje igrača.</p>');
   Mreza.napravi({ poruka: primi, status: statusMreze }).catch(() => { });
 }
-function udjiUSobu() {
+function udjiUSobu(unapred) {
   showOverlay('<h2>Uđi u sobu</h2><p>Ukucaj kod koji ti je poslao drugi igrač.</p>' +
     '<input id="kodIn" maxlength="5" placeholder="KOD" autocapitalize="characters" autocomplete="off">' +
     '<div class="btns"><button id="idiBtn">🔗 Poveži se</button><button id="nazadBtn3">← Nazad</button></div>');
   $("#nazadBtn3").onclick = meni;
+  if (typeof unapred === "string") $("#kodIn").value = unapred;
   $("#idiBtn").onclick = () => {
     const k = $("#kodIn").value.trim();
     if (k.length < 4) return;
+    ponoviVezu = () => udjiUSobu(k.toUpperCase());
     showOverlay('<h2>Spajam se…</h2><p>Tražim sobu <b style="color:var(--gold)">' + k.toUpperCase() + '</b></p>');
     novaIgra("mreza", ["Domaćin", "Ti"]); mojIndex = 1;
     Mreza.pridruzi(k, { poruka: primi, status: statusMreze }).catch(() => { });
