@@ -290,7 +290,8 @@
     napravi: function (opcije) {
       opcije = opcije || {};
       naPoruku = opcije.poruka || naPoruku; naStatus = opcije.status || naStatus;
-      uloga = "domacin"; kod = kodiraj(5); zadnjaGreska = ""; peerovi = []; veza = null; objavljen = false;
+      uloga = "domacin"; zadnjaGreska = ""; peerovi = []; veza = null; objavljen = false;
+      kod = (opcije.kod || "").toUpperCase().replace(/[^A-Z0-9]/g, "") || kodiraj(5);   // isti kod = nastavak partije
       status("spajam", "otvaram sobu");
 
       var greske = [];
