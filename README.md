@@ -121,9 +121,10 @@ Nova verzija se objavljuje dizanjem `VERSION` u `sw.js`; stari keš se tada bri�
 
 `cigle.html` — breakout: palica, loptica i **50 nivoa** kroz koje se ide redom (20 ručno složenih
 sa imenima i oblicima, ostali se prave po obrascu — deterministički, isti za isti broj, sa sve više
-čelika i opasnih cigli). Izbor bilo kog nivoa otključava skriveni kod. Vrste cigli: zelena (1 udarac),
-žuta (2), crvena (3), siva čelična (nerazrušiva), **ljubičasta sa pištoljem** koja ispaljuje metke
-nadole (pogodak u palicu = izgubljen život) i **tirkizna koja se smanjuje** pri svakom pogotku.
+čelika i tvrđih cigli). Izbor bilo kog nivoa otključava skriveni kod. Vrste cigli: zelena (1 udarac),
+žuta (2), crvena (3), siva čelična (nerazrušiva) i **tirkizna koja se smanjuje** pri svakom pogotku,
+pa je sve teže pogoditi. Bonus **🔫 pištolj** daje palici dve cevi koje 12 sekundi same pucaju nagore
+i ruše cigle.
 Palica stoji 62 px iznad dna da je prst ne pokriva, sa senkom-pokazivačem ispod. Zelena cigla puca iz prve,
 žuta traži dva, crvena tri udarca, a čelična se ne razbija — samo odbija. Bonusi padaju
 (šira palica, tri loptice, sporija loptica, život). Ugao odbijanja zavisi od mesta udara u
@@ -138,8 +139,9 @@ i vidar koji leči. Partija se čuva u `localStorage`.
 ## Tablić i Jamb (igra u dvoje)
 
 `tablic.html` — kartaška klasika: kupi se ista vrednost (7 kupi 7) ili zbir (7 kupi 3+4).
-Vrednosti su A = 1, dama = 13, kralj = 14 — i figure kupe zbir (dama uzme 7+4+2), ali se u zbir
-sabiraju samo karte A–10, ne i figure sa stola. Žandar kupi sve sa stola ali njime nema table, tabla nosi +1, na kraju +3 onome ko ima više karata,
+Vrednosti su A = 1, **žandar 12, dama 13, kralj 14** — i figure kupe zbir (dama uzme 7+4+2), ali se u
+zbir sabiraju samo karte A–10, ne i figure sa stola. Pravilo „žandar kupi sve sa stola" je stvar kuće:
+u meniju je prekidač (podrazumevano isključeno, žandar vredi 12); kad je uključeno, njime nema table, tabla nosi +1, na kraju +3 onome ko ima više karata,
 a poeni su asovi, desetke (10♦ vredi 2) i 2♣. Protiv računara, u dvoje na jednom telefonu ili preko
 interneta. Kad izabereš kartu, igra ponudi sve moguće ulove i označi karte koje bi otišle.
 
