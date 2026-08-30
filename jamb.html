@@ -80,6 +80,10 @@
   .emGrid button { font-size: 30px; padding: 8px 0; line-height: 1; }
   .recGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: min(100%, 340px); }
   .recGrid button { font-size: 15px; padding: 10px 8px; }
+  .cetUnos { display: flex; gap: 8px; width: min(100%, 340px); }
+  .cetUnos input { flex: 1; text-align: left; letter-spacing: 0; text-transform: none; }
+  .cetUnos button { flex: 0 0 auto; font-size: 18px; padding: 9px 14px; }
+  .cet.duga { font-size: 16px; font-weight: 400; border-radius: 14px; padding: 8px 14px; line-height: 1.35; }
 
   /* listić */
   .list { width: 100%; border-collapse: collapse; background: var(--panel);
@@ -372,9 +376,19 @@ function izborPoruke() {
   showOverlay('<h2>💬 Pošalji protivniku</h2>' +
     '<div class="emGrid">' + EMODZI.map(e => '<button data-em="' + e + '">' + e + '</button>').join("") + '</div>' +
     '<div class="recGrid">' + RECI.map(r => '<button data-rec="' + r + '">' + r + '</button>').join("") + '</div>' +
+    '<div class="cetUnos"><input id="cetIn" maxlength="60" placeholder="Napiši svoju poruku…" ' +
+    'autocomplete="off" autocapitalize="sentences" enterkeyhint="send"><button id="cetSalji" title="Pošalji">➤</button></div>' +
     '<div class="btns"><button id="cetNazad">← Nazad</button></div>');
   for (const b of document.querySelectorAll("[data-em], [data-rec]"))
     b.onclick = () => { posaljiPoruku(b.dataset.em || b.dataset.rec); hideOverlay(); };
+  const polje = $("#cetIn");
+  const salji = () => {
+    const t = (polje.value || "").trim();
+    if (!t) return polje.focus();
+    posaljiPoruku(t); hideOverlay();
+  };
+  $("#cetSalji").onclick = salji;
+  polje.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); salji(); } });
   $("#cetNazad").onclick = hideOverlay;
 }
 function posaljiPoruku(tekst) {
@@ -382,13 +396,17 @@ function posaljiPoruku(tekst) {
   const sad = Date.now();
   if (sad - cetKad < 1200) return pokaziPoruku("Polako, sačekaj sekund…", null);   // da se ne zatrpava
   cetKad = sad;
-  Mreza.posalji({ t: "cet", tekst: String(tekst).slice(0, 40) });
+  Mreza.posalji({ t: "cet", tekst: String(tekst).slice(0, 60) });
   window.SFX && SFX.tap();
   pokaziPoruku(tekst, "Ti");
 }
 function pokaziPoruku(tekst, ko) {
   const el = $("#cet");
-  el.innerHTML = (ko ? '<span class="ko">' + ko + ":</span>" : "") + String(tekst).replace(/[<>]/g, "");
+  const t = String(tekst).slice(0, 60);
+  el.textContent = "";
+  if (ko) { const s = document.createElement("span"); s.className = "ko"; s.textContent = ko + ":"; el.appendChild(s); }
+  el.appendChild(document.createTextNode(t));          // tekst se ne tumači kao HTML
+  el.classList.toggle("duga", t.length > 4);           // emodži krupno, rečenica sitnije
   el.hidden = false;
   const lista = $("#list");                            // oblačić staje preko vrha listića, ne preko dugmadi
   el.style.top = Math.max(8, (lista ? lista.getBoundingClientRect().top : 60) + 6) + "px";
@@ -397,7 +415,7 @@ function pokaziPoruku(tekst, ko) {
   cetTajmer = setTimeout(() => {
     el.classList.remove("vidi");
     setTimeout(() => { el.hidden = true; }, 220);
-  }, 3600);
+  }, Math.min(6500, 3600 + t.length * 60));            // duža poruka ostaje duže
 }
 function primi(m) {
   if (!m || !G) return;
@@ -612,7 +630,7 @@ function pravila() {
     '<li><b>Najava</b>: posle prvog bacanja drži prst na praznom polju u koloni N.</li>' +
     '<li>Gornji deo: bonus +30 ako je zbir jedinica–šestica bar 60. Sredina: (maks − min) × broj jedinica.</li>' +
     '<li>Kenta 66/56/46 po bacanju, triling +20, ful +30, poker +40, jamb +50.</li>' +
-    '<li>U igri u dvoje: <b>👁</b> gleda protivnikov listić, <b>💬</b> mu šalje emodži ili kratku poruku.</li></ul>' +
+    '<li>U igri u dvoje: <b>👁</b> gleda protivnikov listić, <b>💬</b> mu šalje emodži, gotovu rečenicu ili poruku koju sam otkucaš.</li></ul>' +
     '<div class="btns"><button id="nazadBtn2">← Nazad</button></div>');
   $("#nazadBtn2").onclick = meni;
 }
