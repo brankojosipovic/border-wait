@@ -104,7 +104,9 @@ var DESC = {
   solitaire: "Klondike — vuci 1 ili 3, isti špil za revanš",
   kolona:    "Biraj traku pred rampom i prođi granicu za manje minuta",
   aparat:    "Poker aparat i voćkice, virtuelni krediti",
-  svercer:   "Natovari gepek, prođi punktove, prodaj na vreme"
+  svercer:   "Natovari gepek, prođi punktove, prodaj na vreme",
+  tetris:    "Kockice, nivoi i rekord — klasika za čekanje",
+  avioni:    "Pucačina: jače oružje na krila, nivoi i bosovi"
 };
 function ls(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
 function dayNum() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
@@ -129,6 +131,14 @@ function stat(id) {
   if (id === "svercer") {
     s = ls("svercer.daily");
     if (s && s[String(dayNum())]) return "danas: " + s[String(dayNum())].t + "p " + "⭐".repeat(s[String(dayNum())].stars);
+  }
+  if (id === "tetris") {
+    s = ls("tetris.v1");
+    if (s && s.best) return "rekord: " + s.best;
+  }
+  if (id === "avioni") {
+    s = ls("avioni.v1");
+    if (s && s.best) return "rekord: " + s.best;
   }
   if (id === "aparat") {
     s = ls("aparat.v1");
