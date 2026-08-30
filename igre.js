@@ -116,6 +116,13 @@ var CSS =
 'background:color-mix(in srgb, var(--gold) 9%, transparent)}' +
 '.gamenav button.off{opacity:.6}' +
 '.gamenav a:active,.gamenav button:active{transform:none;background:color-mix(in srgb, var(--ink) 8%, transparent)}' +
+'.homeBtn{display:inline-flex;align-items:center;justify-content:center;gap:4px;' +
+'font:inherit;font-size:15px;color:var(--ink);background:var(--panel);border:1px solid var(--line);' +
+'border-radius:10px;padding:6px 10px;text-decoration:none;cursor:pointer;touch-action:manipulation;line-height:1.2;' +
+'position:relative;z-index:60}' +
+'.homeBtn:active{transform:translateY(1px)}' +
+'@media (hover:hover){.homeBtn:hover{border-color:var(--gold)}}' +
+'@media (max-height:600px){.homeBtn{padding:4px 8px;font-size:13px}}' +
 ':root{--navh:52px;--sat:env(safe-area-inset-top, 0px)}' +
 'html,body{height:auto !important}' +
 'body{padding-bottom:calc(var(--navh) + 4px) !important}' +
@@ -159,6 +166,14 @@ function build() {
   h += '<button id="sndBtn" type="button"><span class="e">🔊</span><span class="t">Zvuk</span></button>';
   nav.innerHTML = h;
   document.body.appendChild(nav);
+  if (here !== "igre.html" && here !== "") {          // dugme za povratak na spisak igara
+    var thm = document.querySelector("header #theme") || document.querySelector("header button:last-of-type");
+    if (thm && thm.parentNode && !document.querySelector(".homeBtn")) {
+      var hb = document.createElement("a");
+      hb.className = "homeBtn"; hb.href = "igre.html"; hb.title = "Sve igre"; hb.textContent = "🏠";
+      thm.parentNode.insertBefore(hb, thm);
+    }
+  }
   document.getElementById("sndBtn").addEventListener("click", function () { SFX.toggle(); });
   paintBtn();
   measure();

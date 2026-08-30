@@ -119,9 +119,12 @@ Nova verzija se objavljuje dizanjem `VERSION` u `sw.js`; stari keš se tada bri�
 
 ## Cigle i Stvorenja
 
-`cigle.html` — breakout: palica, loptica i 16 imenovanih nivoa sa oblicima (srce, piramida, tvrđava,
-osmeh, strela…). Na startu se bira nivo iz mreže minijatura, uz rekord po nivou i najdalje
-dostignut nivo. Palica stoji 62 px iznad dna da je prst ne pokriva, sa senkom-pokazivačem ispod. Zelena cigla puca iz prve,
+`cigle.html` — breakout: palica, loptica i **50 nivoa** kroz koje se ide redom (20 ručno složenih
+sa imenima i oblicima, ostali se prave po obrascu — deterministički, isti za isti broj, sa sve više
+čelika i opasnih cigli). Izbor bilo kog nivoa otključava skriveni kod. Vrste cigli: zelena (1 udarac),
+žuta (2), crvena (3), siva čelična (nerazrušiva), **ljubičasta sa pištoljem** koja ispaljuje metke
+nadole (pogodak u palicu = izgubljen život) i **tirkizna koja se smanjuje** pri svakom pogotku.
+Palica stoji 62 px iznad dna da je prst ne pokriva, sa senkom-pokazivačem ispod. Zelena cigla puca iz prve,
 žuta traži dva, crvena tri udarca, a čelična se ne razbija — samo odbija. Bonusi padaju
 (šira palica, tri loptice, sporija loptica, život). Ugao odbijanja zavisi od mesta udara u
 palicu, a loptica se pomera u sitnim koracima da ne proleti kroz ciglu pri velikoj brzini.
@@ -143,6 +146,9 @@ interneta. Kad izabereš kartu, igra ponudi sve moguće ulove i označi karte ko
 `jamb.html` — listić sa četiri kolone (↓ redom odozgo, ↑ odozdo, ⇅ slobodno, N uz najavu dugim
 pritiskom posle prvog bacanja), tri bacanja po potezu, bonus +30 na gornji deo, (maks−min)×jedinice,
 kenta 66/56/46, triling +20, ful +30, poker +40, jamb +50.
+
+`igre.js` uz traku ubacuje i **🏠 dugme** u zaglavlje svake igre (iznad svih prozora, pa je povratak
+na spisak uvek nadohvat).
 
 `mreza.js` — igra u dvoje preko interneta bez sopstvenog servera: jedan napravi sobu i dobije
 petoznakovni kod, drugi ga ukuca, pa telefoni razgovaraju **direktno** (WebRTC). Javni PeerJS

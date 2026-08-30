@@ -114,6 +114,12 @@
   .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
   .foot a { color: var(--ink-dim); }
 
+  @media (max-height: 560px) {
+    header .sub { display: none; }
+    header h1 { font-size: 15px; }
+    .wrap { gap: 5px; padding: 5px 10px 6px; }
+    .foot { display: none; }
+  }
   @media (orientation: landscape) and (max-height: 620px) {
     :root { --cw: min(calc((min(82vw, 620px) - 6 * var(--gap)) / 7), calc((100dvh - 185px) / 5.2)); }
     .col { width: min(82vw, 620px); }
