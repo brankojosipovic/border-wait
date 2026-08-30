@@ -350,7 +350,7 @@ function statusMreze(st, detalj) {
   if (st === "povezan") {
     if (Mreza.uloga() === "domacin") { mojIndex = 0; novaIgra("mreza", ["Ti", "Protivnik"]); }
     else { mojIndex = 1; }
-    hideOverlay(); poruka("Povezani ste!");
+    hideOverlay(); poruka("Povezani ste! (" + (Mreza.nacin() === "relej" ? "preko servera" : "direktna veza") + ")");
   }
   if (st === "prekinuto") poruka("⚠️ Veza je prekinuta.");
   if (st === "greska") {
