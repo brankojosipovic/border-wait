@@ -126,6 +126,7 @@ var CSS =
 '@media (max-height:600px){.homeBtn{padding:4px 8px;font-size:13px}}' +
 ':root{--navh:52px;--sat:env(safe-area-inset-top, 0px)}' +
 'html,body{height:auto !important}' +
+'body.duga-strana .wrap{padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 26px) !important}' +
 'body{padding-bottom:calc(var(--navh) + 4px) !important}' +
 '.wrap{min-height:calc(100dvh - var(--navh) - var(--sat) - 4px) !important}' +
 '@media (orientation:landscape) and (max-height:620px){' +
@@ -147,6 +148,20 @@ function measure() {                      // stvarna visina trake → --navh (sa
   var h = Math.ceil(nav.getBoundingClientRect().height);
   if (h > 0) document.documentElement.style.setProperty("--navh", h + "px");
 }
+/* iOS ume da doda sigurnu zonu tek posle prvog crtanja — zato merimo i kasnije,
+   i pratimo svaku promenu visine trake, da dno strane nikad ne ostane ispod nje */
+function pratiTraku() {
+  var nav = document.querySelector(".gamenav");
+  if (!nav) return;
+  if (window.ResizeObserver) {
+    try { new ResizeObserver(measure).observe(nav); } catch (e) { }
+  }
+  [60, 250, 800, 2000].forEach(function (ms) { setTimeout(measure, ms); });
+  window.addEventListener("load", measure);
+  window.addEventListener("pageshow", measure);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) setTimeout(measure, 60); });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", measure);
+}
 
 function build() {
   if (document.querySelector(".gamenav")) return;
@@ -155,6 +170,8 @@ function build() {
   document.head.appendChild(st);
 
   var here = (location.pathname.split("/").pop() || "").toLowerCase();
+  if (here === "igre.html" || here === "pomoc.html" || here === "")
+    document.body.classList.add("duga-strana");        // spiskovi se skroluju, pa im treba jastuk na dnu
   var nav = document.createElement("nav");
   nav.className = "gamenav";
   nav.setAttribute("aria-label", "Izbor igre");
@@ -178,6 +195,7 @@ function build() {
   document.getElementById("sndBtn").addEventListener("click", function () { SFX.toggle(); });
   paintBtn();
   measure();
+  pratiTraku();
   window.addEventListener("resize", measure);
   window.addEventListener("orientationchange", function () { setTimeout(measure, 120); });
 
