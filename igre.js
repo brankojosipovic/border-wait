@@ -176,8 +176,44 @@ else build();
   if (!("serviceWorker" in navigator)) return;
   var ok = location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
   if (!ok) return;                                   // sa file:// SW ne radi — tada je stranica ionako lokalna
-  var reg = function () {
+
+  var hadController = !!navigator.serviceWorker.controller;
+  var reloading = false;
+  function osveziJednom(oznaka) {
+    if (reloading) return;
+    try {
+      var k = "igre.reload." + oznaka;
+      if (sessionStorage.getItem(k)) return;          // zaštita od petlje
+      sessionStorage.setItem(k, "1");
+    } catch (e) { }
+    reloading = true;
+    location.reload();
+  }
+  navigator.serviceWorker.addEventListener("message", function (e) {
+    if (e.data && e.data.type === "sw-activated") osveziJednom(e.data.version);
+  });
+  navigator.serviceWorker.addEventListener("controllerchange", function () {
+    if (!hadController) return;                       // prva instalacija ne traži osvežavanje
+    osveziJednom("ctrl");
+  });
+
+  var lastCheck = 0;
+  function proveri(reg) {
+    var now = Date.now();
+    if (now - lastCheck < 4000) return;
+    lastCheck = now;
+    reg.update().catch(function () { });
+  }
+
+  function reg() {
     navigator.serviceWorker.register("sw.js").then(function (r) {
+      window.__swReg = r;
+      proveri(r);                                     // odmah pitaj ima li nove verzije
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) proveri(r);             // i svaki put kad se aplikacija vrati u prvi plan
+      });
+      window.addEventListener("focus", function () { proveri(r); });
+      setInterval(function () { proveri(r); }, 30 * 60 * 1000);
       r.addEventListener("updatefound", function () {
         var w = r.installing;
         if (!w) return;
@@ -185,8 +221,9 @@ else build();
           if (w.state === "installed" && navigator.serviceWorker.controller) w.postMessage("skipWaiting");
         });
       });
+      if (r.waiting && navigator.serviceWorker.controller) r.waiting.postMessage("skipWaiting");
     }).catch(function () { });
-  };
+  }
   if (document.readyState === "complete") reg();
   else window.addEventListener("load", reg);
 })();
