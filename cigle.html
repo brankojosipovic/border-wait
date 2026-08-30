@@ -106,6 +106,7 @@
     <span>Nivo <b id="hLevel">1</b></span>
     <span>Poeni <b id="hScore">0</b></span>
     <div class="spacer"></div>
+    <span id="hProt"></span>
     <span id="hLives">❤️❤️❤️</span>
     <button id="bPause" title="Pauza">⏸</button>
   </div>
@@ -122,6 +123,7 @@
 </div>
 
 <script src="igre.js"></script>
+<script src="mreza.js"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -243,6 +245,12 @@ function updHud() {
   $("#hLevel").textContent = level + " · " + nivo(((level - 1) % UKUPNO_NIVOA) + 1).nm;
   $("#hScore").textContent = score;
   $("#hLives").textContent = "❤️".repeat(Math.max(0, lives));
+  const hp = $("#hProt");
+  if (!trka) { hp.textContent = ""; return; }
+  const p = trka.prot;
+  hp.textContent = p.gotov ? "🏁 protivnik gotov"
+    : p.pao ? "💀 protivnik ispao"
+    : "👤 " + p.cigle + "🧱 " + "❤️".repeat(Math.max(0, p.zivoti));
 }
 function boom(x, y, n, col) {
   for (let i = 0; i < n; i++) {
@@ -382,6 +390,7 @@ function loseLife() {
 }
 function winLevel() {
   score += 100 * level;
+  if (trka) return trkaZavrsio();
   if (level + 1 > maxLv) { maxLv = Math.min(UKUPNO_NIVOA, level + 1); saveRec(); }
   window.SFX && SFX.win();
   state = "levelup";
@@ -401,6 +410,7 @@ function gameOver() {
   if (score > (lvBest[startLv] || 0)) lvBest[startLv] = score;
   saveRec();
   window.SFX && SFX.siren();
+  if (trka) return trkaIspao();
   showOverlay('<h2>Kraj igre</h2>' +
     '<div class="res"><span>Poeni</span><b>' + score + '</b><span>Nivo</span><b>' + level + '</b>' +
     '<span>Rekord</span><b>' + best + '</b></div>' +
@@ -448,9 +458,11 @@ function pocetak() {
     '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
     (maxLv > 1 ? '<button id="nastaviBtn">▶ Nastavi — nivo ' + sledeci + '</button>' : '') +
     '<button id="odPocBtn">' + (maxLv > 1 ? "⟲ Od prvog nivoa" : "▶ Počni") + '</button>' +
+    '<button id="trkaBtn">🏁 Trka u dvoje</button>' +
     '<button id="pravBtn">❔ Pravila</button>' +
     (kodOtkljucan ? '<button id="izborBtn">📋 Izbor nivoa</button>' : '<button id="kodBtn">🔒 Kod</button>') +
     '</div>');
+  $("#trkaBtn").onclick = trkaMeni;
   const nb = $("#nastaviBtn"); if (nb) nb.onclick = () => newGame(sledeci);
   $("#odPocBtn").onclick = () => newGame(1);
   $("#pravBtn").onclick = intro;
@@ -492,6 +504,186 @@ function intro() {
     '<button id="pickBtn">← Nazad</button>');
   $("#pickBtn").onclick = pocetak;
 }
+
+/* ---------- trka u dvoje preko interneta ----------
+   Svako igra na svom telefonu isti nivo; mrežom ide samo napredak
+   (koliko cigli je ostalo) i vreme na kraju, pa kašnjenje veze ništa ne kvari. */
+let trka = null;                 // {uloga, nivo, poeni:[moj, protivnikov], t0, moj:{}, prot:{}, tajmer, ponovi}
+function praznaStrana() { return { cigle: 0, zivoti: 3, poeni: 0, gotov: false, pao: false, vreme: 0 }; }
+const jaDomacin = () => trka && trka.uloga === "domacin";
+const sek = ms => (ms / 1000).toFixed(1) + " s";
+
+function trkaMeni() {
+  state = "intro";
+  showOverlay('<h2>🏁 Trka u dvoje</h2>' +
+    '<p>Oba telefona dobiju <b>isti nivo</b>. Ko ga prvi očisti, dobija rundu. ' +
+    'Ako ostaneš bez života, protivnik dobija rundu ako je završi.</p>' +
+    '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
+    '<button id="sobaBtn">🌐 Napravi sobu</button>' +
+    '<button id="udjiBtn">🔗 Uđi u sobu</button>' +
+    '<button id="nazadTrka">← Nazad</button></div>');
+  $("#sobaBtn").onclick = () => trkaSoba();
+  $("#udjiBtn").onclick = trkaUdji;
+  $("#nazadTrka").onclick = () => { trkaKraj(); pocetak(); };
+}
+function trkaKraj() {
+  if (trka && trka.tajmer) clearInterval(trka.tajmer);
+  trka = null;
+  try { if (window.Mreza) Mreza.zatvori(); } catch (e) { }
+  updHud();
+}
+function noviTrkac(uloga) {
+  if (trka && trka.tajmer) clearInterval(trka.tajmer);
+  trka = { uloga: uloga, nivo: 1, poeni: [0, 0], t0: 0, moj: praznaStrana(), prot: praznaStrana(), tajmer: null, ponovi: null };
+  trka.tajmer = setInterval(() => {
+    if (!trka || state !== "play") return;
+    Mreza.posalji({ t: "napredak", cigle: brickLeft(), zivoti: lives, poeni: score });
+  }, 500);
+}
+function trkaSoba() {
+  if (!Mreza.podrzana()) { showOverlay('<h2>Nije podržano</h2><p>Ovaj pregledač ne ume vezu sa drugim telefonom.</p><button id="nb">← Nazad</button>'); $("#nb").onclick = trkaMeni; return; }
+  noviTrkac("domacin");
+  trka.ponovi = trkaSoba;
+  showOverlay('<h2>Pravim sobu…</h2><p>Spajam se na server za upoznavanje igrača.</p>');
+  Mreza.napravi({ poruka: trkaPrimi, status: trkaStatus }).catch(() => { });
+}
+function trkaUdji() {
+  showOverlay('<h2>Uđi u sobu</h2><p>Ukucaj kod koji ti je poslao drugi igrač.</p>' +
+    '<input id="kodIn2" maxlength="5" placeholder="KOD" autocapitalize="characters" autocomplete="off" ' +
+    'style="font:inherit;color:#eef2f9;background:#1b2a4a;border:1px solid #283a5e;border-radius:10px;padding:9px 11px;width:190px;text-align:center;letter-spacing:5px;text-transform:uppercase">' +
+    '<div class="btns" style="display:flex;gap:8px;justify-content:center">' +
+    '<button id="idiBtn">🔗 Poveži se</button><button id="nazadBtn9">← Nazad</button></div>');
+  $("#nazadBtn9").onclick = trkaMeni;
+  $("#idiBtn").onclick = () => {
+    const k = ($("#kodIn2").value || "").trim().toUpperCase();
+    if (k.length < 4) return;
+    noviTrkac("gost");
+    trka.ponovi = () => { trkaUdji(); setTimeout(() => { const i = $("#kodIn2"); if (i) i.value = k; }, 50); };
+    showOverlay('<h2>Spajam se…</h2><p>Tražim sobu <b style="color:#c9a227">' + k + '</b></p>');
+    Mreza.pridruzi(k, { poruka: trkaPrimi, status: trkaStatus }).catch(() => { });
+  };
+  setTimeout(() => { const i = $("#kodIn2"); if (i) i.focus(); }, 100);
+}
+function trkaStatus(st, detalj) {
+  if (!trka) return;
+  if (st === "spajam") showOverlay('<h2>Spajam se…</h2><p>' + (detalj || "Tražim server…") + '</p>');
+  if (st === "cekam") {
+    showOverlay('<h2>Kod sobe</h2>' +
+      '<div style="font-size:30px;font-weight:700;letter-spacing:8px;color:#c9a227;background:#16223a;' +
+      'border:1px solid #283a5e;border-radius:12px;padding:10px 16px">' + detalj + '</div>' +
+      '<p>Reci kod drugom igraču — neka ga ukuca kod „Uđi u sobu“. Čekam…</p>' +
+      '<button id="odustBtn9">Odustani</button>');
+    $("#odustBtn9").onclick = () => { trkaKraj(); pocetak(); };
+  }
+  if (st === "povezan") { if (jaDomacin()) izborTrke(); else showOverlay('<h2>Povezani ste!</h2><p>Domaćin bira nivo za trku…</p>'); }
+  if (st === "prekinuto") { if (state === "play") state = "pause"; showOverlay('<h2>⚠️ Veza je prekinuta</h2><p>Protivnik je izašao ili je ostao bez signala.</p><button id="nbp">← Meni</button>'), $("#nbp").onclick = () => { trkaKraj(); pocetak(); }; }
+  if (st === "greska") {
+    showOverlay('<h2>Spajanje nije uspelo</h2><p>' + (detalj || "") + '</p>' +
+      '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
+      '<button id="opetBtn9">↻ Probaj ponovo</button><button id="nazadBtn8">← Nazad</button></div>');
+    $("#opetBtn9").onclick = () => { const f = trka && trka.ponovi; Mreza.zatvori(); if (f) f(); };
+    $("#nazadBtn8").onclick = () => { trkaKraj(); trkaMeni(); };
+  }
+}
+function izborTrke() {                      // domaćin bira nivo za sledeću rundu
+  const maxIzbor = UKUPNO_NIVOA;        // u trci su svi nivoi otvoreni, to je dvoboj a ne napredovanje
+  const n = Math.min(maxIzbor, Math.max(1, trka.nivo || 1));
+  trka.nivo = n;
+  showOverlay('<h2>Nivo za trku</h2>' +
+    '<div style="display:flex;gap:10px;align-items:center;justify-content:center">' +
+    '<button id="minusN">−</button>' +
+    '<b style="font-size:20px;min-width:150px">' + n + " · " + nivo(n).nm + '</b>' +
+    '<button id="plusN">+</button></div>' +
+    '<p>Rezultat trke: <b style="color:#eef2f9">' + trka.poeni[0] + " : " + trka.poeni[1] + '</b>' +
+    '<br><small>U trci su otvorena svih ' + UKUPNO_NIVOA + ' nivoa.</small></p>' +
+    '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
+    '<button id="krenBtn">▶ Kreni</button><button id="izadjiBtn">✖ Prekini trku</button></div>');
+  $("#minusN").onclick = () => { trka.nivo = Math.max(1, n - 1); izborTrke(); };
+  $("#plusN").onclick = () => { trka.nivo = Math.min(maxIzbor, n + 1); izborTrke(); };
+  $("#krenBtn").onclick = () => { Mreza.posalji({ t: "kreni", nivo: trka.nivo }); pocniRundu(trka.nivo); };
+  $("#izadjiBtn").onclick = () => { trkaKraj(); pocetak(); };
+}
+function pocniRundu(n) {
+  trka.nivo = n; trka.moj = praznaStrana(); trka.prot = praznaStrana();
+  level = n; startLv = n; score = 0; lives = 3;
+  trka.moj.cigle = 0;
+  startLevel();
+  trka.t0 = performance.now();
+  trka.prot.cigle = brickLeft();
+  window.SFX && SFX.shuffle();
+  updHud();
+}
+function trkaZavrsio() {                    // očistio sam nivo
+  trka.moj.gotov = true; trka.moj.vreme = performance.now() - trka.t0; trka.moj.poeni = score;
+  state = "cekam"; window.SFX && SFX.win();
+  Mreza.posalji({ t: "zavrsio", vreme: Math.round(trka.moj.vreme), poeni: score });
+  if (jaDomacin()) mozdaKrajRunde();
+  else showOverlay('<h2>🏁 Očistio si za ' + sek(trka.moj.vreme) + '</h2><p>Čekam protivnika…</p>');
+}
+function trkaIspao() {                      // ostao sam bez života
+  trka.moj.pao = true; trka.moj.vreme = performance.now() - trka.t0;
+  state = "cekam";
+  Mreza.posalji({ t: "ispao" });
+  if (jaDomacin()) mozdaKrajRunde();
+  else showOverlay('<h2>💀 Ostao si bez života</h2><p>Čekam protivnika…</p>');
+}
+function mozdaKrajRunde() {                 // samo domaćin sudi
+  if (!trka || !jaDomacin()) return;
+  const a = trka.moj, b = trka.prot;
+  const gotovi = (a.gotov || a.pao) && (b.gotov || b.pao);
+  if (!gotovi) {
+    if (!$("#overlay").hidden) return;
+    showOverlay('<h2>' + (a.gotov ? "🏁 Očistio si za " + sek(a.vreme) : "💀 Ostao si bez života") + '</h2><p>Čekam protivnika…</p>');
+    return;
+  }
+  let pobednik = null;                      // 0 = domaćin, 1 = gost
+  if (a.gotov && b.gotov) pobednik = a.vreme <= b.vreme ? 0 : 1;
+  else if (a.gotov) pobednik = 0;
+  else if (b.gotov) pobednik = 1;
+  if (pobednik === 0) trka.poeni[0]++; else if (pobednik === 1) trka.poeni[1]++;
+  const izv = {
+    t: "runda", pobednik: pobednik,
+    poeni: trka.poeni.slice(),
+    vremeD: a.gotov ? Math.round(a.vreme) : 0,
+    vremeG: b.gotov ? Math.round(b.vreme) : 0,
+    nivo: trka.nivo
+  };
+  Mreza.posalji(izv);
+  prikaziRundu(izv, 0);
+}
+function prikaziRundu(m, jaSam) {           // jaSam: 0 domaćin, 1 gost
+  state = "over";
+  trka.poeni = m.poeni.slice();
+  const mojeVreme = jaSam === 0 ? m.vremeD : m.vremeG;
+  const tudje = jaSam === 0 ? m.vremeG : m.vremeD;
+  const pobedio = m.pobednik === jaSam;
+  const mojiPoeni = m.poeni[jaSam], tudjiPoeni = m.poeni[1 - jaSam];
+  window.SFX && (pobedio ? SFX.jackpot() : SFX.siren());
+  showOverlay('<h2>' + (m.pobednik == null ? "Niko nije prošao nivo" : pobedio ? "🏆 Dobio si rundu!" : "Protivnik je bio brži") + '</h2>' +
+    '<div class="res"><span>Ti</span><b>' + (mojeVreme ? sek(mojeVreme) : "nije prošao") + '</b>' +
+    '<span>Protivnik</span><b>' + (tudje ? sek(tudje) : "nije prošao") + '</b>' +
+    '<span>Rezultat</span><b>' + mojiPoeni + " : " + tudjiPoeni + '</b></div>' +
+    '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
+    (jaSam === 0 ? '<button id="daljeBtn">▶ Sledeći nivo</button>' : '') +
+    '<button id="krajTrke">✖ Prekini trku</button></div>' +
+    (jaSam === 0 ? "" : '<p>Domaćin bira sledeći nivo…</p>'));
+  const db = $("#daljeBtn");
+  if (db) db.onclick = () => { trka.nivo = Math.min(UKUPNO_NIVOA, trka.nivo + 1); izborTrke(); };
+  $("#krajTrke").onclick = () => { trkaKraj(); pocetak(); };
+}
+function trkaPrimi(m) {
+  if (!trka || !m) return;
+  if (m.t === "kreni") return pocniRundu(m.nivo);
+  if (m.t === "napredak") { trka.prot.cigle = m.cigle; trka.prot.zivoti = m.zivoti; trka.prot.poeni = m.poeni; return updHud(); }
+  if (m.t === "zavrsio") {
+    trka.prot.gotov = true; trka.prot.vreme = m.vreme; trka.prot.poeni = m.poeni; updHud();
+    if (jaDomacin()) mozdaKrajRunde();
+    return;
+  }
+  if (m.t === "ispao") { trka.prot.pao = true; updHud(); if (jaDomacin()) mozdaKrajRunde(); return; }
+  if (m.t === "runda") return prikaziRundu(m, 1);
+}
+
 function showOverlay(h) { const o = $("#overlay"); o.innerHTML = h; o.hidden = false; }
 function hideOverlay() { $("#overlay").hidden = true; }
 
@@ -637,7 +829,10 @@ window.C = {
   get lvBest() { return lvBest; }, get maxLv() { return maxLv; }, get best() { return best; },
   setBricks: a => { bricks = a; }, setLives: n => { lives = n; updHud(); },
   setLevel: n => { level = n; startLevel(); }, launch: () => { stuck = false; },
-  run: (dt, n) => { for (let i = 0; i < n; i++) step(dt); }
+  run: (dt, n) => { for (let i = 0; i < n; i++) step(dt); },
+  get trka() { return trka; }, get cigle() { return brickLeft(); }, trkaMeni, trkaKraj,
+  ocistiSve: () => { bricks = bricks.filter(b => b.steel); if (state === "play") winLevel(); },
+  izgubiSve: () => { lives = 1; loseLife(); }
 };
 </script>
 </body>
