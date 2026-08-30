@@ -108,8 +108,14 @@ servira iz keša (keš prvo, a nova verzija se povlači u pozadini za sledeće p
 `manifest.webmanifest` + ikone u `icons/` daju pravu prečicu na početnom ekranu — otvara se
 preko celog ekrana, bez adresne trake, i radi kad nema signala. Svaka igra ima svoju ikonu.
 
-Hub (`igre.html`) pokazuje stanje: „✓ spremno" i koliko je fajlova sačuvano. Keš se menja
-dizanjem `VERSION` u `sw.js` — stari se tada briše sam.
+Strategija: **mreža prvo** (uz rok od 2,5 s) za stranice, skripte i manifest — tako nova verzija
+stiže čim ima signala; **keš prvo** za ikone, koje se ne menjaju. Bez signala sve pada na keš.
+
+Osvežavanje: stranica pita za novu verziju pri svakom pokretanju, povratku u prvi plan i na
+svakih pola sata. Kada novi service worker preuzme, **javi porukom svim otvorenim stranicama**
+da se osveže (uz zaštitu od petlje kroz `sessionStorage`) — pouzdanije od `controllerchange`.
+Hub pokazuje „✓ spremno", broj sačuvanih fajlova, verziju keša i dugme **🔄 Proveri novu verziju**.
+Nova verzija se objavljuje dizanjem `VERSION` u `sw.js`; stari keš se tada briše sam.
 
 ## Cigle i Stvorenja
 

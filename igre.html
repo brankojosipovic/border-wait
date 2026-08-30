@@ -98,6 +98,11 @@
       <span id="offState" style="font-size:13px; font-weight:700; color:var(--ink-dim)">proveravam…</span>
     </div>
     <div class="row"><span class="hint" id="offHint">Igre se čuvaju na telefonu pri prvom otvaranju, pa rade i kad nema signala.</span></div>
+    <div class="row">
+      <span class="hint" id="verLine">&nbsp;</span>
+      <div class="spacer"></div>
+      <button id="updBtn">🔄 Proveri novu verziju</button>
+    </div>
   </div>
 
   <div class="foot col">
@@ -222,6 +227,34 @@ function offlineStatus(pokusaj) {
   }).catch(function () { st.textContent = "nepoznato"; });
 }
 offlineStatus(0);
+
+/* verzija + ručna provera ažuriranja */
+function prikaziVerziju() {
+  var v = document.getElementById("verLine");
+  if (!("caches" in window)) { v.textContent = ""; return; }
+  caches.keys().then(function (k) {
+    var mine = k.filter(function (x) { return x.indexOf("igre-") === 0; });
+    v.textContent = (mine.length ? "verzija " + mine.join(", ") + " · " : "") + (window.IGRE ? window.IGRE.length + " igara" : "");
+  }).catch(function () { });
+}
+prikaziVerziju();
+
+document.getElementById("updBtn").onclick = function () {
+  var b = this;
+  b.disabled = true; b.textContent = "⏳ proveravam…";
+  var gotov = function (poruka) { b.disabled = false; b.textContent = poruka; setTimeout(function () { b.textContent = "🔄 Proveri novu verziju"; }, 2500); };
+  if (!("serviceWorker" in navigator)) { gotov("nije podržano"); return; }
+  navigator.serviceWorker.getRegistration().then(function (r) {
+    if (!r) { location.reload(); return; }
+    return r.update().then(function () {
+      if (r.waiting) { r.waiting.postMessage("skipWaiting"); gotov("⬇️ preuzimam…"); return; }
+      if (r.installing) { gotov("⬇️ preuzimam…"); return; }
+      // nema nove verzije preko SW-a — probaj direktno sa mreže
+      return fetch("igre.html", { cache: "no-store" }).then(function () { location.reload(); })
+        .catch(function () { gotov("✓ već je najnovija"); });
+    });
+  }).catch(function () { gotov("nije uspelo"); });
+};
 
 document.getElementById("theme").onclick = function () {
   var b = document.body;
