@@ -363,7 +363,15 @@ function primi(m) {
   if (m.t === "potez" && Mreza.uloga() === "domacin" && G && G.naRedu === 1) odigraj(1, m.karta, m.ulov);
 }
 let ponoviVezu = null;                       // šta pokušati ponovo posle neuspeha
+const mojeIme = () => (window.IGRAC && IGRAC.ime()) || "Ti";
+function osveziImena() {                               // ime protivnika stigne uz spajanje
+  if (!G || G.rezim !== "mreza" || !G.imena) return;
+  G.imena[mojIndex] = mojeIme();
+  G.imena[1 - mojIndex] = Mreza.tudjeIme();
+  render();
+}
 function statusMreze(st, detalj) {
+  if (st === "ucesnici") return osveziImena();
   if (st === "spajam") showOverlay('<h2>Spajam se…</h2><p>' + (detalj || "Tražim server za upoznavanje igrača.") + '</p>' +
     '<div class="btns"><button id="odBtn">Odustani</button></div>'), $("#odBtn").onclick = () => { Mreza.zatvori(); meni(); };
   if (st === "cekam") pokaziKod(detalj);
@@ -371,7 +379,7 @@ function statusMreze(st, detalj) {
     if (Mreza.uloga() === "domacin") {
       mojIndex = 0;
       if (nastavljam && G && !G.gotovo) { G.rezim = "mreza"; izabrana = -1; render(); posaljiStanje(); save(); }
-      else novaIgra("mreza", ["Ti", "Protivnik"]);
+      else novaIgra("mreza", [mojeIme(), Mreza.tudjeIme()]);
     } else { mojIndex = 1; save(); }
     hideOverlay(); poruka("Povezani ste! (" + (Mreza.nacin() === "relej" ? "preko servera" : "direktna veza") + ")");
   }

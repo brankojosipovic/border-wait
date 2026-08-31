@@ -17,6 +17,45 @@ var GAMES = [
   { id: "geo",       href: "geo.html",       em: "🌍", nm: "Geo" }
 ];
 var SKEY = "igre.sound";
+var IKEY = "igre.ime";
+
+/* ---------- ime igrača (da se u sobi zna ko je ko) ---------- */
+var IGRAC = {
+  ime: function () { try { return (localStorage.getItem(IKEY) || "").trim().slice(0, 14); } catch (e) { return ""; } },
+  postavi: function (v) {
+    v = String(v || "").replace(/[<>]/g, "").trim().slice(0, 14);
+    try { localStorage.setItem(IKEY, v); } catch (e) { }
+    paintIme();
+    return v;
+  },
+  imeIli: function (rez) { return IGRAC.ime() || rez; },
+  pitaj: function (gotovo) {                      // mali prozorčić, radi na svakoj strani
+    var stara = document.querySelector(".imeSloj");
+    if (stara) stara.remove();
+    var sloj = document.createElement("div");
+    sloj.className = "imeSloj";
+    sloj.innerHTML =
+      '<div class="imeBox">' +
+      '<h3>👤 Kako se zoveš?</h3>' +
+      '<p>Ime se vidi drugom igraču kad igrate u sobi. Čuva se samo na ovom telefonu.</p>' +
+      '<input id="imeUnos" maxlength="14" autocomplete="name" placeholder="npr. Branko">' +
+      '<div class="imeBtns"><button id="imeOk">Sačuvaj</button><button id="imeNe">Kasnije</button></div></div>';
+    document.body.appendChild(sloj);
+    var polje = sloj.querySelector("#imeUnos");
+    polje.value = IGRAC.ime();
+    var zatvori = function (v) { sloj.remove(); if (gotovo) gotovo(v); };
+    sloj.querySelector("#imeOk").onclick = function () { zatvori(IGRAC.postavi(polje.value)); };
+    sloj.querySelector("#imeNe").onclick = function () { zatvori(IGRAC.ime()); };
+    sloj.addEventListener("click", function (e) { if (e.target === sloj) zatvori(IGRAC.ime()); });
+    polje.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); zatvori(IGRAC.postavi(polje.value)); } });
+    setTimeout(function () { polje.focus(); }, 60);
+  }
+};
+function paintIme() {
+  var b = document.getElementById("imeBtn");
+  if (b) b.textContent = "👤 " + (IGRAC.ime() || "Upiši ime");
+}
+window.IGRAC = IGRAC;
 
 /* ---------- zvuk ---------- */
 var on = true;
@@ -127,6 +166,18 @@ var CSS =
 /* iPhone sam uveća stranicu kad tapneš u polje sa slovom manjim od 16 px, i ne vrati je
    nazad — zato su sva polja bar 16 px. touch-action gasi i uvećavanje na dvostruki tap. */
 'input,textarea,select{font-size:16px !important}' +
+'.imeSloj{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;' +
+'background:rgba(6,11,22,.72);backdrop-filter:blur(3px);padding:18px}' +
+'.imeBox{background:var(--panel,#16223a);border:1px solid var(--line,#283a5e);border-radius:16px;' +
+'padding:16px;max-width:320px;width:100%;box-shadow:0 12px 30px rgba(0,0,0,.5);text-align:center}' +
+'.imeBox h3{margin:0 0 6px;font-size:17px;color:var(--ink,#eef2f9)}' +
+'.imeBox p{margin:0 0 10px;font-size:12px;color:var(--ink-dim,#9fb0cc)}' +
+'.imeBox input{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line,#283a5e);' +
+'background:var(--panel-2,#1b2a4a);color:var(--ink,#eef2f9);text-align:center;font-weight:700}' +
+'.imeBtns{display:flex;gap:8px;justify-content:center;margin-top:10px}' +
+'.imeBtns button{padding:8px 14px;border-radius:10px;border:1px solid var(--line,#283a5e);' +
+'background:var(--panel,#16223a);color:var(--ink,#eef2f9);font:inherit;cursor:pointer}' +
+'.imeBtns #imeOk{border-color:var(--gold,#c9a227);color:var(--gold,#c9a227);font-weight:700}' +
 'html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}' +
 ':root{--navh:52px;--sat:env(safe-area-inset-top, 0px)}' +
 'html,body{height:auto !important}' +
@@ -201,6 +252,7 @@ function build() {
   }
   document.getElementById("sndBtn").addEventListener("click", function () { SFX.toggle(); });
   paintBtn();
+  paintIme();
   measure();
   pratiTraku();
   window.addEventListener("resize", measure);
