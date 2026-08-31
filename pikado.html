@@ -133,6 +133,11 @@
   .tabst { font-size: 13px; border-collapse: collapse; width: min(100%, 320px); }
   .tabst td, .tabst th { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: right; }
   .tabst th:first-child, .tabst td:first-child { text-align: left; color: var(--ink-dim); }
+  .tabst th { color: var(--ink); font-weight: 700; }
+  @media (max-height: 700px) {
+    .tabst { font-size: 12px; }
+    .tabst td, .tabst th { padding: 2px 5px; }
+  }
 </style>
 </head>
 <body data-theme="dark">
@@ -608,7 +613,8 @@ function novaPartija(op) {
     rezim: op.rezim || "sam", igra: igra,
     igraci: op.igraci.map(x => ({
       ime: x.ime, tip: x.tip || "covek", nivo: x.nivo || "srednje", id: x.id || null,
-      rez: pocetniRez(igra), meta: 1, legovi: x.legovi || 0, poena: 0, bacanja: 0, najbolji: 0
+      rez: pocetniRez(igra), meta: 1, legovi: x.legovi || 0, poena: 0, bacanja: 0, najbolji: 0,
+      stat: prazanStat()
     })),
     naRedu: op.prvi || 0, strela: 0, pocetakVisita: pocetniRez(igra),
     tezina: op.tezina || null,                   // u sobi svi igraju istom mirnoćom
@@ -623,6 +629,59 @@ function novaPartija(op) {
 function ocistiTajmere() { clearTimeout(racTajmer); clearTimeout(daljeTajmer); racTajmer = daljeTajmer = null; }
 
 /* ---------- upis pogotka ---------- */
+/* ---------- statistika lega ---------- */
+function prazanStat() {
+  return { strele: 0, poeni: 0, t20: 0, trostruke: 0, duple: 0, bul: 0, c25: 0,
+    promasaji: 0, najboljiKrug: 0, stoPlus: 0, s180: 0, krugova: 0 };
+}
+function stat(ig) { return ig.stat || (ig.stat = prazanStat()); }
+function upisiUStat(ig, p) {
+  const t = stat(ig);
+  t.strele++;
+  t.poeni += p.ukupno;
+  if (!p.ukupno) t.promasaji++;
+  if (p.ime === "BUL") t.bul++;
+  else if (p.ime === "25") t.c25++;
+  else if (p.mult === 3) { t.trostruke++; if (p.bod === 20) t.t20++; }
+  else if (p.mult === 2) t.duple++;
+}
+function zatvoriKrug(ig, zbir, bust) {
+  const t = stat(ig);
+  t.krugova++;
+  if (bust) { t.poeni -= zbir; return; }            // poništen krug ne nosi ništa u prosek
+  if (zbir > t.najboljiKrug) t.najboljiKrug = zbir;
+  if (zbir >= 100) t.stoPlus++;
+  if (zbir === 180) t.s180++;
+}
+function prosekTri(ig) {
+  const t = stat(ig);
+  return t.strele ? (t.poeni / t.strele * 3) : 0;
+}
+function tabelaStatistike() {
+  const n = G.igraci.length;
+  const glava = '<tr><th></th>' + G.igraci.map(x =>
+    '<th>' + (n > 2 ? x.ime.slice(0, 6) : x.ime) + '</th>').join("") + '</tr>';
+  const red = (naziv, f, samoAkoIma) => {
+    const v = G.igraci.map(f);
+    if (samoAkoIma && v.every(x => !x || x === "0")) return "";
+    return '<tr><td>' + naziv + '</td>' + v.map(x => '<td>' + x + '</td>').join("") + '</tr>';
+  };
+  return '<table class="tabst">' + glava +
+    red("Prosek za 3", x => prosekTri(x).toFixed(1)) +
+    red("Najbolji krug", x => stat(x).najboljiKrug) +
+    red("Najbolja strela", x => x.najbolji) +
+    red("Bačeno strelica", x => stat(x).strele) +
+    red("Trostruka 20 (60)", x => stat(x).t20) +
+    red("Ostale trostruke", x => stat(x).trostruke - stat(x).t20, true) +
+    red("Duple", x => stat(x).duple, true) +
+    red("Bul (50)", x => stat(x).bul, true) +
+    red("Spoljni bul (25)", x => stat(x).c25, true) +
+    red("Krugova 100+", x => stat(x).stoPlus, true) +
+    red("Sto osamdeset", x => stat(x).s180, true) +
+    red("Promašaja", x => stat(x).promasaji, true) +
+    '</table>';
+}
+
 /* Kako se pogodak kaže naglas — kao pravi najavljivač. */
 function najavaPolja(p) {
   if (!p || !p.ukupno) return "No score";
@@ -644,6 +703,7 @@ function upisiPogodak(p) {
   const ig = naRedu();
   G.zapoceta = true;
   G.zbirVisita = (G.zbirVisita || 0) + p.ukupno;
+  upisiUStat(ig, p);
   window.GLAS && GLAS.reci(najavaPolja(p), { rate: 1.08 });
   ig.bacanja++; ig.poena += p.ukupno;
   G.visit.push(p.ime === "promašaj" ? "—" : p.ime);
@@ -672,6 +732,7 @@ function upisiPogodak(p) {
   if (p.ukupno > ig.najbolji) ig.najbolji = p.ukupno;
 
   if (kraj) {
+    zatvoriKrug(ig, G.zbirVisita || 0, false);
     G.faza = "kraj"; G.gotovo = true; G.pobednik = G.naRedu; ig.legovi++;
     setTimeout(() => window.GLAS && GLAS.reci("Game shot!", { rate: .95, pitch: 1.1 }), 700);
     crtaj(); posaljiStanje(); zavrsiLeg(); return;
@@ -679,6 +740,7 @@ function upisiPogodak(p) {
   if (bust || G.strela >= 3) {
     G.faza = "posle";
     const zbir = G.zbirVisita || 0;
+    zatvoriKrug(ig, zbir, bust);
     setTimeout(() => najaviZbir(zbir, bust), 750);
     crtaj(); posaljiStanje(); save();
     daljeTajmer = setTimeout(smena, bust ? 1500 : 1700); return;
@@ -719,13 +781,12 @@ function zavrsiLeg() {
   try { localStorage.removeItem(KEY); } catch (e) { }
   const ig = G.igraci[G.pobednik];
   const ja = G.rezim === "mreza" || G.rezim === "sam" ? mojIndex : G.pobednik;
-  const tabela = G.igraci.map((x, i) =>
-    '<tr><td>' + x.ime + '</td><td>' + x.legovi + '</td><td>' +
-    (x.bacanja ? (x.poena / x.bacanja * 3).toFixed(1) : "—") + '</td><td>' + x.najbolji + '</td></tr>').join("");
   const jaPobedio = G.rezim === "vise" ? false : G.pobednik === mojIndex;
+  const legovi = G.igraci.map(x => x.ime + " " + x.legovi).join(" : ");
   showOverlay('<h2>🎯 ' + (G.rezim === "vise" ? ig.ime + " pobeđuje!" : jaPobedio ? "Pobedio si!" : ig.ime + " pobeđuje.") + '</h2>' +
-    '<p>' + (G.igra === "krug" ? "Obišao je celu tablu." : "Zatvorio je leg " + G.leg + ".") + '</p>' +
-    '<table class="tabst"><tr><th>Igrač</th><th>Legovi</th><th>Prosek</th><th>Najbolje</th></tr>' + tabela + '</table>' +
+    '<p>' + (G.igra === "krug" ? "Obišao je celu tablu." : "Zatvorio je leg " + G.leg + " iz " +
+      stat(ig).strele + " strelica.") + '<br>Legovi: <b>' + legovi + '</b></p>' +
+    tabelaStatistike() +
     '<div class="btns">' + (domacin() ? '<button id="josBtn">▶ Sledeći leg</button>' : '') +
     '<button id="meniBtn3">📋 Meni</button></div>' +
     (domacin() ? '' : '<p>Čekaš domaćina da otvori sledeći leg…</p>'));
@@ -887,6 +948,7 @@ function load() {
     if (!raw || !raw.g || !raw.g.igraci || raw.g.gotovo) return false;
     G = raw.g; strele = raw.strele || []; sacuvanaMreza = raw.mreza || null;
     if (G.faza === "leti" || G.faza === "predaja") G.faza = "nisani";
+    G.igraci.forEach(x => { if (!x.stat) x.stat = prazanStat(); });
     if (G.rezim === "mreza" && !sacuvanaMreza) return false;
     mojIndex = sacuvanaMreza ? (sacuvanaMreza.mojIndex || 0) : 0;
     postava = (sacuvanaMreza && sacuvanaMreza.postava) || null;
@@ -957,6 +1019,7 @@ function meni() {
     '<button id="udjiBtn">🔗 Uđi u sobu</button>' +
     '<button id="vezbaBtn">🎯 Vežbanje</button>' +
     '<button id="preBtn2">⚙︎ Podešavanja</button>' +
+    (G && G.igraci && stat(G.igraci[0]).strele ? '<button id="statBtn">📊 Statistika</button>' : '') +
     '<button id="pravBtn">❔ Pravila</button></div>' +
     '<p>' + (nast ? "Prekinuta partija te čeka — ništa se ne briše samo od sebe."
       : "Prava tabla, 501 sa duplim izlazom. Nišan drhti kao prava ruka: smiri ga pa pusti.") + '</p>');
@@ -967,6 +1030,7 @@ function meni() {
   $("#udjiBtn").onclick = udjiUSobu;
   $("#vezbaBtn").onclick = () => novaPartija({ rezim: "sam", igra: "vezba", igraci: [{ ime: mojeIme() }] });
   $("#preBtn2").onclick = podesavanja;
+  const sb = $("#statBtn"); if (sb) sb.onclick = pokaziStatistiku;
   $("#pravBtn").onclick = pravila;
 }
 function mojeIme() { return (window.IGRAC && IGRAC.ime()) || "Ti"; }
@@ -1099,6 +1163,15 @@ function podesavanja() {
   };
   $("#nazBtn4").onclick = () => { if (G) { hideOverlay(); crtaj(); } else meni(); };
 }
+function pokaziStatistiku() {
+  showOverlay('<h2>📊 Statistika</h2>' +
+    '<p>' + (G.igra === "vezba" ? "Vežbanje u toku." : "Leg " + G.leg + " u toku.") + '</p>' +
+    tabelaStatistike() +
+    '<p><small>Prosek za 3 je zbir poena podeljen brojem strelica, puta tri — ' +
+    'poništeni krugovi se broje kao nula.</small></p>' +
+    '<div class="btns"><button id="nazStat">← Nazad</button></div>');
+  $("#nazStat").onclick = meni;
+}
 function pravila() {
   showOverlay('<h2>Pravila i nišanjenje</h2>' +
     '<ul>' +
@@ -1201,6 +1274,7 @@ window.P = {
   pogodak, sredisteP, izlaz, POLJA, RED20, novaPartija, upisiPogodak, smena, meni, crtaj,
   primi, primiPostavu, kreniPartiju, statusMreze, save, load, nastaviPartiju, ciljRacunara,
   baci: t => baci(t), amplituda, podesavanja, pravila, pocetniNisan, pomeriRuku, najavaPolja, najaviZbir,
+  prazanStat, stat, prosekTri, tabelaStatistike, pokaziStatistiku,
   get mojIndex() { return mojIndex; }, get postava() { return postava; },
   get sacuvanaMreza() { return sacuvanaMreza; },
   get tezina() { return tezina; }, setTezina: t => { tezina = t; },
