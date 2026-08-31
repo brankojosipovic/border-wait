@@ -644,7 +644,6 @@ function udari(par) {
   dogadjaji = { prvi: null, dodirnute: [], upale: [], banda: false, meta: dozvoljene(G.naRedu) };
   G.faza = "kotrlja";
   window.SFX && SFX.stap();
-  window.GLAS && GLAS.stani();
   crtajHud();
   if (G.rezim === "mreza" && mojPotez()) Mreza.posalji({ t: "udarac", ug: p.ug, sn: p.sn, sx: p.sx, sy: p.sy });
 }
@@ -1271,6 +1270,39 @@ window.addEventListener("orientationchange", () => setTimeout(fit, 150));
 
 /* ---------- meniji ---------- */
 function mojeIme() { return (window.IGRAC && IGRAC.ime()) || "Ti"; }
+function redGlasa() {
+  const ima = window.GLAS && GLAS.moze();
+  const upaljena = ima && GLAS.isOn();
+  return '<h3>Najava (engleski)</h3>' +
+    '<div class="izbor uska">' +
+    '<button id="glasPrek">' + (upaljena ? "🗣 Uključena" : "🤐 Isključena") + '</button>' +
+    '<button id="glasProba"' + (ima ? "" : " disabled") + '>▶ Proba</button></div>' +
+    '<p id="glasStanje">' + (ima
+      ? "Glas kaže koja je lopta pala i kad je faul."
+      : "Ovaj pregledač ne ume da govori.") + '</p>';
+}
+function vezaGlasa(ponovo) {
+  const pb = $("#glasPrek");
+  if (pb) pb.onclick = () => { if (window.GLAS) { GLAS.set(!GLAS.isOn()); ponovo(); } };
+  const pr = $("#glasProba");
+  if (pr) pr.onclick = () => {
+    const st = GLAS.proba();
+    $("#glasProba").textContent = "▶ Opet";
+    const b2 = $("#glasPrek"); if (b2) b2.textContent = "🗣 Uključena";
+    $("#glasStanje").innerHTML = st.moze
+      ? 'Rekao sam <b>„Treble twenty. One hundred and eighty!“</b> — čuješ li?' +
+        (st.glasova ? '<br><small>glas: ' + st.izabran + '</small>'
+                    : '<br><small>Telefon još nije učitao nijedan glas — probaj ponovo za koji trenutak.</small>')
+      : "Ovaj pregledač ne ume da govori.";
+  };
+}
+function zvukMeni() {
+  showOverlay('<h2>🔈 Zvuk i najava</h2>' + redGlasa() +
+    '<p>Zvuk se pali i gasi dugmetom <b>🔊</b> gore u zaglavlju.</p>' +
+    '<div class="btns"><button id="nazZvuk">← Nazad</button></div>');
+  vezaGlasa(zvukMeni);
+  $("#nazZvuk").onclick = meni;
+}
 function meni() {
   clearTimeout(racTajmer); cekaonica = false;
   const nast = G && !G.gotovo && G.igraci && (sacuvanaMreza || G.rezim !== "mreza");
@@ -1282,6 +1314,7 @@ function meni() {
     '<button id="viseBtn">📱 Na ovom telefonu</button>' +
     '<button id="sobaBtn">🌐 Napravi sobu</button>' +
     '<button id="udjiBtn">🔗 Uđi u sobu</button>' +
+    '<button id="zvukBtn2">🔈 Zvuk i najava</button>' +
     '<button id="pravBtn">❔ Pravila</button></div>' +
     '<p>' + (nast ? "Prekinuta partija te čeka — ništa se ne briše samo od sebe."
       : "Osmica i snuker sa pravim felšom: gde udariš belu, tamo se i ponaša.") + '</p>');
@@ -1292,6 +1325,7 @@ function meni() {
   }));
   $("#sobaBtn").onclick = () => meniIgra(k => { izabranaIgra = k; napraviSobu(); });
   $("#udjiBtn").onclick = udjiUSobu;
+  $("#zvukBtn2").onclick = zvukMeni;
   $("#pravBtn").onclick = pravila;
 }
 function meniIgra(gotovo) {
@@ -1349,7 +1383,7 @@ function pravila() {
     '<li><b>Snuker:</b> crvena pa boja, pa opet crvena. Boje se vraćaju na sto dok ima crvenih. ' +
     'Kad nestanu crvene, boje se gađaju redom: žuta, zelena, braon, plava, roze, crna. Faul nosi protivniku najmanje 4 poena. ' +
     'Ako bela upadne, vraća se <b>iz polukruga</b> na baulk liniji.</li>' +
-    '<li><b>Najava:</b> glas kaže šta je palo i kad je faul. Isključuje se dugmetom <b>🗣</b> na spisku igara.</li>' +
+    '<li><b>Najava:</b> glas kaže šta je palo i kad je faul. Pali se i proba u meniju, pod <b>🔈 Zvuk i najava</b>.</li>' +
     '</ul>' +
     '<div class="btns"><button id="nazBtn5">← Nazad</button></div>');
   $("#nazBtn5").onclick = meni;

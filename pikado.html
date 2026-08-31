@@ -462,7 +462,6 @@ function baci(cilj) {
   drzim = false; kretanje = 0;
   G.faza = "leti"; letiOd = performance.now(); letiDo = { x: x, y: y };
   window.SFX && SFX.whoosh();
-  window.GLAS && GLAS.stani();
 }
 function sletela() {
   const p = pogodak(letiDo.x, letiDo.y);
@@ -1035,6 +1034,33 @@ function meniVise() {
     crtaj2();
   });
 }
+/* zajednički deo za najavu — isti izgled i u pikadu i u bilijaru */
+function redGlasa() {
+  const ima = window.GLAS && GLAS.moze();
+  const upaljena = ima && GLAS.isOn();
+  return '<h3>Najava pogodaka (engleski)</h3>' +
+    '<div class="izbor uska">' +
+    '<button id="glasPrek">' + (upaljena ? "🗣 Uključena" : "🤐 Isključena") + '</button>' +
+    '<button id="glasProba"' + (ima ? "" : " disabled") + '>▶ Proba</button></div>' +
+    '<p id="glasStanje">' + (ima
+      ? "Glas kaže šta si pogodio („treble twenty“) i koliko si sabrao u krugu."
+      : "Ovaj pregledač ne ume da govori.") + '</p>';
+}
+function vezaGlasa(ponovo) {
+  const pb = $("#glasPrek");
+  if (pb) pb.onclick = () => { if (window.GLAS) { GLAS.set(!GLAS.isOn()); ponovo(); } };
+  const pr = $("#glasProba");
+  if (pr) pr.onclick = () => {
+    const st = GLAS.proba();
+    $("#glasProba").textContent = "▶ Opet";
+    const b2 = $("#glasPrek"); if (b2) b2.textContent = "🗣 Uključena";
+    $("#glasStanje").innerHTML = st.moze
+      ? 'Rekao sam <b>„Treble twenty. One hundred and eighty!“</b> — čuješ li?' +
+        (st.glasova ? '<br><small>glas: ' + st.izabran + '</small>'
+                    : '<br><small>Telefon još nije učitao nijedan glas — probaj ponovo za koji trenutak.</small>')
+      : "Ovaj pregledač ne ume da govori.";
+  };
+}
 function podesavanja() {
   const uSobi = !!(G && G.rezim === "mreza" && !G.gotovo);
   const nac = [["prst", "👆 Prstom"], ["ziro", "📱 Nagibom (žiroskop)"]].map(([id, nm]) =>
@@ -1044,12 +1070,14 @@ function podesavanja() {
   showOverlay('<h2>⚙︎ Podešavanja</h2>' +
     '<h3>Kako nišaniš</h3><div class="izbor">' + nac + '</div>' +
     '<p id="ziroOpis"></p>' +
+    redGlasa() +
     '<h3>Mirnoća ruke</h3><div class="izbor uska">' + niv + '</div>' +
     '<p>' + (uSobi
       ? "U sobi trenutno važi domaćinovo podešavanje (<b>" + (TEZINA[G.tezina] ? { lako: "Lako", srednje: "Srednje", tesko: "Teško" }[G.tezina] : "Srednje") +
         "</b>) — isto za sve. Ovo što biraš ovde važi za igru van sobe."
       : "Što je teže, to nišan više drhti — i pogodak vredi više.") + '</p>' +
     '<div class="btns"><button id="nazBtn4">← Nazad na igru</button></div>');
+  vezaGlasa(podesavanja);
   const opis = () => $("#ziroOpis").innerHTML = nacinNisana === "ziro"
     ? (ziroPodrzan() ? "Nišan prati nagib telefona. Dugmetom <b>🎚 Poravnaj</b> postaviš telefon u položaj iz kog ti je udobno da nišaniš."
                      : "Ovaj telefon nema žiroskop — nišan će raditi prstom.")
@@ -1086,7 +1114,7 @@ function pravila() {
     '<li><b>Kruženje:</b> redom 1, 2, 3 … 20 pa bul. Vredi svaki pogodak u taj broj.</li>' +
     '<li><b>Žiroskop:</b> u podešavanjima možeš da nišaniš nagibom telefona. Prvo pritisni <b>🎚 Poravnaj</b>.</li>' +
     '<li><b>Najava:</b> glas ti kaže šta si pogodio („treble twenty“) i koliko si sabrao u krugu. ' +
-    'Isključuje se dugmetom <b>🗣</b> na spisku igara.</li>' +
+    'Pali se i proba u <b>⚙︎ Podešavanjima</b>, a isključuje i dugmetom <b>🗣</b> na spisku igara.</li>' +
     '<li><b>U sobi:</b> svi igraju sa <b>istom mirnoćom ruke</b> — onom koju je izabrao domaćin — i svako ima ' +
     '<b>10 sekundi po strelici</b>. Kad vreme istekne, strelica poleti sama tamo gde ti je nišan.</li>' +
     '</ul>' +
