@@ -91,11 +91,13 @@ function otkljucaj() {
     var b = c.createBuffer(1, 1, 22050), src = c.createBufferSource();
     src.buffer = b; src.connect(master || c.destination); src.start(0);
   } catch (e) { }
-  try {                                          // isto i za izgovor
+  try {                                          // isto i za izgovor: prvi mora unutar dodira
     if (window.speechSynthesis && !GLAS._primljen) {
-      var u = new SpeechSynthesisUtterance(" ");
-      u.volume = 0; window.speechSynthesis.speak(u);
       GLAS._primljen = true;
+      if (window.speechSynthesis.paused && window.speechSynthesis.resume) window.speechSynthesis.resume();
+      var u = new SpeechSynthesisUtterance("ok");
+      u.volume = 0; u.rate = 2;
+      window.speechSynthesis.speak(u);
     }
   } catch (e) { }
   if (c.state === "running") otkljucan = true;
@@ -228,18 +230,59 @@ var GLAS = {
   reci: function (tekst, o) {
     if (!tekst || !GLAS.isOn()) return;
     o = o || {};
-    try {
-      if (o.prekini !== false) window.speechSynthesis.cancel();
+    var S = window.speechSynthesis;
+    function spremi() {
       var u = new SpeechSynthesisUtterance(String(tekst));
       var v = nadjiGlas();
       if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-GB";
       u.rate = o.rate || 1.02;
       u.pitch = o.pitch || 1;
       u.volume = o.volume == null ? 1 : o.volume;
-      window.speechSynthesis.speak(u);
+      return u;
+    }
+    function kreni(drugiPut) {
+      try {
+        var u = spremi(), poceo = false;
+        u.onstart = function () { poceo = true; GLAS._radi = true; };
+        u.onerror = function () { poceo = true; };
+        S.speak(u);
+        clearTimeout(cuvar);
+        if (!drugiPut) cuvar = setTimeout(function () {   // iOS ume da progura izgovor u prazno
+          if (poceo || !GLAS.isOn()) return;
+          try { S.cancel(); } catch (e) { }
+          setTimeout(function () { kreni(true); }, 60);
+        }, 320);
+      } catch (e) { }
+    }
+    try {
+      if (S.paused && S.resume) S.resume();          // zaglavljen red se odglavi
+      if (o.prekini !== false && (S.speaking || S.pending)) {
+        S.cancel();
+        clearTimeout(cekaj);
+        cekaj = setTimeout(function () { kreni(false); }, 90);   // posle prekida treba trenutak
+      } else kreni(false);
     } catch (e) { }
+  },
+  proba: function () {
+    glasOn = true;
+    try { localStorage.setItem(GKEY, "1"); } catch (e) { }
+    on = true;
+    try { localStorage.setItem(SKEY, "1"); } catch (e) { }
+    paintGlas(); paintBtn();
+    GLAS._radi = false;
+    GLAS.reci("Treble twenty. One hundred and eighty!", { rate: 1 });
+    var lista = [];
+    try { lista = window.speechSynthesis ? (window.speechSynthesis.getVoices() || []) : []; } catch (e) { }
+    var v = nadjiGlas();
+    return {
+      moze: !!window.speechSynthesis,
+      ukljucen: GLAS.isOn(),
+      glasova: lista.length,
+      izabran: v ? (v.name + " (" + v.lang + ")") : "podrazumevani glas telefona"
+    };
   }
 };
+var cuvar = null, cekaj = null;
 function paintGlas() {
   var b = document.getElementById("glasToggle");
   if (!b) return;
