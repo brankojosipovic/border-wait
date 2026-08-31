@@ -49,15 +49,18 @@
   header .sub { color: var(--ink-dim); font-size: 12px; }
   .spacer { flex: 1; }
 
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  @media (min-width: 470px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+  .grid { display: grid; grid-template-columns: repeat(var(--kol, 3), 1fr); gap: 10px; }
   .card { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
-          gap: 7px; text-decoration: none; color: inherit; aspect-ratio: 1 / 1;
+          gap: 6px; text-decoration: none; color: inherit; width: 100%;
+          aspect-ratio: 1 / 1; height: var(--kh, auto);
           background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
-          padding: 10px 5px; box-shadow: var(--shadow); overflow: hidden; }
+          padding: 8px 5px; box-shadow: var(--shadow); overflow: hidden; }
   .card:active { transform: translateY(1px); }
   @media (hover: hover) { .card:hover { border-color: var(--gold); } }
-  .card .em { font-size: clamp(34px, 12vw, 54px); line-height: 1; filter: drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
+  .card .em { font-size: clamp(26px, calc(var(--kh, 96px) * .52), 54px); line-height: 1;
+              filter: drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
+  .grid.samoIkone .card { gap: 0; padding: 4px; border-radius: 14px; }
+  .grid.samoIkone .card .nm { display: none; }
   .card .nm { font-size: 12px; font-weight: 700; text-align: center; line-height: 1.15;
               max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .card .tok { position: absolute; top: 7px; right: 9px; font-size: 11px; color: var(--gold); }
@@ -83,8 +86,7 @@
     header .sub { display: none; }
     .wrap { gap: 8px; padding-top: 6px; }
     .grid { gap: 8px; }
-    .card { aspect-ratio: 1 / .73; border-radius: 16px; }
-    .card .em { font-size: clamp(28px, 10vw, 44px); }
+    .card { border-radius: 16px; }
     .card .nm { font-size: 11px; }
     .alatke button, .alatke .pomocBtn { font-size: 13px; padding: 6px 10px; }
     .stanje { font-size: 10px; line-height: 1.45; }
@@ -136,7 +138,8 @@ var DESC = {
   stvorenja: "Hvataj bića, treniraj tim i osvoji tri arene",
   tablic:    "Kartaška klasika — protiv računara, u dvoje ili preko interneta",
   jamb:      "Kockice i listić — sam, u dvoje ili do četvoro preko interneta",
-  geo:       "Geografski kviz — ko prvi pogodi, nosi poene; sam ili do četvoro"
+  geo:       "Geografski kviz — ko prvi pogodi, nosi poene; sam ili do četvoro",
+  pikado:    "Prava tabla i 501 — protiv računara, na jednom telefonu ili do četvoro"
 };
 function ls(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
 function dayNum() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
@@ -167,6 +170,39 @@ g.innerHTML = (window.IGRE || []).map(function (x) {
     (uToku(x.id) ? '<span class="tok" title="partija te čeka">▶</span>' : '') + '</a>';
 }).join("");
 for (var a of g.querySelectorAll(".card")) a.addEventListener("click", function () { window.SFX && SFX.tap(); });
+
+/* Pločice se same slože tako da spisak stane na ekran — koliko god igara bilo. */
+function slozi() {
+  var wrap = document.querySelector(".wrap"), nav = document.querySelector(".gamenav");
+  if (!wrap || !g.children.length) return;
+  var granica = nav ? nav.getBoundingClientRect().top : window.innerHeight;
+  var vidljiva = [].filter.call(wrap.children, function (el) { return el.offsetParent !== null; });
+  var drugi = vidljiva.filter(function (el) { return el !== g; })
+    .reduce(function (a, el) { return a + el.getBoundingClientRect().height; }, 0);
+  var cs = getComputedStyle(wrap);
+  var razmak = (parseFloat(cs.rowGap) || 0) * Math.max(0, vidljiva.length - 1);
+  var mesto = granica - wrap.getBoundingClientRect().top - drugi - razmak
+            - (parseFloat(cs.paddingBottom) || 0) - 2;
+  var proreda = parseFloat(getComputedStyle(g).rowGap) || 8;
+  var n = g.children.length, sirina = g.getBoundingClientRect().width;
+  for (var kol = 3; kol <= 5; kol++) {
+    var redova = Math.ceil(n / kol);
+    var w = (sirina - proreda * (kol - 1)) / kol;
+    var h = Math.min(w, (mesto - proreda * (redova - 1)) / redova);
+    if (h >= 56 || kol === 5) {
+      var kh = Math.max(46, Math.floor(h));
+      document.documentElement.style.setProperty("--kol", kol);
+      document.documentElement.style.setProperty("--kh", kh + "px");
+      g.classList.toggle("samoIkone", kh < 78);     // kad je tesno, ostaju same ikonice
+      return;
+    }
+  }
+}
+window.addEventListener("resize", slozi);
+window.addEventListener("load", function () { slozi(); setTimeout(slozi, 300); setTimeout(slozi, 900); });
+window.addEventListener("orientationchange", function () { setTimeout(slozi, 150); });
+if (window.ResizeObserver) new ResizeObserver(slozi).observe(document.body);
+slozi();
 
 function paintSnd() {
   var b = document.getElementById("sndToggle");
