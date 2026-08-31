@@ -274,7 +274,8 @@ function updHud() {
   if (!trka) { hp.textContent = ""; $("#hLives").textContent = "❤️".repeat(Math.max(0, lives)); return; }
   $("#hLives").textContent = "❤️" + Math.max(0, lives);
   const p = trka.prot;
-  hp.textContent = p.gotov ? "🏁 protivnik" : p.pao ? "💀 protivnik"
+  const imeProt = (window.Mreza && Mreza.tudjeIme("protivnik")) || "protivnik";
+  hp.textContent = p.gotov ? "🏁 " + imeProt : p.pao ? "💀 " + imeProt
     : "👤 " + p.cigle + "🧱 ❤️" + Math.max(0, p.zivoti);
 }
 function boom(x, y, n, col) {
@@ -604,7 +605,11 @@ function trkaStatus(st, detalj) {
       '<button id="odustBtn9">Odustani</button>');
     $("#odustBtn9").onclick = () => { trkaKraj(); pocetak(); };
   }
-  if (st === "povezan") { if (jaDomacin()) izborTrke(); else showOverlay('<h2>Povezani ste!</h2><p>Domaćin bira nivo za trku…</p>'); }
+  if (st === "ucesnici") { if (state === "play") updHud(); return; }
+  if (st === "povezan") {
+    if (jaDomacin()) izborTrke();
+    else showOverlay('<h2>Povezani ste!</h2><p>' + Mreza.tudjeIme("Domaćin") + ' bira nivo za trku…</p>');
+  }
   if (st === "prekinuto") { if (state === "play") state = "pause"; showOverlay('<h2>⚠️ Veza je prekinuta</h2><p>Protivnik je izašao ili je ostao bez signala.</p><button id="nbp">← Meni</button>'), $("#nbp").onclick = () => { trkaKraj(); pocetak(); }; }
   if (st === "greska") {
     showOverlay('<h2>Spajanje nije uspelo</h2><p>' + (detalj || "") + '</p>' +
@@ -689,8 +694,8 @@ function prikaziRundu(m, jaSam) {           // jaSam: 0 domaćin, 1 gost
   const mojiPoeni = m.poeni[jaSam], tudjiPoeni = m.poeni[1 - jaSam];
   window.SFX && (pobedio ? SFX.jackpot() : SFX.siren());
   showOverlay('<h2>' + (m.pobednik == null ? "Niko nije prošao nivo" : pobedio ? "🏆 Dobio si rundu!" : "Protivnik je bio brži") + '</h2>' +
-    '<div class="res"><span>Ti</span><b>' + (mojeVreme ? sek(mojeVreme) : "nije prošao") + '</b>' +
-    '<span>Protivnik</span><b>' + (tudje ? sek(tudje) : "nije prošao") + '</b>' +
+    '<div class="res"><span>' + ((window.IGRAC && IGRAC.ime()) || "Ti") + '</span><b>' + (mojeVreme ? sek(mojeVreme) : "nije prošao") + '</b>' +
+    '<span>' + Mreza.tudjeIme() + '</span><b>' + (tudje ? sek(tudje) : "nije prošao") + '</b>' +
     '<span>Rezultat</span><b>' + mojiPoeni + " : " + tudjiPoeni + '</b></div>' +
     '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
     (jaSam === 0 ? '<button id="daljeBtn">▶ Sledeći nivo</button>' : '') +

@@ -400,11 +400,11 @@ function kraj() {
   const dvoje = G.rezim === "mreza";
   const ishod = !dvoje ? "" :
     (G.poeni[mojIndex] > G.poeni[1 - mojIndex] ? "🏆 Pobedio si!" :
-     G.poeni[mojIndex] < G.poeni[1 - mojIndex] ? "Protivnik je bolji ovog puta." : "Nerešeno!");
+     G.poeni[mojIndex] < G.poeni[1 - mojIndex] ? Mreza.tudjeIme() + " je bolji ovog puta." : "Nerešeno!");
   showOverlay('<h2>🏁 Kraj kviza</h2>' +
     (dvoje ? '<p style="font-size:15px;color:var(--ink)"><b>' + ishod + '</b></p>' : '') +
     '<p>Ti: <b style="color:var(--ink)">' + G.poeni[mojIndex] + '</b>' +
-    (dvoje ? ' · Protivnik: <b style="color:var(--ink)">' + G.poeni[1 - mojIndex] + '</b>' : '') + '</p>' +
+    (dvoje ? ' · ' + Mreza.tudjeIme() + ': <b style="color:var(--ink)">' + G.poeni[1 - mojIndex] + '</b>' : '') + '</p>' +
     (nov ? '<p style="color:var(--good);font-weight:700">Novi lični rekord: ' + moji + '</p>'
          : '<p>Tvoj rekord: ' + Math.max(rekord, moji) + '</p>') +
     '<div class="btns">' + (domacin() ? '<button id="opetBtn">⟲ Još jednom</button>' : '') +
@@ -434,6 +434,7 @@ function primi(m) {
 function statusMreze(st, detalj) {
   if (st === "spajam") { showOverlay('<h2>Spajam se…</h2><p>' + (detalj || "Tražim server za upoznavanje igrača.") + '</p>' +
     '<div class="btns"><button id="odBtn">Odustani</button></div>'); $("#odBtn").onclick = () => { Mreza.zatvori(); meni(); }; }
+  if (st === "ucesnici") { if (G) render(); return; }
   if (st === "cekam") pokaziKod(detalj);
   if (st === "povezan") {
     if (Mreza.uloga() === "domacin") {
@@ -486,9 +487,11 @@ function load() {
 function render() {
   if (!G) return;
   const dvoje = G.rezim === "mreza";
+  const jaIme = (window.IGRAC && IGRAC.ime()) || "Ti";
+  const onIme = dvoje ? Mreza.tudjeIme() : "";
   $("#hud").innerHTML =
-    '<span class="ko' + (G.brzi === mojIndex ? " on" : "") + '">Ti <b>' + G.poeni[mojIndex] + '</b></span>' +
-    (dvoje ? '<span class="ko' + (G.brzi === 1 - mojIndex ? " on" : "") + '">Protivnik <b>' + G.poeni[1 - mojIndex] + '</b></span>' : '') +
+    '<span class="ko' + (G.brzi === mojIndex ? " on" : "") + '">' + jaIme + ' <b>' + G.poeni[mojIndex] + '</b></span>' +
+    (dvoje ? '<span class="ko' + (G.brzi === 1 - mojIndex ? " on" : "") + '">' + onIme + ' <b>' + G.poeni[1 - mojIndex] + '</b></span>' : '') +
     '<div class="spacer"></div>' +
     (dvoje ? '<span>' + (Mreza.povezan() ? "🟢" : "🔴") + " " + (Mreza.kod() || "") + '</span>' : '') +
     '<button id="meniBtn2" title="Meni">☰</button>';
@@ -508,7 +511,7 @@ function render() {
     }
     if (mojIzbor === poz || (otkrij && G.izbor[mojIndex] === poz)) cls += " moj";
     let pr = "";
-    if (otkrij && dvoje && G.izbor[1 - mojIndex] === poz) pr = "protivnik";
+    if (otkrij && dvoje && G.izbor[1 - mojIndex] === poz) pr = Mreza.tudjeIme().toLowerCase();
     if (otkrij && G.izbor[mojIndex] === poz) pr = (pr ? "ti i " + pr : "ti");
     return '<button class="' + cls.trim() + '" data-p="' + poz + '"' + (otkrij || mojIzbor != null ? " disabled" : "") + '>' +
       '<span class="sl">' + "ABCD"[poz] + '</span><span>' + q[1 + orig] + '</span>' +
@@ -525,7 +528,7 @@ function render() {
     let t;
     if (G.brzi == null) t = "Niko nije pogodio — tačno je <b>" + q[1] + "</b>.";
     else if (G.brzi === mojIndex) t = "✔ Ti si bio brži! <b>+3</b>" + (G.vreme[mojIndex] != null ? " (" + (G.vreme[mojIndex] / 1000).toFixed(1) + " s)" : "");
-    else t = (mojaTacna ? "Tačno, ali sporije — <b>+1</b>." : "Protivnik je pogodio.") +
+    else t = (mojaTacna ? "Tačno, ali sporije — <b>+1</b>." : Mreza.tudjeIme() + " je pogodio.") +
              (G.vreme[1 - mojIndex] != null ? " (" + (G.vreme[1 - mojIndex] / 1000).toFixed(1) + " s)" : "");
     poruka(t);
   }

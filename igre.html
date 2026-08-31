@@ -71,6 +71,7 @@
   .alatke { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center; }
   .alatke button, .alatke .pomocBtn { font-size: 14px; padding: 8px 12px; }
   .stanje { text-align: center; font-size: 11px; color: var(--ink-dim); line-height: 1.5; }
+  .imeMali { font-size: 12px; padding: 4px 10px; margin-bottom: 2px; }
   .stanje b { color: var(--ink); font-weight: 700; }
   .pomocBtn { display: inline-flex; align-items: center; justify-content: center;
               font: inherit; font-size: 15px; color: var(--ink); background: var(--panel);
@@ -82,7 +83,7 @@
     header .sub { display: none; }
     .wrap { gap: 8px; padding-top: 6px; }
     .grid { gap: 8px; }
-    .card { aspect-ratio: 1 / .78; border-radius: 16px; }
+    .card { aspect-ratio: 1 / .73; border-radius: 16px; }
     .card .em { font-size: clamp(28px, 10vw, 44px); }
     .card .nm { font-size: 11px; }
     .alatke button, .alatke .pomocBtn { font-size: 13px; padding: 6px 10px; }
@@ -113,6 +114,7 @@
   </div>
 
   <div class="stanje col">
+    <button id="imeBtn" class="imeMali">👤 Upiši ime</button> ·
     📶 Rad bez interneta: <span id="offState">proveravam…</span> · <span id="verLine"></span>
     <br><span id="offHint"></span>
     <br><a href="index.html">← Border Wait — čekanje na granici</a>
@@ -133,7 +135,7 @@ var DESC = {
   cigle:     "Palica i loptica — 50 nivoa, bonusi i trka u dvoje preko interneta",
   stvorenja: "Hvataj bića, treniraj tim i osvoji tri arene",
   tablic:    "Kartaška klasika — protiv računara, u dvoje ili preko interneta",
-  jamb:      "Kockice i listić — sam, u dvoje ili preko interneta",
+  jamb:      "Kockice i listić — sam, u dvoje ili do četvoro preko interneta",
   geo:       "Geografski kviz — ko prvi pogodi, nosi poene"
 };
 function ls(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
@@ -172,6 +174,7 @@ function paintSnd() {
   b.textContent = on ? "🔊 Zvuk" : "🔇 Nemo";
 }
 document.getElementById("sndToggle").onclick = function () { SFX.toggle(); paintSnd(); };
+document.getElementById("imeBtn").onclick = function () { window.IGRAC && IGRAC.pitaj(); };
 paintSnd();
 
 /* stanje offline keša */

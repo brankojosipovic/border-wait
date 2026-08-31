@@ -67,7 +67,7 @@
     return s;
   }
   function status(st, detalj) { try { naStatus(st, detalj); } catch (e) { } }
-  function stigla(p) { try { naPoruku(p); } catch (e) { } }
+  function stigla(p, od) { try { naPoruku(p, od); } catch (e) { } }
 
   /* ---------- skidanje biblioteka ---------- */
   function skripta(url, rok) {
@@ -104,16 +104,35 @@
 
   /* ---------- 1) relej preko javnih brokera ---------- */
   function napraviRelej(zaKod, zaUlogu) {
-    var moja = TEMA + zaKod + (zaUlogu === "domacin" ? "/d" : "/g");
-    var tudja = TEMA + zaKod + (zaUlogu === "domacin" ? "/g" : "/d");
+    var moja = TEMA + zaKod + "/s";                    // svi u sobi dele jednu temu
+    var tudja = moja;
     var ja = kodiraj(6), broj = 0, videno = Object.create(null), vidjenih = 0;
     var klijenti = [], spojen = false, mrtav = false, kucanje = null, imena = [];
+    var drustvo = Object.create(null);                  // id → {ime, uloga, kad}
 
-    function paket(p) { return JSON.stringify({ o: ja, i: ++broj, p: p }); }
+    function mojeIme() { return (window.IGRAC && IGRAC.ime()) || ""; }
+    function paket(p) { return JSON.stringify({ o: ja, i: ++broj, im: mojeIme(), p: p }); }
+    function spisak() {
+      var out = [{ id: ja, ime: mojeIme(), uloga: zaUlogu, ja: true, kad: 0 }];
+      for (var k in drustvo) out.push({ id: k, ime: drustvo[k].ime, uloga: drustvo[k].uloga, kad: drustvo[k].kad });
+      out.sort(function (a, b) { return (a.kad || 0) - (b.kad || 0); });
+      return out;
+    }
+    function upisi(id, ime, uloga) {
+      var pre = drustvo[id] ? drustvo[id].ime : null;
+      drustvo[id] = {
+        ime: ime || (drustvo[id] && drustvo[id].ime) || "",
+        uloga: uloga || (drustvo[id] && drustvo[id].uloga) || "gost",
+        kad: (drustvo[id] && drustvo[id].kad) || Date.now()
+      };
+      if (pre !== drustvo[id].ime || pre === null) status("ucesnici", spisak());
+    }
 
     var rel = {
       vrsta: "relej",
       spojen: function () { return spojen && zivih() > 0; },
+      drustvo: function () { return spisak(); },
+      jaSam: function () { return ja; },
       brokeri: function () { return imena.slice(); },
       posalji: function (obj) {
         var m = paket(obj), ok = false;
@@ -137,10 +156,20 @@
       videno[kljuc] = 1;
       if (++vidjenih > 800) { videno = Object.create(null); vidjenih = 0; }
       var p = d.p;
-      if (p && p.__ === "zdravo") { rel.posalji({ __: "evo" }); return spoji(); }
-      if (p && p.__ === "evo") return spoji();
-      if (p && p.__ === "ode") { spojen = false; objavljen = false; return status("prekinuto"); }
-      spoji(); stigla(p);
+      if (p && p.__ === "zdravo") {
+        upisi(d.o, d.im, p.uloga);
+        rel.posalji({ __: "evo", uloga: zaUlogu });
+        return spoji();
+      }
+      if (p && p.__ === "evo") { upisi(d.o, d.im, p.uloga); return spoji(); }
+      if (p && p.__ === "ode") {
+        delete drustvo[d.o];
+        status("ucesnici", spisak());
+        if (!Object.keys(drustvo).length) { spojen = false; objavljen = false; status("prekinuto"); }
+        return;
+      }
+      if (d.im) upisi(d.o, d.im, null);
+      spoji(); stigla(p, d.o);
     }
     function spoji() {
       if (spojen) return;
@@ -168,6 +197,7 @@
             try { c.subscribe(tudja, { qos: 0 }); } catch (e) { }
             clearTimeout(t); if (klijenti.indexOf(c) < 0) klijenti.push(c);
             if (imena.indexOf(b.ime) < 0) imena.push(b.ime);
+            setTimeout(function () { try { rel.posalji({ __: "evo", uloga: zaUlogu }); } catch (e) { } }, 60);
             kraj(true);
           });
           c.on("message", primi);
@@ -220,7 +250,7 @@
   }
   function vezi(v) {
     veza = v;
-    v.on("data", function (d) { stigla(d); });
+    v.on("data", function (d) { stigla(d, "direktna"); });
     v.on("close", function () { status("prekinuto"); veza = null; });
     v.on("error", function () { status("prekinuto"); });
     if (v.open) preuzmi("direktna");
@@ -286,6 +316,10 @@
     nacin: function () { return lokalni ? "lokalno" : (R && R.spojen()) ? "relej" : (veza && veza.open) ? "direktna" : null; },
     povezan: function () { return !!lokalni || !!(R && R.spojen()) || !!(veza && veza.open); },
     detalji: function () { return zadnjaGreska; },
+    jaSam: function () { return R ? R.jaSam() : "ja"; },
+    drustvo: function () { return R ? R.drustvo() : (veza && veza.open ? [{ id: "ja", ime: (window.IGRAC && IGRAC.ime()) || "", ja: true }] : []); },
+    tudji: function () { return API.drustvo().filter(function (x) { return !x.ja; }); },
+    tudjeIme: function (rez) { var t = API.tudji()[0]; return (t && t.ime) || rez || "Protivnik"; },
 
     napravi: function (opcije) {
       opcije = opcije || {};
