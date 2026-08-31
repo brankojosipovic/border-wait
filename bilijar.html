@@ -349,7 +349,7 @@ function korakFizike(dt) {
       if (Math.hypot(b.x - p.x, b.y - p.y) < p.r) {
         b.ziva = false; b.vx = b.vy = 0; b.sx = b.sy = 0;
         if (dogadjaji) dogadjaji.upale.push(b);
-        window.SFX && SFX.card();
+        window.SFX && SFX.rupa();
         break;
       }
     }
@@ -379,7 +379,7 @@ function sudarLopti(a, b) {
     if (!dogadjaji.prvi) dogadjaji.prvi = meta;
     if (dogadjaji.dodirnute.indexOf(meta) < 0) dogadjaji.dodirnute.push(meta);
   }
-  window.SFX && Math.abs(p) > 22 && SFX.tick();
+  window.SFX && Math.abs(p) > 6 && SFX.kugle(Math.min(.55, .08 + Math.abs(p) / 340));
 }
 function uOtvoruBocno(y) { return y < GAP || y > H - GAP || Math.abs(y - H / 2) < GAPS; }
 function odbij(b, nx, ny) {
@@ -393,7 +393,7 @@ function odbij(b, nx, ny) {
     b.sx *= 0.45;
   }
   if (dogadjaji) dogadjaji.banda = true;
-  window.SFX && Math.abs(vn) > 30 && SFX.tick();
+  window.SFX && Math.abs(vn) > 8 && SFX.banda(Math.min(.45, .06 + Math.abs(vn) / 420));
 }
 function bande(b) {
   if (b.x < R && !uOtvoruBocno(b.y)) { b.x = R; odbij(b, 1, 0); }
@@ -611,11 +611,15 @@ function novaIgra(op) {
 function dozvoljene(i) {
   const ig = G.igraci[i];
   if (G.igra === "snuker") {
-    const crvenih = lopte.filter(b => b.ziva && b.tip === "crvena").length;
-    if (crvenih && G.crvenaNaRedu) return lopte.filter(b => b.ziva && b.tip === "crvena");
-    if (crvenih) return lopte.filter(b => b.ziva && b.vred > 1);
-    const red = REDOM.slice(G.redBoja);
-    for (const nm of red) { const b = lopte.find(x => x.ziva && x.tip === nm); if (b) return [b]; }
+    /* Posle svake crvene ide boja po izboru — pa i posle poslednje.
+       Tek kad se i ta boja odigra, boje se gađaju redom. */
+    if (!G.crvenaNaRedu) return lopte.filter(b => b.ziva && b.vred > 1);
+    const crvene = lopte.filter(b => b.ziva && b.tip === "crvena");
+    if (crvene.length) return crvene;
+    for (const nm of REDOM.slice(G.redBoja)) {
+      const b = lopte.find(x => x.ziva && x.tip === nm);
+      if (b) return [b];
+    }
     return [];
   }
   const moje = ig.grupa;
@@ -635,9 +639,12 @@ function udari(par) {
   const v = NAJJACE * Math.max(0.06, Math.min(1, p.sn / 100));
   b.vx = Math.cos(p.ug) * v; b.vy = Math.sin(p.ug) * v;
   b.sx = p.sx; b.sy = p.sy;
-  dogadjaji = { prvi: null, dodirnute: [], upale: [], banda: false };
+  /* šta je smelo da se gađa mora da se zapamti PRE udarca — posle udarca
+     poslednja crvena više nije na stolu, pa bi ispalo da je bila faul */
+  dogadjaji = { prvi: null, dodirnute: [], upale: [], banda: false, meta: dozvoljene(G.naRedu) };
   G.faza = "kotrlja";
-  window.SFX && SFX.stamp();
+  window.SFX && SFX.stap();
+  window.GLAS && GLAS.stani();
   crtajHud();
   if (G.rezim === "mreza" && mojPotez()) Mreza.posalji({ t: "udarac", ug: p.ug, sn: p.sn, sx: p.sx, sy: p.sy });
 }
@@ -646,8 +653,24 @@ function stalo() {
   if (!domacin()) { crtajHud(); return; }        // domaćin sudi, ostali čekaju stanje
   presudi();
 }
+const IME_BOJE = { crvena: "Red", zuta: "Yellow", zelena: "Green", braon: "Brown",
+  plava: "Blue", roze: "Pink", crna: "Black" };
+function najaviUpale(upale, faul, kazna) {
+  if (!window.GLAS || !GLAS.isOn()) return;
+  if (faul) return GLAS.reci("Foul, " + (window.RECIMA ? RECIMA(kazna) : kazna) + " away", { rate: .98 });
+  if (!upale.length) return;
+  if (G.igra === "snuker") {
+    const zbir = upale.reduce((a, b) => a + b.vred, 0);
+    const ime = IME_BOJE[upale[0].tip] || "";
+    return GLAS.reci(upale.length > 1 ? (window.RECIMA ? RECIMA(zbir) : zbir) : ime, { rate: 1.02 });
+  }
+  const crna = upale.find(b => b.tip === "crna");
+  if (crna) return GLAS.reci("Eight ball!", { rate: .95, pitch: 1.1 });
+  const b = upale[0];
+  GLAS.reci((upale.length > 1 ? "Two down, " : "") + (window.RECIMA ? RECIMA(b.br) : b.br), { rate: 1.05 });
+}
 function presudi() {
-  const d = dogadjaji || { prvi: null, upale: [], banda: false };
+  const d = dogadjaji || { prvi: null, upale: [], banda: false, meta: [] };
   const ja = G.naRedu, ig = G.igraci[ja];
   const belaUpala = d.upale.some(b => b.bela);
   const upale = d.upale.filter(b => !b.bela);
@@ -679,11 +702,13 @@ function presudi() {
     G.igraci[protivnik(ja)].poeni = G.igraci[protivnik(ja)].grupa
       ? 7 - lopte.filter(b => b.ziva && b.tip === G.igraci[protivnik(ja)].grupa).length : 0;
     G.poruka = faul ? "Faul: " + razlog : (upale.length ? "Ubačeno!" : "Promašaj.");
+    najaviUpale(upale, faul, 0);
     if (faul) { G.faza = "ruka"; G.naRedu = protivnik(ja); }
     else if (!nastavljam2) G.naRedu = protivnik(ja);
   } else {
     /* ---- snuker ---- */
-    const meta = dozvoljene(ja);
+    const meta = (d.meta && d.meta.length) ? d.meta : dozvoljene(ja);
+    const bioCrvenaNaRedu = G.crvenaNaRedu;
     const trebaCrvena = meta.length && meta[0].tip === "crvena";
     const dozvoljeneIme = meta.map(x => x.tip);
     let osvojio = 0;
@@ -698,22 +723,24 @@ function presudi() {
       else osvojio += b.vred;
     }
     const crvenih = lopte.filter(b => b.ziva && b.tip === "crvena").length;
+    const crvenihPre = crvenih + upale.filter(b => b.tip === "crvena").length;
+    const uZavrsnici = crvenihPre === 0 && bioCrvenaNaRedu;   // boje redom, bez vraćanja na sto
+    najaviUpale(upale.filter(b => dozvoljeneIme.indexOf(b.tip) >= 0), faul, kazna);
     if (!faul && upale.length) {
       ig.poeni += osvojio;
       nastavljam2 = true;
-      if (trebaCrvena) G.crvenaNaRedu = false;
-      else if (crvenih) G.crvenaNaRedu = true;
-      else G.redBoja++;
+      if (trebaCrvena) G.crvenaNaRedu = false;                // posle crvene ide boja
+      else if (crvenih) G.crvenaNaRedu = true;                // boja odigrana, ima još crvenih
+      else if (!bioCrvenaNaRedu) { G.crvenaNaRedu = true; G.redBoja = 0; }  // boja posle poslednje crvene
+      else G.redBoja++;                                       // završnica: sledeća boja po redu
       G.poruka = "+" + osvojio;
     } else {
       if (faul) { G.igraci[protivnik(ja)].poeni += kazna; G.poruka = "Faul: " + razlog + " (+" + kazna + " protivniku)"; }
       else G.poruka = "Promašaj.";
-      G.crvenaNaRedu = crvenih > 0;
+      G.crvenaNaRedu = true;                                  // nazad na crvenu, a ako ih nema — na red boja
       G.naRedu = protivnik(ja);
     }
-    // boje se vraćaju na sto dok ima crvenih
-    if (crvenih || !faul) vratiBoje(crvenih > 0 || G.redBoja < REDOM.length);
-    else vratiBoje(crvenih > 0);
+    vratiBoje(!uZavrsnici || faul);                           // u završnici boje ostaju u rupi, osim posle faula
     if (belaUpala) G.faza = "ruka";
     if (!lopte.some(b => b.ziva && !b.bela)) {
       G.gotovo = true;
@@ -761,6 +788,7 @@ function zavrsi() {
   crtajHud(); posaljiStanje();
   try { localStorage.removeItem(KEY); } catch (e) { }
   window.SFX && SFX.win();
+  setTimeout(() => window.GLAS && GLAS.reci(G.igra === "snuker" ? "Frame!" : "Game!", { rate: .95, pitch: 1.1 }), 500);
   const im = G.pobednik == null ? "Nerešeno" : G.igraci[G.pobednik].ime;
   const jaPobedio = G.rezim === "vise" ? false : G.pobednik === mojIndex;
   showOverlay('<h2>🎱 ' + (G.pobednik == null ? "Nerešeno!" : (jaPobedio ? "Pobedio si!" : im + " pobeđuje.")) + '</h2>' +
@@ -1321,6 +1349,7 @@ function pravila() {
     '<li><b>Snuker:</b> crvena pa boja, pa opet crvena. Boje se vraćaju na sto dok ima crvenih. ' +
     'Kad nestanu crvene, boje se gađaju redom: žuta, zelena, braon, plava, roze, crna. Faul nosi protivniku najmanje 4 poena. ' +
     'Ako bela upadne, vraća se <b>iz polukruga</b> na baulk liniji.</li>' +
+    '<li><b>Najava:</b> glas kaže šta je palo i kad je faul. Isključuje se dugmetom <b>🗣</b> na spisku igara.</li>' +
     '</ul>' +
     '<div class="btns"><button id="nazBtn5">← Nazad</button></div>');
   $("#nazBtn5").onclick = meni;
@@ -1382,7 +1411,7 @@ requestAnimationFrame(kadar);
 window.B = {
   get G() { return G; }, get lopte() { return lopte; }, bela, zive, dozvoljene, predvidi,
   novaIgra, udari, presudi, nadjiUdarac, slobodanPut, meni, crtajHud, primi, primiPostavu, NIVOI,
-  potvrdiRuku, uDozvoljenom, pomeriBelu: t => pomeriBelu(t),
+  potvrdiRuku, uDozvoljenom, pomeriBelu: t => pomeriBelu(t), najaviUpale,
   kreniPartiju, statusMreze, save, load, nastaviPartiju, korakFizike, miruje, postaviSnuker, postaviOsmicu,
   get ugao() { return ugao; }, set ugao(v) { ugao = v; crtajHud(); },
   get snaga() { return snaga; }, set snaga(v) { snaga = v; crtajHud(); },
