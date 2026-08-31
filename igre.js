@@ -15,7 +15,8 @@ var GAMES = [
   { id: "tablic",    href: "tablic.html",    em: "🃏", nm: "Tablić" },
   { id: "jamb",      href: "jamb.html",      em: "🎲", nm: "Jamb" },
   { id: "geo",       href: "geo.html",       em: "🌍", nm: "Geo" },
-  { id: "pikado",    href: "pikado.html",    em: "🎯", nm: "Pikado" }
+  { id: "pikado",    href: "pikado.html",    em: "🎯", nm: "Pikado" },
+  { id: "bilijar",   href: "bilijar.html",   em: "🎱", nm: "Bilijar" }
 ];
 var SKEY = "igre.sound";
 var IKEY = "igre.ime";
