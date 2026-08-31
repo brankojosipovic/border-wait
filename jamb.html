@@ -456,9 +456,10 @@ function primi(m, od) {
     return;
   }
   if (m.t !== "stanje") return;
+  const preNaRedu = G.naRedu;
   Object.assign(G, m.g);
   G.rezim = "mreza";                                   // primljeno stanje uvek znači mrežnu partiju
-  if (G.naRedu === mojIndex) gledam = null;            // kad dođeš na red, vraća te na tvoj listić
+  if (G.naRedu === mojIndex && preNaRedu !== mojIndex) gledam = null;   // tek kad dođeš na red, nazad na svoj listić
   render(); save();
   if (G.gotovo && $("#overlay").hidden) kraj();
 }
