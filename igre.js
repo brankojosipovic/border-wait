@@ -72,7 +72,7 @@ function engine() {
       if (!AC) return null;
       ctx = new AC();
       master = ctx.createGain();
-      master.gain.value = 0.20;
+      master.gain.value = 0.30;
       master.connect(ctx.destination);
     }
     if (ctx.state === "suspended" && ctx.resume) ctx.resume();
@@ -289,6 +289,24 @@ var CSS =
 'border-radius:10px;padding:6px 10px;text-decoration:none;cursor:pointer;touch-action:manipulation;line-height:1.2;' +
 'position:relative;z-index:60}' +
 '.homeBtn:active{transform:translateY(1px)}' +
+/* Zaglavlje mora da stane u jedan red — inače naslov gura tablu sa ekrana. */
+'header button,header .homeBtn,header .zvukBtn{white-space:nowrap;flex:0 0 auto}' +
+'header>div:first-child{min-width:0}' +
+'header h1,header .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+'@media (max-width:360px){.zvukBtn,.homeBtn{padding:5px 7px;font-size:14px}}' +
+'.zvukBtn{display:inline-flex;align-items:center;justify-content:center;' +
+'font:inherit;font-size:15px;color:var(--ink);background:var(--panel);border:1px solid var(--line);' +
+'border-radius:10px;padding:6px 10px;cursor:pointer;touch-action:manipulation;line-height:1.2;' +
+'position:relative;z-index:60}' +
+'.zvukBtn.nemo{color:var(--bad,#d65a4e);border-color:var(--bad,#d65a4e)}' +
+'.zvukBtn:active{transform:translateY(1px)}' +
+'@media (max-height:600px){.zvukBtn{padding:4px 8px;font-size:13px}}' +
+'.zvukPoruka{position:fixed;left:10px;right:10px;margin:0 auto;max-width:360px;z-index:95;' +
+'bottom:calc(var(--navh,52px) + env(safe-area-inset-bottom,0px) + 14px);' +
+'background:var(--panel,#16223a);color:var(--ink,#eef2f9);' +
+'border:1px solid var(--gold,#c9a227);border-radius:12px;padding:10px 14px;font-size:13px;line-height:1.45;' +
+'box-shadow:0 10px 28px rgba(0,0,0,.5);text-align:center;transition:opacity .5s;cursor:pointer}' +
+'.zvukPoruka.van{opacity:0}' +
 '@media (hover:hover){.homeBtn:hover{border-color:var(--gold)}}' +
 '@media (max-height:600px){.homeBtn{padding:4px 8px;font-size:13px}}' +
 /* iPhone sam uveća stranicu kad tapneš u polje sa slovom manjim od 16 px, i ne vrati je
@@ -318,6 +336,43 @@ var CSS =
 '@media (orientation:landscape) and (max-height:620px){' +
 ':root{--navh:38px}.gamenav .t{display:none}.gamenav .e{font-size:17px}.gamenav a,.gamenav button{min-height:34px}}';
 
+/* Kratka lestvica koja se ne može promašiti — služi da korisnik čuje da zvuk radi. */
+SFX.proba = function () {
+  on = true;
+  try { localStorage.setItem(SKEY, "1"); } catch (e) { }
+  otkljucan = false;
+  otkljucaj();
+  var c = engine();
+  [660, 880, 1175].forEach(function (f, i) {
+    tone({ f: f, d: .18, type: "triangle", v: .5, at: i * .13 });
+  });
+  noise({ d: .1, f: 2000, v: .3, at: .4, q: .8 });
+  paintBtn();
+  return SFX.stanje();
+};
+SFX.stanje = function () {
+  return {
+    ukljucen: on,
+    kanal: ctx ? ctx.state : "nije otvoren",
+    webaudio: !!(window.AudioContext || window.webkitAudioContext),
+    govor: !!window.speechSynthesis
+  };
+};
+
+/* kratka poruka preko ekrana, da korisnik zna šta se desilo */
+function poruciNaEkranu(html) {
+  var stari = document.querySelector(".zvukPoruka");
+  if (stari) stari.remove();
+  var d = document.createElement("div");
+  d.className = "zvukPoruka";
+  d.innerHTML = html;
+  document.body.appendChild(d);
+  setTimeout(function () { d.classList.add("van"); }, 4200);
+  setTimeout(function () { if (d.parentNode) d.remove(); }, 4800);
+  d.addEventListener("click", function () { d.remove(); });
+}
+SFX.poruka = poruciNaEkranu;
+
 function paintBtn() {
   var b = document.getElementById("sndBtn");
   if (!b) return;
@@ -326,7 +381,30 @@ function paintBtn() {
   b.classList.toggle("off", !on);
   b.setAttribute("aria-pressed", on ? "true" : "false");
   b.title = on ? "Isključi zvuk" : "Uključi zvuk";
+  paintZvukBtn();
 }
+function paintZvukBtn() {
+  var lista = document.querySelectorAll(".zvukBtn");
+  for (var i = 0; i < lista.length; i++) {
+    lista[i].textContent = on ? "🔊" : "🔇";
+    lista[i].title = on ? "Zvuk je uključen — dodirni da utišaš" : "Zvuk je isključen — dodirni da uključiš";
+    lista[i].classList.toggle("nemo", !on);
+  }
+}
+/* jedno dugme za zvuk radi svuda isto: pali, proba i kaže šta je zatekao */
+function prekidacZvuka() {
+  if (on) {
+    SFX.set(false);
+    poruciNaEkranu("🔇 <b>Zvuk isključen.</b>");
+    return;
+  }
+  var st = SFX.proba();
+  if (!st.webaudio) return poruciNaEkranu("⚠️ Ovaj pregledač ne ume da pušta zvuk.");
+  poruciNaEkranu("🔊 <b>Zvuk uključen</b> — čuo si tri tona?<br>" +
+    "Ako nisi: pojačaj dugmićima sa strane i proveri <b>mali prekidač iznad njih</b> " +
+    "(kad je na crveno, telefon ćuti).");
+}
+SFX.prekidac = prekidacZvuka;
 
 function measure() {                      // stvarna visina trake → --navh (safe-area je već u njoj)
   var nav = document.querySelector(".gamenav");
@@ -370,15 +448,23 @@ function build() {
   h += '<button id="sndBtn" type="button"><span class="e">🔊</span><span class="t">Zvuk</span></button>';
   nav.innerHTML = h;
   document.body.appendChild(nav);
-  if (here !== "igre.html" && here !== "") {          // dugme za povratak na spisak igara
+  if (here !== "igre.html" && here !== "") {          // kućica i zvuk u zaglavlju svake igre
     var thm = document.querySelector("header #theme") || document.querySelector("header button:last-of-type");
-    if (thm && thm.parentNode && !document.querySelector(".homeBtn")) {
-      var hb = document.createElement("a");
-      hb.className = "homeBtn"; hb.href = "igre.html"; hb.title = "Sve igre"; hb.textContent = "🏠";
-      thm.parentNode.insertBefore(hb, thm);
+    if (thm && thm.parentNode) {
+      if (!document.querySelector(".zvukBtn")) {
+        var zb = document.createElement("button");
+        zb.type = "button"; zb.className = "zvukBtn"; zb.textContent = "🔊";
+        zb.addEventListener("click", prekidacZvuka);
+        thm.parentNode.insertBefore(zb, thm);
+      }
+      if (!document.querySelector(".homeBtn")) {
+        var hb = document.createElement("a");
+        hb.className = "homeBtn"; hb.href = "igre.html"; hb.title = "Sve igre"; hb.textContent = "🏠";
+        thm.parentNode.insertBefore(hb, thm);
+      }
     }
   }
-  document.getElementById("sndBtn").addEventListener("click", function () { SFX.toggle(); });
+  document.getElementById("sndBtn").addEventListener("click", prekidacZvuka);
   paintBtn();
   paintIme();
   measure();

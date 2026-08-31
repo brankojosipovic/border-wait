@@ -211,7 +211,7 @@ function paintSnd() {
   var on = window.SFX ? SFX.isOn() : true;
   b.textContent = on ? "🔊 Zvuk" : "🔇 Nemo";
 }
-document.getElementById("sndToggle").onclick = function () { SFX.toggle(); paintSnd(); };
+document.getElementById("sndToggle").onclick = function () { SFX.prekidac(); paintSnd(); };
 document.getElementById("glasToggle").onclick = function () { window.GLAS && GLAS.toggle(); };
 if (window.GLAS) GLAS.paint();
 document.getElementById("imeBtn").onclick = function () { window.IGRAC && IGRAC.pitaj(); };
