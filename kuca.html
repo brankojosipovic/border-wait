@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1626">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Kuća — slagalica u kojoj raspoređuješ nameštaj po sobama. Svaki komad ide u svoju sobu, uza zid, a vrata moraju ostati prohodna.">
+<meta name="apple-mobile-web-app-title" content="Kuća">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/kuca-180.png">
+<link rel="icon" href="icons/kuca-180.png" sizes="180x180" type="image/png">
+<title>Kuća</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0e1626; --panel: #16223a; --panel-2: #1b2a4a;
+    --ink: #eef2f9; --ink-dim: #9fb0cc; --line: #283a5e;
+    --gold: #c9a227; --good: #2e9e6b; --bad: #d65a4e;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.35);
+  }
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg: #f2f4f8; --panel: #ffffff; --panel-2: #eef1f7;
+    --ink: #1b2a4a; --ink-dim: #5a6884; --line: #d7dded;
+    --gold: #a9851a; --good: #1f7d52; --bad: #c0473c;
+    --shadow: 0 1px 2px rgba(27,42,74,.06), 0 6px 18px rgba(27,42,74,.08);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 Calibri, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none; user-select: none; -webkit-user-select: none;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  }
+  button { font: inherit; color: var(--ink); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px; cursor: pointer;
+    touch-action: manipulation; }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: .45; cursor: default; }
+  @media (hover: hover) { button:hover { border-color: var(--gold); } }
+
+  .wrap { display: flex; flex-direction: column; align-items: center; gap: 6px;
+          min-height: 100dvh; padding: 5px 8px 6px; }
+  .col { width: min(100vw - 16px, 460px); }
+  header { display: flex; align-items: center; gap: 8px;
+           border-left: 4px solid var(--gold); padding: 1px 0 1px 9px; }
+  header > div:first-child { min-width: 0; }
+  header h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -.2px; }
+  header .sub { color: var(--ink-dim); font-size: 11px;
+                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header button { padding: 6px 9px; }
+  .spacer { flex: 1; }
+
+  .hud { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-dim); }
+  .hud b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .hud .soba { padding: 2px 8px; border-radius: 999px; background: var(--panel-2);
+               border: 1px solid var(--line); color: var(--ink); }
+
+  .stage { position: relative; touch-action: none; }
+  canvas { display: block; border-radius: 12px; }
+
+  .alat { display: flex; align-items: center; gap: 6px; }
+  .alat button { flex: 1 1 0; padding: 7px 6px; font-size: 13px; white-space: nowrap;
+                 overflow: hidden; text-overflow: ellipsis; }
+  .alat button.glavno { border-color: var(--gold); color: var(--gold); font-weight: 700; }
+
+  .savetnik { font-size: 12px; color: var(--ink-dim); text-align: center; min-height: 17px; }
+  .savetnik b { color: var(--ink); }
+  .savetnik .los { color: var(--bad); font-weight: 700; }
+
+  .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
+  .foot a { color: var(--ink-dim); }
+  @media (max-height: 760px) { .foot { display: none; } }
+  @media (max-height: 680px) { header .sub { display: none; } }
+
+  .overlay { position: fixed; inset: 0 0 var(--navh, 0px) 0; display: flex; flex-direction: column; gap: 10px;
+             align-items: center; justify-content: center; text-align: center; padding: 18px;
+             background: color-mix(in srgb, var(--bg) 95%, transparent); backdrop-filter: blur(4px);
+             z-index: 55; overflow-y: auto; overscroll-behavior: contain; }
+  .overlay > * { flex-shrink: 0; }
+  .overlay > :first-child { margin-top: auto; }
+  .overlay > :last-child { margin-bottom: auto; }
+  .overlay h2 { margin: 0; font-size: 20px; }
+  .overlay h3 { margin: 4px 0 0; font-size: 15px; color: var(--ink-dim); font-weight: 600; }
+  .overlay p, .overlay ul { margin: 0; font-size: 13px; color: var(--ink-dim); max-width: 340px; }
+  .overlay ul { padding-left: 18px; text-align: left; }
+  .overlay ul li { margin-bottom: 5px; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .btns button { min-width: 132px; }
+  .zvezde { font-size: 26px; letter-spacing: 4px; }
+  .tabst { font-size: 13px; border-collapse: collapse; width: min(100%, 320px); }
+  .tabst td, .tabst th { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: right; }
+  .tabst th:first-child, .tabst td:first-child { text-align: left; color: var(--ink-dim); }
+</style>
+</head>
+<body data-theme="dark">
+<div class="wrap">
+  <header class="col">
+    <div>
+      <h1>🛋 Kuća</h1>
+      <div class="sub">Rasporedi nameštaj po sobama</div>
+    </div>
+    <div class="spacer"></div>
+    <button id="meniBtn2" title="Meni">☰</button>
+    <button id="theme" title="Svetla/tamna tema">☀︎ / ☾</button>
+  </header>
+
+  <div class="hud col" id="hud"></div>
+
+  <div class="stage">
+    <canvas id="cv"></canvas>
+  </div>
+
+  <div class="alat col">
+    <button id="okreni">↻ Okreni</button>
+    <button id="pomocBtn">💡 Pomoć</button>
+    <button id="ocisti">🧹 Isprazni</button>
+  </div>
+
+  <div class="savetnik col" id="savet"></div>
+
+  <div class="foot col">
+    <a href="igre.html">🎮 Sve igre</a> · <a href="pomoc.html">❔ Pomoć</a> · <a href="index.html">← Border Wait</a>
+  </div>
+</div>
+<div class="overlay" id="overlay" hidden></div>
+
+<script src="igre.js"></script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const KEY = "kuca.v1";
+const cv = $("#cv"), ctx = cv.getContext("2d");
+
+/* ================= SOBE I NAMEŠTAJ ================= */
+const SOBE = {
+  dnevna:   { nm: "Dnevna soba", em: "🛋", boja: "#2f6b4f", svetla: "#3f8a66" },
+  spavaca:  { nm: "Spavaća",     em: "🛏", boja: "#4a3a6b", svetla: "#63508c" },
+  kuhinja:  { nm: "Kuhinja",     em: "🍳", boja: "#6b5326", svetla: "#8a6d35" },
+  kupatilo: { nm: "Kupatilo",    em: "🛁", boja: "#2b5a70", svetla: "#3a768f" },
+  hodnik:   { nm: "Hodnik",      em: "🚪", boja: "#4a4a52", svetla: "#63636d" },
+  decija:   { nm: "Dečija soba", em: "🧸", boja: "#6b3a4a", svetla: "#8c4e63" }
+};
+/* Nameštaj je uvek pravougaon — zato je i slaganje pošteno i crtanje čisto. */
+const NAMESTAJ = {
+  dnevna: [
+    { nm: "Kauč", em: "🛋", w: 3, h: 1, zid: true },
+    { nm: "Televizor", em: "📺", w: 2, h: 1, zid: true },
+    { nm: "Polica", em: "🗄", w: 2, h: 1, zid: true },
+    { nm: "Sto", em: "☕", w: 2, h: 2 },
+    { nm: "Fotelja", em: "🪑", w: 1, h: 1 },
+    { nm: "Fikus", em: "🪴", w: 1, h: 1 },
+    { nm: "Lampa", em: "💡", w: 1, h: 1 }
+  ],
+  spavaca: [
+    { nm: "Krevet", em: "🛏", w: 2, h: 3, zid: true },
+    { nm: "Ormar", em: "👔", w: 1, h: 3, zid: true },
+    { nm: "Komoda", em: "🗄", w: 2, h: 1, zid: true },
+    { nm: "Noćni stočić", em: "🕯", w: 1, h: 1 },
+    { nm: "Ogledalo", em: "🪞", w: 1, h: 1, zid: true }
+  ],
+  kuhinja: [
+    { nm: "Šporet", em: "🍳", w: 2, h: 1, zid: true },
+    { nm: "Frižider", em: "🧊", w: 1, h: 2, zid: true },
+    { nm: "Sudopera", em: "🚰", w: 2, h: 1, zid: true },
+    { nm: "Trpezarijski sto", em: "🍽", w: 2, h: 2 },
+    { nm: "Stolica", em: "🪑", w: 1, h: 1 },
+    { nm: "Sudo-mašina", em: "🧼", w: 1, h: 1, zid: true }
+  ],
+  kupatilo: [
+    { nm: "Kada", em: "🛁", w: 3, h: 1, zid: true },
+    { nm: "Tuš", em: "🚿", w: 1, h: 1, zid: true },
+    { nm: "WC šolja", em: "🚽", w: 1, h: 1, zid: true },
+    { nm: "Lavabo", em: "🪥", w: 1, h: 1, zid: true },
+    { nm: "Veš mašina", em: "🧺", w: 1, h: 1, zid: true }
+  ],
+  hodnik: [
+    { nm: "Čiviluk", em: "🧥", w: 1, h: 1, zid: true },
+    { nm: "Cipelarnik", em: "👟", w: 2, h: 1, zid: true },
+    { nm: "Ogledalo", em: "🪞", w: 1, h: 1, zid: true },
+    { nm: "Komoda", em: "🗄", w: 2, h: 1, zid: true }
+  ],
+  decija: [
+    { nm: "Krevetac", em: "🛏", w: 2, h: 2, zid: true },
+    { nm: "Radni sto", em: "📚", w: 2, h: 1, zid: true },
+    { nm: "Sanduk za igračke", em: "🧸", w: 1, h: 1 },
+    { nm: "Polica", em: "🗄", w: 2, h: 1, zid: true },
+    { nm: "Stolica", em: "🪑", w: 1, h: 1 }
+  ]
+};
+
+/* ================= NASUMIČNOST PO NIVOU ================= */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function promesaj(niz, r) {
+  for (let i = niz.length - 1; i > 0; i--) { const j = (r() * (i + 1)) | 0; [niz[i], niz[j]] = [niz[j], niz[i]]; }
+  return niz;
+}
+
+/* ================= PLAN KUĆE ================= */
+/* Pravougaonik se seče na sobe, pa se između susednih probiju vrata.
+   Nameštaj se prvo rasporedi — tako je svaki nivo sigurno rešiv. */
+const NAJMANJA = 3;
+function podeliSobe(r, koliko, rnd) {
+  let sobe = [{ x: 0, y: 0, w: r.w, h: r.h }];
+  let straza = 0;
+  while (sobe.length < koliko && straza++ < 60) {
+    sobe.sort((a, b) => b.w * b.h - a.w * a.h);
+    let podeljena = false;
+    for (const s of sobe) {
+      const uspravno = s.h >= s.w;
+      const duz = uspravno ? s.h : s.w;
+      if (duz < NAJMANJA * 2) continue;         // dve sobe od po tri polja su najmanje što ima smisla
+      const najm = NAJMANJA, opseg = duz - NAJMANJA * 2;
+      const rez = najm + Math.floor(rnd() * (opseg + 1));
+      const i = sobe.indexOf(s);
+      const a = uspravno ? { x: s.x, y: s.y, w: s.w, h: rez } : { x: s.x, y: s.y, w: rez, h: s.h };
+      const b = uspravno ? { x: s.x, y: s.y + rez, w: s.w, h: s.h - rez }
+                         : { x: s.x + rez, y: s.y, w: s.w - rez, h: s.h };
+      sobe.splice(i, 1, a, b);
+      podeljena = true;
+      break;
+    }
+    if (!podeljena) break;
+  }
+  return sobe;
+}
+function susedne(a, b) {                        // dele li zid, i gde
+  const spoj = [];
+  if (a.x + a.w === b.x || b.x + b.w === a.x) {  // uspravni zid
+    const x1 = a.x + a.w === b.x ? a.x + a.w - 1 : b.x + b.w - 1;
+    const x2 = x1 + 1;
+    const od = Math.max(a.y, b.y), do_ = Math.min(a.y + a.h, b.y + b.h);
+    for (let y = od; y < do_; y++) spoj.push([{ x: x1, y: y }, { x: x2, y: y }]);
+  }
+  if (a.y + a.h === b.y || b.y + b.h === a.y) {  // vodoravni zid
+    const y1 = a.y + a.h === b.y ? a.y + a.h - 1 : b.y + b.h - 1;
+    const y2 = y1 + 1;
+    const od = Math.max(a.x, b.x), do_ = Math.min(a.x + a.w, b.x + b.w);
+    for (let x = od; x < do_; x++) spoj.push([{ x: x, y: y1 }, { x: x, y: y2 }]);
+  }
+  return spoj;
+}
+function napraviNivo(br) {
+  const rnd = mulberry32(0x5eed ^ (br * 2654435761));
+  const tezina = Math.min(6, 2 + Math.floor((br - 1) / 3));           // 2 → 6 soba
+  const w = Math.min(9, 5 + Math.floor((br - 1) / 4));
+  const h = Math.min(12, 6 + Math.floor((br - 1) / 3));
+  const sirovi = podeliSobe({ w: w, h: h }, tezina, rnd);
+  sirovi.sort((a, b) => b.w * b.h - a.w * a.h);
+  const tipovi = ["dnevna", "spavaca", "kuhinja", "kupatilo", "decija", "hodnik"];
+  const sobe = sirovi.map((s, i) => Object.assign({}, s, { tip: tipovi[i % tipovi.length], id: i }));
+
+  /* Vrata: taman toliko da se iz svake sobe može u svaku, ni jedno više.
+     Svaka su jedno polje, jer bi inače pola kuće bilo neprohodno. */
+  const vrata = Object.create(null);
+  const koren = sobe.map((_, i) => i);
+  const nadji = i => koren[i] === i ? i : (koren[i] = nadji(koren[i]));
+  const parovi = [];
+  for (let i = 0; i < sobe.length; i++)
+    for (let j = i + 1; j < sobe.length; j++) {
+      const spoj = susedne(sobe[i], sobe[j]);
+      if (spoj.length) parovi.push({ i: i, j: j, spoj: spoj });
+    }
+  promesaj(parovi, rnd);
+  for (const par of parovi) {
+    const a = nadji(par.i), b = nadji(par.j);
+    if (a === b) continue;                       // već su povezane, ne treba još jedna vrata
+    koren[a] = b;
+    const cel = par.spoj[Math.floor(rnd() * par.spoj.length)];
+    const strana = cel[Math.floor(rnd() * 2)];
+    vrata[strana.x + "," + strana.y] = true;
+  }
+
+  /* nameštaj: prvo ga stvarno rasporedimo, pa zapamtimo rešenje */
+  const komadi = [];
+  let redni = 0;
+  for (const s of sobe) {
+    const spisak = promesaj(NAMESTAJ[s.tip].slice(), rnd);
+    const cilj = Math.max(2, Math.round(s.w * s.h * (0.24 + rnd() * 0.14)));
+    let popunjeno = 0;
+    for (const vrsta of spisak) {
+      if (popunjeno >= cilj) break;
+      const mesto = nadjiMesto(s, vrsta, komadi, vrata, rnd);
+      if (!mesto) continue;
+      komadi.push({                              // dok traje pravljenje, komad stvarno stoji na stolu
+        id: redni++, nm: vrsta.nm, em: vrsta.em, soba: s.id, tip: s.tip,
+        w: vrsta.w, h: vrsta.h, zid: !!vrsta.zid,
+        resenje: mesto, x: mesto.x, y: mesto.y, okrenut: mesto.okrenut
+      });
+      popunjeno += vrsta.w * vrsta.h;
+    }
+  }
+  komadi.forEach(k => { k.x = null; k.y = null; k.okrenut = false; });   // pa ga sklonimo igraču
+  return { br: br, w: w, h: h, sobe: sobe, vrata: vrata, komadi: promesaj(komadi, rnd) };
+}
+function nadjiMesto(s, vrsta, vec, vrata, rnd) {
+  const varijante = vrsta.w === vrsta.h ? [[vrsta.w, vrsta.h, false]]
+    : promesaj([[vrsta.w, vrsta.h, false], [vrsta.h, vrsta.w, true]], rnd);
+  for (const [w, h, okr] of varijante) {
+    const mesta = [];
+    for (let y = s.y; y + h <= s.y + s.h; y++)
+      for (let x = s.x; x + w <= s.x + s.w; x++)
+        mesta.push({ x: x, y: y, okrenut: okr });
+    promesaj(mesta, rnd);
+    for (const m of mesta) {
+      if (uzZidTreba(vrsta, s, m, w, h) && slobodno(m.x, m.y, w, h, vec, vrata)) return m;
+    }
+  }
+  return null;
+}
+function uzZidTreba(vrsta, s, m, w, h) {
+  if (!vrsta.zid) return true;
+  return m.x === s.x || m.y === s.y || m.x + w === s.x + s.w || m.y + h === s.y + s.h;
+}
+function slobodno(x, y, w, h, vec, vrata) {
+  for (let i = 0; i < w; i++)
+    for (let j = 0; j < h; j++) {
+      if (vrata[(x + i) + "," + (y + j)]) return false;
+      for (const k of vec) {
+        if (k.x == null) continue;
+        const kw = k.okrenut ? k.h : k.w, kh = k.okrenut ? k.w : k.h;
+        if (x + i >= k.x && x + i < k.x + kw && y + j >= k.y && y + j < k.y + kh) return false;
+      }
+    }
+  return true;
+}
+</script>
+<script>
+"use strict";
+
+/* ================= STANJE ================= */
+let N = null;                                   // tekući nivo
+let uRuci = null;                               // komad koji nosiš: {k, dx, dy}
+let duh = null;                                 // gde bi pao: {x, y, moze}
+let izabran = null;                             // izabran iz police, bez prevlačenja
+let poteza = 0, pocetak = 0, saveta = 0;
+let R = { cel: 20, x0: 0, y0: 0, policaY: 0, policaH: 0, slotovi: [] };
+
+const kw = k => (k.okrenut ? k.h : k.w);
+const kh = k => (k.okrenut ? k.w : k.h);
+const uPolici = () => N.komadi.filter(k => k.x == null);
+const postavljeni = () => N.komadi.filter(k => k.x != null);
+const sobaOd = k => N.sobe[k.soba];
+
+function mozeNa(k, x, y) {
+  const s = sobaOd(k), w = kw(k), h = kh(k);
+  if (x < s.x || y < s.y || x + w > s.x + s.w || y + h > s.y + s.h) return false;
+  for (let i = 0; i < w; i++)
+    for (let j = 0; j < h; j++) {
+      if (N.vrata[(x + i) + "," + (y + j)]) return false;
+      for (const d of N.komadi) {
+        if (d === k || d.x == null) continue;
+        const dw = kw(d), dh = kh(d);
+        if (x + i >= d.x && x + i < d.x + dw && y + j >= d.y && y + j < d.y + dh) return false;
+      }
+    }
+  if (k.zid && !(x === s.x || y === s.y || x + w === s.x + s.w || y + h === s.y + s.h)) return false;
+  return true;
+}
+function zastoNe(k, x, y) {
+  const s = sobaOd(k), w = kw(k), h = kh(k);
+  if (x < s.x || y < s.y || x + w > s.x + s.w || y + h > s.y + s.h)
+    return k.nm + " ide u sobu <b>" + SOBE[k.tip].nm + "</b>, i mora da stane cela.";
+  for (let i = 0; i < w; i++)
+    for (let j = 0; j < h; j++)
+      if (N.vrata[(x + i) + "," + (y + j)]) return "Tu su <b>vrata</b> — mora da se prođe.";
+  if (k.zid && !(x === s.x || y === s.y || x + w === s.x + s.w || y + h === s.y + s.h))
+    return k.nm + " se naslanja <b>uza zid</b>.";
+  return "Tu već nešto stoji.";
+}
+function gotovo() { return N && uPolici().length === 0; }
+
+/* ================= CRTANJE ================= */
+function boja(tip, svetlo) { return svetlo ? SOBE[tip].svetla : SOBE[tip].boja; }
+function crtaj() {
+  if (!N) return;
+  const { cel, x0, y0 } = R;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const sirina = cv.width / (window.devicePixelRatio > 1 ? Math.min(2, window.devicePixelRatio) : 1);
+
+  /* podloga kuće */
+  ctx.fillStyle = "#0b1220";
+  okrugliPut(x0 - 5, y0 - 5, N.w * cel + 10, N.h * cel + 10, 8); ctx.fill();
+
+  for (const s of N.sobe) {                      // sobe
+    const px = x0 + s.x * cel, py = y0 + s.y * cel;
+    const g = ctx.createLinearGradient(px, py, px, py + s.h * cel);
+    g.addColorStop(0, boja(s.tip, true)); g.addColorStop(1, boja(s.tip, false));
+    ctx.fillStyle = g;
+    ctx.fillRect(px, py, s.w * cel, s.h * cel);
+    ctx.strokeStyle = "rgba(255,255,255,.06)"; ctx.lineWidth = 1;
+    for (let i = 1; i < s.w; i++) { ctx.beginPath(); ctx.moveTo(px + i * cel, py); ctx.lineTo(px + i * cel, py + s.h * cel); ctx.stroke(); }
+    for (let j = 1; j < s.h; j++) { ctx.beginPath(); ctx.moveTo(px, py + j * cel); ctx.lineTo(px + s.w * cel, py + j * cel); ctx.stroke(); }
+    const natpis = SOBE[s.tip].em + " " + SOBE[s.tip].nm;
+    ctx.font = "700 " + Math.max(9, Math.min(13, cel * .34)).toFixed(0) + "px Calibri, system-ui, sans-serif";
+    ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.45)";
+    ctx.strokeText(natpis, px + 4, py + 3);
+    ctx.fillStyle = "rgba(255,255,255,.7)";
+    ctx.fillText(natpis, px + 4, py + 3);
+  }
+  for (const s of N.sobe) {                      // zidovi
+    ctx.strokeStyle = "#e8e2d4"; ctx.lineWidth = Math.max(2, cel * .10);
+    ctx.strokeRect(x0 + s.x * cel, y0 + s.y * cel, s.w * cel, s.h * cel);
+  }
+  for (const kljuc in N.vrata) {                 // vrata — prolaz koji mora ostati slobodan
+    const [vx, vy] = kljuc.split(",").map(Number);
+    const px = x0 + vx * cel, py = y0 + vy * cel;
+    ctx.save();
+    ctx.fillStyle = "rgba(240,225,185,.30)";
+    ctx.fillRect(px + 1, py + 1, cel - 2, cel - 2);
+    ctx.strokeStyle = "rgba(245,232,200,.9)"; ctx.lineWidth = 1.6;
+    ctx.setLineDash([Math.max(3, cel * .16), Math.max(3, cel * .12)]);
+    ctx.strokeRect(px + 2.5, py + 2.5, cel - 5, cel - 5);
+    ctx.setLineDash([]);
+    ctx.font = (cel * .46).toFixed(0) + "px Calibri, system-ui, sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.globalAlpha = .9;
+    ctx.fillText("🚶", px + cel / 2, py + cel / 2);   // prolaz, ne nameštaj
+    ctx.restore();
+  }
+
+  if (duh && uRuci) {                            // senka gde bi komad pao
+    const k = uRuci.k;
+    ctx.fillStyle = duh.moze ? "rgba(90,220,150,.35)" : "rgba(230,90,80,.35)";
+    ctx.strokeStyle = duh.moze ? "#5adc96" : "#e65a50"; ctx.lineWidth = 2;
+    const px = x0 + duh.x * cel, py = y0 + duh.y * cel;
+    okrugliPut(px + 2, py + 2, kw(k) * cel - 4, kh(k) * cel - 4, 5);
+    ctx.fill(); ctx.stroke();
+  }
+  for (const k of postavljeni()) crtajKomad(k, x0 + k.x * cel, y0 + k.y * cel, cel, 1);
+
+  /* polica sa nameštajem */
+  ctx.fillStyle = "rgba(255,255,255,.05)";
+  okrugliPut(0, R.policaY, sirina, R.policaH, 10); ctx.fill();
+  R.slotovi = [];
+  const lista = uPolici();
+  if (!lista.length) {
+    ctx.fillStyle = "rgba(255,255,255,.45)";
+    ctx.font = "600 14px Calibri, system-ui, sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("Sve je na svom mestu 🎉", sirina / 2, R.policaY + R.policaH / 2);
+  }
+  const pc = R.policaCel;
+  let px = 8, py = R.policaY + 6, redVis = 0;
+  for (const k of lista) {
+    const w = kw(k) * pc, h = kh(k) * pc;
+    if (px + w > sirina - 6) { px = 8; py += redVis + 6; redVis = 0; }
+    R.slotovi.push({ k: k, x: px, y: py, w: w, h: h });
+    crtajKomad(k, px, py, pc, izabran === k ? 1 : .95, izabran === k);
+    px += w + 8; redVis = Math.max(redVis, h);
+  }
+  if (uRuci && uRuci.px != null) {               // komad koji visi o prstu
+    const k = uRuci.k;
+    crtajKomad(k, uRuci.px - kw(k) * cel / 2, uRuci.py - kh(k) * cel / 2, cel, .85);
+  }
+}
+function okrugliPut(x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);
+  else ctx.rect(x, y, w, h);
+}
+function crtajKomad(k, px, py, cel, alfa, oivicen) {
+  const w = kw(k) * cel, h = kh(k) * cel;
+  ctx.save();
+  ctx.globalAlpha = alfa == null ? 1 : alfa;
+  ctx.shadowColor = "rgba(0,0,0,.45)"; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+  const g = ctx.createLinearGradient(px, py, px, py + h);
+  g.addColorStop(0, "#f0e3cc"); g.addColorStop(1, "#cbb492");
+  ctx.fillStyle = g;
+  okrugliPut(px + 2, py + 2, w - 4, h - 4, Math.min(7, cel * .28)); ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.strokeStyle = oivicen ? "#c9a227" : "rgba(90,70,40,.5)";
+  ctx.lineWidth = oivicen ? 2.5 : 1;
+  okrugliPut(px + 2, py + 2, w - 4, h - 4, Math.min(7, cel * .28)); ctx.stroke();
+  ctx.fillStyle = "#2b2118";
+  ctx.font = Math.min(w, h) * .62 + "px Calibri, system-ui, sans-serif";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(k.em, px + w / 2, py + h / 2 + 1);
+  ctx.restore();
+}
+
+/* ================= MERE ================= */
+function visinaPolice(cel, sirina) {
+  let px = 8, py = 6, redVis = 0;
+  for (const k of uPolici()) {
+    const w = kw(k) * cel, h = kh(k) * cel;
+    if (px + w > sirina - 6) { px = 8; py += redVis + 6; redVis = 0; }
+    px += w + 8; redVis = Math.max(redVis, h);
+  }
+  return py + redVis + 6;
+}
+function fit() {
+  const wrap = document.querySelector(".wrap"), nav = document.querySelector(".gamenav");
+  const stage = document.querySelector(".stage");
+  const limit = nav ? nav.getBoundingClientRect().top : window.innerHeight;
+  const deca = [...wrap.children].filter(el => el.offsetParent !== null);
+  const drugi = deca.filter(el => el !== stage).reduce((a, el) => a + el.getBoundingClientRect().height, 0);
+  const cs = getComputedStyle(wrap);
+  const razmaci = (parseFloat(cs.rowGap) || 0) * Math.max(0, deca.length - 1);
+  const visina = Math.max(220, limit - wrap.getBoundingClientRect().top - drugi - razmaci - (parseFloat(cs.paddingBottom) || 0) - 14);
+  const sirina = Math.min(window.innerWidth - 16, 460);
+  if (!N) return;
+
+  /* polica se meri istim rasporedom kojim se i crta, pa uvek stane */
+  let policaCel = Math.min(26, Math.max(14, Math.floor(sirina / 14)));
+  const najvisa = Math.round(visina * 0.42);
+  let policaH = visinaPolice(policaCel, sirina);
+  while (policaH > najvisa && policaCel > 12) { policaCel--; policaH = visinaPolice(policaCel, sirina); }
+  const zaKucu = visina - policaH - 14;
+  const cel = Math.max(12, Math.floor(Math.min((sirina - 14) / N.w, zaKucu / N.h)));
+  R.cel = cel;
+  R.x0 = Math.round((sirina - N.w * cel) / 2);
+  R.y0 = 6;
+  R.policaCel = policaCel;
+  R.policaH = policaH;
+  R.policaY = Math.max(N.h * cel + 14, visina - policaH);
+
+  const ukupnaV = Math.min(visina, R.policaY + policaH);
+  cv.style.width = sirina + "px"; cv.style.height = ukupnaV + "px";
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = Math.round(sirina * dpr); cv.height = Math.round(ukupnaV * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  crtaj();
+}
+window.addEventListener("resize", fit);
+window.addEventListener("DOMContentLoaded", fit);
+window.addEventListener("load", fit);
+window.addEventListener("orientationchange", () => setTimeout(fit, 150));
+</script>
+<script>
+"use strict";
+
+/* ================= PREVLAČENJE ================= */
+const stage = document.querySelector(".stage");
+function tacka(e) {
+  const r = cv.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+function komadNaTacki(t) {
+  for (const s of R.slotovi) if (t.x >= s.x && t.x <= s.x + s.w && t.y >= s.y && t.y <= s.y + s.h) return s.k;
+  const cx = Math.floor((t.x - R.x0) / R.cel), cy = Math.floor((t.y - R.y0) / R.cel);
+  for (const k of postavljeni())
+    if (cx >= k.x && cx < k.x + kw(k) && cy >= k.y && cy < k.y + kh(k)) return k;
+  return null;
+}
+stage.addEventListener("pointerdown", e => {
+  if (!N || gotovo()) return;
+  e.preventDefault();
+  stage.setPointerCapture(e.pointerId);
+  const t = tacka(e);
+  const k = komadNaTacki(t);
+  if (!k) { izabran = null; crtaj(); return; }
+  if (k.x != null) { k.x = null; k.y = null; poteza++; }     // podigni sa poda
+  izabran = k;
+  uRuci = { k: k, px: t.x, py: t.y };
+  osveziDuha(t);
+  window.SFX && SFX.tap();
+  crtaj(); osveziHud();
+});
+stage.addEventListener("pointermove", e => {
+  if (!uRuci || !stage.hasPointerCapture(e.pointerId)) return;
+  e.preventDefault();
+  const t = tacka(e);
+  uRuci.px = t.x; uRuci.py = t.y;
+  osveziDuha(t);
+  crtaj();
+});
+function osveziDuha(t) {
+  if (!uRuci) { duh = null; return; }
+  const k = uRuci.k;
+  const x = Math.round((t.x - R.x0 - kw(k) * R.cel / 2) / R.cel);
+  const y = Math.round((t.y - R.y0 - kh(k) * R.cel / 2) / R.cel);
+  if (t.y > R.policaY - 4) { duh = null; return; }
+  duh = { x: x, y: y, moze: mozeNa(k, x, y) };
+}
+function pusti() {
+  if (!uRuci) return;
+  const k = uRuci.k, d = duh;
+  uRuci = null; duh = null;
+  if (d && d.moze) {
+    k.x = d.x; k.y = d.y; poteza++;
+    window.SFX && SFX.stamp();
+    savet(k.nm + " je na mestu.");
+    izabran = null;
+    if (gotovo()) return zavrsi();
+  } else if (d) {
+    window.SFX && SFX.bad();
+    savet('<span class="los">' + zastoNe(k, d.x, d.y) + "</span>");
+  }
+  crtaj(); osveziHud(); save();
+}
+stage.addEventListener("pointerup", pusti);
+stage.addEventListener("pointercancel", () => { uRuci = null; duh = null; crtaj(); });
+
+/* ================= DUGMAD ================= */
+$("#okreni").onclick = () => {
+  const k = uRuci ? uRuci.k : izabran;
+  if (!k) return savet("Prvo dodirni komad koji hoćeš da okreneš.");
+  if (k.w === k.h) return savet(k.nm + " je kvadrat — okretanje ništa ne menja.");
+  if (k.x != null) { k.x = null; k.y = null; }
+  k.okrenut = !k.okrenut;
+  window.SFX && SFX.tick();
+  savet(k.nm + " je okrenut.");
+  crtaj(); osveziHud(); save();
+};
+$("#ocisti").onclick = () => {
+  if (!N) return;
+  N.komadi.forEach(k => { k.x = null; k.y = null; k.okrenut = false; });
+  izabran = null; poteza++;
+  window.SFX && SFX.shuffle();
+  savet("Sve je vraćeno u policu.");
+  crtaj(); osveziHud(); save();
+};
+$("#pomocBtn").onclick = () => {
+  if (!N || gotovo()) return;
+  const nedostaju = uPolici();
+  if (!nedostaju.length) return;
+  /* pomoć uvek radi: skloni sve što smeta rešenju jednog komada, pa ga postavi */
+  const k = nedostaju[Math.floor(Math.random() * nedostaju.length)];
+  const r = k.resenje;
+  for (const d of N.komadi) {
+    if (d === k || d.x == null) continue;
+    const dw = kw(d), dh = kh(d);
+    const w = r.okrenut ? k.h : k.w, h = r.okrenut ? k.w : k.h;
+    if (r.x < d.x + dw && r.x + w > d.x && r.y < d.y + dh && r.y + h > d.y) { d.x = null; d.y = null; }
+  }
+  k.okrenut = r.okrenut; k.x = r.x; k.y = r.y;
+  saveta++; poteza++;
+  window.SFX && SFX.coin();
+  savet("💡 " + k.nm + " ide ovde.");
+  crtaj(); osveziHud(); save();
+  if (gotovo()) zavrsi();
+};
+
+/* ================= HUD I PORUKE ================= */
+function osveziHud() {
+  if (!N) return;
+  const ostalo = uPolici().length;
+  $("#hud").innerHTML =
+    '<span class="soba">🏠 Kuća ' + N.br + '</span>' +
+    '<span>ostalo <b>' + ostalo + '</b> / ' + N.komadi.length + '</span>' +
+    '<div class="spacer"></div>' +
+    '<span>poteza <b>' + poteza + '</b></span>';
+  $("#okreni").disabled = !(uRuci || izabran);
+  $("#pomocBtn").disabled = gotovo();
+  fit();
+}
+function savet(h) { $("#savet").innerHTML = h; }
+
+/* ================= NIVOI ================= */
+function kreni(br) {
+  N = napraviNivo(br);
+  uRuci = null; duh = null; izabran = null; poteza = 0; saveta = 0; pocetak = Date.now();
+  hideOverlay(); osveziHud(); fit();
+  savet("Prevuci nameštaj iz police u <b>njegovu sobu</b>.");
+  save();
+}
+function zavrsi() {
+  const sek = Math.max(1, Math.round((Date.now() - pocetak) / 1000));
+  const najmanje = N.komadi.length;
+  const zvezde = saveta === 0 && poteza <= najmanje + 2 ? 3 : saveta <= 1 && poteza <= najmanje * 2 ? 2 : 1;
+  let najbolji = {};
+  try { najbolji = JSON.parse(localStorage.getItem("kuca.rekordi") || "{}"); } catch (e) { }
+  const staro = najbolji[N.br];
+  if (!staro || zvezde > staro.z || (zvezde === staro.z && sek < staro.s))
+    najbolji[N.br] = { z: zvezde, s: sek, p: poteza };
+  try {
+    localStorage.setItem("kuca.rekordi", JSON.stringify(najbolji));
+    localStorage.setItem("kuca.dostignut", String(Math.max(dostignut(), N.br + 1)));
+    localStorage.removeItem(KEY);
+  } catch (e) { }
+  window.SFX && SFX.win();
+  crtaj();
+  showOverlay('<h2>🏡 Kuća je uređena!</h2>' +
+    '<div class="zvezde">' + "★★★".slice(0, zvezde) + '<span style="opacity:.25">' + "★★★".slice(zvezde) + '</span></div>' +
+    '<table class="tabst">' +
+    '<tr><td>Nameštaj</td><td>' + N.komadi.length + ' komada</td></tr>' +
+    '<tr><td>Poteza</td><td>' + poteza + '</td></tr>' +
+    '<tr><td>Vreme</td><td>' + (sek > 59 ? Math.floor(sek / 60) + " min " + (sek % 60) + " s" : sek + " s") + '</td></tr>' +
+    '<tr><td>Pomoć</td><td>' + (saveta ? saveta + "×" : "bez pomoći") + '</td></tr>' +
+    '</table>' +
+    '<div class="btns"><button id="daljeBtn">▶ Sledeća kuća</button>' +
+    '<button id="opetBtn">⟲ Još jednom</button>' +
+    '<button id="meniBtn3">📋 Meni</button></div>');
+  $("#daljeBtn").onclick = () => kreni(N.br + 1);
+  $("#opetBtn").onclick = () => kreni(N.br);
+  $("#meniBtn3").onclick = meni;
+}
+function dostignut() {
+  try { return Math.max(1, parseInt(localStorage.getItem("kuca.dostignut") || "1", 10) || 1); } catch (e) { return 1; }
+}
+
+/* ================= ČUVANJE ================= */
+function save() {
+  if (!N || gotovo()) return;
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      br: N.br, poteza: poteza, saveta: saveta,
+      stanje: N.komadi.map(k => ({ i: k.id, x: k.x, y: k.y, o: k.okrenut }))
+    }));
+  } catch (e) { }
+}
+function load() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (!raw || !raw.br || !raw.stanje) return false;
+    N = napraviNivo(raw.br);
+    for (const s of raw.stanje) {
+      const k = N.komadi.find(x => x.id === s.i);
+      if (k) { k.x = s.x; k.y = s.y; k.okrenut = !!s.o; }
+    }
+    poteza = raw.poteza || 0; saveta = raw.saveta || 0; pocetak = Date.now();
+    return true;
+  } catch (e) { return false; }
+}
+
+/* ================= MENI ================= */
+function meni() {
+  const ima = !!localStorage.getItem(KEY);
+  const dost = dostignut();
+  showOverlay('<h2>🛋 Kuća</h2>' +
+    '<div class="btns">' +
+    (ima && N ? '<button id="nastBtn">▶ Nastavi — kuća ' + N.br + '</button>' : '') +
+    '<button id="novaBtn">🏠 Nova kuća ' + dost + '</button>' +
+    '<button id="izborBtn">🔢 Izaberi kuću</button>' +
+    '<button id="pravBtn">❔ Pravila</button></div>' +
+    '<p>Svaki komad nameštaja ide u svoju sobu: krevet u spavaću, šporet u kuhinju. ' +
+    'Veliki komadi se naslanjaju uza zid, a ispred vrata ne sme ništa.</p>');
+  const nb = $("#nastBtn"); if (nb) nb.onclick = () => { hideOverlay(); osveziHud(); };
+  $("#novaBtn").onclick = () => kreni(dost);
+  $("#izborBtn").onclick = izborKuce;
+  $("#pravBtn").onclick = pravila;
+}
+function izborKuce() {
+  const dost = dostignut();
+  let rek = {};
+  try { rek = JSON.parse(localStorage.getItem("kuca.rekordi") || "{}"); } catch (e) { }
+  let h = '<h2>🔢 Izaberi kuću</h2><div class="btns uska" style="max-width:320px">';
+  for (let i = 1; i <= Math.max(dost, 1); i++) {
+    const r = rek[i];
+    h += '<button data-n="' + i + '" style="min-width:64px">' + i +
+      (r ? '<br><small style="color:var(--gold)">' + "★".repeat(r.z) + '</small>' : '') + '</button>';
+  }
+  h += '</div><p>Otvorene su ti kuće do <b>' + dost + '</b>. Svaka je uvek ista — broj je njen crtež.</p>' +
+    '<div class="btns"><button id="nazBtn">← Nazad</button></div>';
+  showOverlay(h);
+  for (const b of document.querySelectorAll("[data-n]")) b.onclick = () => kreni(+b.dataset.n);
+  $("#nazBtn").onclick = meni;
+}
+function pravila() {
+  showOverlay('<h2>Kako se igra</h2>' +
+    '<ul>' +
+    '<li><b>Prevuci</b> komad iz police dole u sobu kojoj pripada. Sivi obris ti pokazuje gde bi pao: ' +
+    'zeleno znači da može, crveno da ne može.</li>' +
+    '<li>Svaki komad ima svoju sobu — <b>krevet u spavaću</b>, šporet u kuhinju, kada u kupatilo. ' +
+    'Boja sobe i natpis u uglu ti kažu koja je koja.</li>' +
+    '<li>Veliki komadi (krevet, ormar, kauč, kada) <b>moraju uza zid</b> — bar jednom stranicom uz ivicu sobe.</li>' +
+    '<li>Polje sa <b>🚶</b> i isprekidanom ivicom je <b>prolaz kroz vrata</b> — mora ostati slobodno.</li>' +
+    '<li><b>↻ Okreni</b> obrne komad koji držiš ili si ga dodirnuo. Komad koji je već na podu ' +
+    'možeš da podigneš prstom i premestiš.</li>' +
+    '<li><b>💡 Pomoć</b> postavi jedan komad umesto tebe, ali ti odnese zvezdicu.</li>' +
+    '<li>Tri zvezdice dobijaš kad složiš sve iz prve, bez pomoći.</li>' +
+    '</ul>' +
+    '<div class="btns"><button id="nazBtn2">← Nazad</button></div>');
+  $("#nazBtn2").onclick = meni;
+}
+function showOverlay(h) { const o = $("#overlay"); o.innerHTML = h; o.hidden = false; }
+function hideOverlay() { $("#overlay").hidden = true; }
+
+$("#theme").onclick = () => {
+  const b = document.body;
+  b.dataset.theme = b.dataset.theme === "dark" ? "light" : "dark";
+  try { localStorage.setItem("sudoku.theme", b.dataset.theme); } catch (e) { }
+  crtaj();
+};
+$("#meniBtn2").onclick = meni;
+
+/* ================= START ================= */
+try { const t = localStorage.getItem("sudoku.theme"); if (t) document.body.dataset.theme = t; } catch (e) { }
+if (!load()) N = napraviNivo(dostignut());
+osveziHud(); fit(); meni();
+
+window.K = {
+  get N() { return N; }, napraviNivo, mozeNa, zastoNe, kreni, meni, izborKuce, pravila,
+  get poteza() { return poteza; }, get saveta() { return saveta; },
+  uPolici, postavljeni, gotovo, save, load, dostignut, kw, kh, osveziHud, crtaj, fit, zavrsi,
+  get R() { return R; },
+  postavi: (id, x, y, okrenut) => {
+    const k = N.komadi.find(z => z.id === id);
+    if (!k) return false;
+    if (okrenut != null) k.okrenut = !!okrenut;
+    if (!mozeNa(k, x, y)) return false;
+    k.x = x; k.y = y; poteza++;
+    osveziHud(); crtaj();
+    if (gotovo()) zavrsi();
+    return true;
+  },
+  resi: () => {
+    for (const k of N.komadi) { k.okrenut = k.resenje.okrenut; k.x = k.resenje.x; k.y = k.resenje.y; }
+    osveziHud(); crtaj();
+    if (gotovo()) zavrsi();
+  },
+  skloni: id => { const k = N.komadi.find(z => z.id === id); if (k) { k.x = null; k.y = null; } osveziHud(); crtaj(); }
+};
+</script>
+</body>
+</html>
