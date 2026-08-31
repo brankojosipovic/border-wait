@@ -75,7 +75,7 @@
 
   /* ---- upravljanje ---- */
   .kontrole { display: flex; align-items: center; gap: 8px; }
-  .fels { position: relative; flex: 0 0 auto; width: 58px; height: 58px; border-radius: 50%;
+  .fels { position: relative; flex: 0 0 auto; width: 62px; height: 62px; border-radius: 50%;
           background: radial-gradient(circle at 34% 30%, #ffffff 0%, #e9e6dd 55%, #c9c4b6 100%);
           border: 1px solid var(--line); touch-action: none; box-shadow: var(--shadow); }
   .fels .tacka { position: absolute; width: 15px; height: 15px; border-radius: 50%;
@@ -85,6 +85,27 @@
                 background:
                   linear-gradient(to right, transparent 49%, rgba(0,0,0,.13) 49%, rgba(0,0,0,.13) 51%, transparent 51%),
                   linear-gradient(to bottom, transparent 49%, rgba(0,0,0,.13) 49%, rgba(0,0,0,.13) 51%, transparent 51%); }
+  /* Dok prst stoji na malom krugu, on ga potpuno pokrije — zato se isti taj
+     krug uveličan pokaže gore, preko stola, gde ruka ne smeta. */
+  .felsBig { position: absolute; left: 50%; top: 5%; transform: translateX(-50%);
+             display: flex; flex-direction: column; align-items: center; gap: 6px;
+             pointer-events: none; opacity: 0; transition: opacity .12s; z-index: 4; }
+  .felsBig.vidi { opacity: 1; }
+  .felsBig .krug { position: relative; width: min(150px, 42vw); aspect-ratio: 1/1; border-radius: 50%;
+                   background: radial-gradient(circle at 34% 30%, #ffffff 0%, #e9e6dd 55%, #c9c4b6 100%);
+                   box-shadow: 0 6px 22px rgba(0,0,0,.6), 0 0 0 2px rgba(255,255,255,.25); }
+  .felsBig .tacka { position: absolute; width: 17%; height: 17%; border-radius: 50%;
+                    background: #d0202a; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.6);
+                    transform: translate(-50%, -50%); }
+  .felsBig .krst { position: absolute; inset: 0; border-radius: 50%;
+                   background:
+                     linear-gradient(to right, transparent 49.3%, rgba(0,0,0,.16) 49.3%, rgba(0,0,0,.16) 50.7%, transparent 50.7%),
+                     linear-gradient(to bottom, transparent 49.3%, rgba(0,0,0,.16) 49.3%, rgba(0,0,0,.16) 50.7%, transparent 50.7%); }
+  .felsBig .tx { font-size: 13px; font-weight: 700; color: var(--ink);
+                 background: color-mix(in srgb, var(--panel) 88%, transparent);
+                 border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px;
+                 box-shadow: var(--shadow); white-space: nowrap; }
+
   .sredina { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
   .snaga { position: relative; height: 26px; border-radius: 8px; background: var(--panel-2);
            border: 1px solid var(--line); overflow: hidden; touch-action: none; }
@@ -153,6 +174,7 @@
 
   <div class="stage">
     <canvas id="cv"></canvas>
+    <div class="felsBig" id="felsBig"><div class="krug"><div class="krst"></div><div class="tacka" id="felsBigTacka"></div></div><div class="tx" id="felsBigTx"></div></div>
   </div>
 
   <div class="kontrole col">
@@ -926,18 +948,40 @@ snagaEl.addEventListener("pointerdown", e => { e.preventDefault(); snagaEl.setPo
 snagaEl.addEventListener("pointermove", e => { if (snagaEl.hasPointerCapture(e.pointerId)) { e.preventDefault(); postaviSnagu(e); } });
 
 /* felš */
-const felsEl = $("#fels");
+const felsEl = $("#fels"), felsBig = $("#felsBig");
+let felsSkriva = null;
+function opisFelsa() {
+  const g = felsY > .08 ? "prateći" : felsY < -.08 ? "povratni" : "";
+  const b = felsX > .08 ? "desno" : felsX < -.08 ? "levo" : "";
+  if (!g && !b) return "sredina — bez felša";
+  return (g ? g : "") + (g && b ? " · " : "") + (b ? b : "");
+}
+function pokaziFelsBig() {
+  clearTimeout(felsSkriva);
+  $("#felsBigTacka").style.left = (50 + felsX * 41) + "%";
+  $("#felsBigTacka").style.top = (50 - felsY * 41) + "%";
+  $("#felsBigTx").textContent = opisFelsa();
+  felsBig.classList.add("vidi");
+}
+function sakrijFelsBig(odmah) {
+  clearTimeout(felsSkriva);
+  felsSkriva = setTimeout(() => felsBig.classList.remove("vidi"), odmah ? 0 : 900);
+}
 function postaviFels(e) {
   const r = felsEl.getBoundingClientRect();
   let x = (e.clientX - r.left) / r.width * 2 - 1, y = (e.clientY - r.top) / r.height * 2 - 1;
   const d = Math.hypot(x, y);
   if (d > 0.82) { x = x / d * 0.82; y = y / d * 0.82; }
   felsX = +x.toFixed(3); felsY = +(-y).toFixed(3);      // gore = prateći felš
-  crtajHud();
+  crtajHud(); pokaziFelsBig();
 }
-felsEl.addEventListener("pointerdown", e => { e.preventDefault(); felsEl.setPointerCapture(e.pointerId); postaviFels(e); });
+felsEl.addEventListener("pointerdown", e => {
+  e.preventDefault(); felsEl.setPointerCapture(e.pointerId); postaviFels(e);
+});
 felsEl.addEventListener("pointermove", e => { if (felsEl.hasPointerCapture(e.pointerId)) { e.preventDefault(); postaviFels(e); } });
-felsEl.addEventListener("dblclick", () => { felsX = 0; felsY = 0; crtajHud(); });
+felsEl.addEventListener("pointerup", () => sakrijFelsBig());
+felsEl.addEventListener("pointercancel", () => sakrijFelsBig());
+felsEl.addEventListener("dblclick", () => { felsX = 0; felsY = 0; crtajHud(); pokaziFelsBig(); sakrijFelsBig(); });
 
 $("#udri").onclick = () => { if (mojPotez() && G.faza === "nisan") udari(); };
 
@@ -1229,7 +1273,9 @@ function pravila() {
     '<li><b>Jačina:</b> prevuci traku ispod stola. Levo je nežno, desno je iz sve snage.</li>' +
     '<li><b>Felš:</b> beli krug levo dole je bela lopta — pomeri crvenu tačku tamo gde hoćeš da je udariš. ' +
     '<b>Gore</b> je prateći (bela nastavi za loptom), <b>dole</b> povratni (bela se vrati), ' +
-    '<b>levo/desno</b> savija putanju i menja odskok od bande. Dupli dodir vraća u sredinu.</li>' +
+    '<b>levo/desno</b> savija putanju i menja odskok od bande. Dupli dodir vraća u sredinu. ' +
+    'Dok držiš prst, isti krug ti se <b>uveličan pokaže gore preko stola</b>, pa vidiš gde si tačku namestio ' +
+    'i kad ti je prst pokrije. Prst možeš i da odvučeš dalje od kruga — tačka i dalje sluša.</li>' +
     '<li><b>Osmica:</b> šta prvo ubaciš, to su tvoje lopte. Kad počistiš svojih sedam, ideš na crnu. ' +
     'Crna prerano — izgubio si. Faul (bela u rupi, tuđa lopta prva, ništa nije dodirnuto) daje protivniku <b>belu u ruci</b>.</li>' +
     '<li><b>Snuker:</b> crvena pa boja, pa opet crvena. Boje se vraćaju na sto dok ima crvenih. ' +
