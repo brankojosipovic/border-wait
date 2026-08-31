@@ -14,7 +14,8 @@ var GAMES = [
   { id: "stvorenja", href: "stvorenja.html", em: "🐉", nm: "Bića" },
   { id: "tablic",    href: "tablic.html",    em: "🃏", nm: "Tablić" },
   { id: "jamb",      href: "jamb.html",      em: "🎲", nm: "Jamb" },
-  { id: "geo",       href: "geo.html",       em: "🌍", nm: "Geo" }
+  { id: "geo",       href: "geo.html",       em: "🌍", nm: "Geo" },
+  { id: "pikado",    href: "pikado.html",    em: "🎯", nm: "Pikado" }
 ];
 var SKEY = "igre.sound";
 var IKEY = "igre.ime";
