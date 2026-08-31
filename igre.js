@@ -3,8 +3,8 @@
 "use strict";
 
 var GAMES = [
-  { id: "sudoku",    href: "sudoku.html",    em: "🎲", nm: "Sudoku" },
-  { id: "solitaire", href: "solitaire.html", em: "🃏", nm: "Soliter" },
+  { id: "sudoku",    href: "sudoku.html",    em: "🔢", nm: "Sudoku" },
+  { id: "solitaire", href: "solitaire.html", em: "🎴", nm: "Soliter" },
   { id: "kolona",    href: "kolona.html",    em: "🚧", nm: "Kolona" },
   { id: "aparat",    href: "aparat.html",    em: "🎰", nm: "Aparat" },
   { id: "svercer",   href: "svercer.html",   em: "🚬", nm: "Švercer" },

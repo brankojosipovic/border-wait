@@ -49,31 +49,45 @@
   header .sub { color: var(--ink-dim); font-size: 12px; }
   .spacer { flex: 1; }
 
-  .grid { display: grid; gap: 10px; }
-  .card { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;
-          background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
-          padding: 13px 14px; box-shadow: var(--shadow); border-left: 4px solid var(--gold); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  @media (min-width: 470px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+  .card { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 7px; text-decoration: none; color: inherit; aspect-ratio: 1 / 1;
+          background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+          padding: 10px 5px; box-shadow: var(--shadow); overflow: hidden; }
   .card:active { transform: translateY(1px); }
   @media (hover: hover) { .card:hover { border-color: var(--gold); } }
-  .card .em { font-size: 30px; line-height: 1; flex: 0 0 auto; }
-  .card .txt { flex: 1; min-width: 0; }
-  .card .nm { font-size: 16px; font-weight: 700; }
-  .card .ds { font-size: 12px; color: var(--ink-dim); }
-  .card .st { font-size: 11px; color: var(--good); font-weight: 700; margin-top: 2px; }
-  .card .go { color: var(--ink-dim); font-size: 18px; }
+  .card .em { font-size: clamp(34px, 12vw, 54px); line-height: 1; filter: drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
+  .card .nm { font-size: 12px; font-weight: 700; text-align: center; line-height: 1.15;
+              max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .tok { position: absolute; top: 7px; right: 9px; font-size: 11px; color: var(--gold); }
 
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
            padding: 12px 14px; box-shadow: var(--shadow); }
-  .row { display: flex; align-items: center; gap: 10px; }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .row + .row { margin-top: 10px; }
   .row .lbl { font-size: 13px; }
   .row .hint { font-size: 11px; color: var(--ink-dim); }
+  .alatke { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center; }
+  .alatke button, .alatke .pomocBtn { font-size: 14px; padding: 8px 12px; }
+  .stanje { text-align: center; font-size: 11px; color: var(--ink-dim); line-height: 1.5; }
+  .stanje b { color: var(--ink); font-weight: 700; }
   .pomocBtn { display: inline-flex; align-items: center; justify-content: center;
               font: inherit; font-size: 15px; color: var(--ink); background: var(--panel);
               border: 1px solid var(--line); border-radius: 10px; padding: 6px 11px;
               text-decoration: none; cursor: pointer; touch-action: manipulation; }
   .pomocBtn:active { transform: translateY(1px); }
   @media (hover: hover) { .pomocBtn:hover { border-color: var(--gold); } }
+  @media (max-height: 720px) {                 /* niži telefoni: sve staje bez skrolovanja */
+    header .sub { display: none; }
+    .wrap { gap: 8px; padding-top: 6px; }
+    .grid { gap: 8px; }
+    .card { aspect-ratio: 1 / .78; border-radius: 16px; }
+    .card .em { font-size: clamp(28px, 10vw, 44px); }
+    .card .nm { font-size: 11px; }
+    .alatke button, .alatke .pomocBtn { font-size: 13px; padding: 6px 10px; }
+    .stanje { font-size: 10px; line-height: 1.45; }
+  }
   .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.5; text-align: center; }
   .foot a { color: var(--ink-dim); }
 </style>
@@ -92,34 +106,15 @@
 
   <div class="grid col" id="grid"></div>
 
-  <div class="panel col">
-    <div class="row">
-      <span class="lbl">🔈 Zvuk u igrama</span>
-      <div class="spacer"></div>
-      <button id="sndToggle">…</button>
-    </div>
-    <div class="row"><span class="hint">Zvuci se prave u pregledaču (bez skidanja fajlova). Prekidač važi za sve igre i pamti se; isti prekidač stoji i u traci na dnu ekrana.</span></div>
-    <div class="row" style="border-top:1px dashed var(--line); padding-top:10px">
-      <span class="lbl">📶 Rad bez interneta</span>
-      <div class="spacer"></div>
-      <span id="offState" style="font-size:13px; font-weight:700; color:var(--ink-dim)">proveravam…</span>
-    </div>
-    <div class="row"><span class="hint" id="offHint">Igre se čuvaju na telefonu pri prvom otvaranju, pa rade i kad nema signala.</span></div>
-    <div class="row">
-      <span class="hint" id="verLine">&nbsp;</span>
-      <div class="spacer"></div>
-      <button id="updBtn">🔄 Proveri novu verziju</button>
-    </div>
-    <div class="row" style="border-top:1px dashed var(--line); padding-top:10px">
-      <span class="lbl">❔ Kako se šta radi</span>
-      <div class="spacer"></div>
-      <a class="pomocBtn" href="pomoc.html">Otvori pomoć</a>
-    </div>
-    <div class="row"><span class="hint">Soba za igru u dvoje, nastavak započete partije, rad bez interneta i šta kad spajanje ne uspe.</span></div>
+  <div class="alatke col">
+    <button id="sndToggle">…</button>
+    <a class="pomocBtn" href="pomoc.html">❔ Pomoć</a>
+    <button id="updBtn">🔄 Nova verzija</button>
   </div>
 
-  <div class="foot col">
-    Dodaj na početni ekran (Podeli → „Dodaj na početni ekran") pa radi kao aplikacija.
+  <div class="stanje col">
+    📶 Rad bez interneta: <span id="offState">proveravam…</span> · <span id="verLine"></span>
+    <br><span id="offHint"></span>
     <br><a href="index.html">← Border Wait — čekanje na granici</a>
   </div>
 </div>
@@ -144,70 +139,37 @@ var DESC = {
 function ls(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
 function dayNum() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
 
-function stat(id) {
+/* da li te u igri čeka započeta partija — to je jedina oznaka na pločici */
+function uToku(id) {
   var s;
-  if (id === "sudoku") {
-    s = ls("sudoku.v1");
-    if (s && !s.done && s.values) {
-      var left = s.values.filter(function (v) { return !v; }).length;
-      if (left) return "partija u toku — još " + left + " polja";
-    }
-  }
-  if (id === "solitaire") {
-    s = ls("solitaire.v1");
-    if (s && !s.done && s.moves) return "partija u toku — " + s.moves + " poteza";
-  }
-  if (id === "kolona") {
-    s = ls("kolona.daily");
-    if (s && s[String(dayNum())]) return "danas: " + s[String(dayNum())].m + " min " + "⭐".repeat(s[String(dayNum())].stars);
-  }
-  if (id === "svercer") {
-    s = ls("svercer.daily");
-    if (s && s[String(dayNum())]) return "danas: " + s[String(dayNum())].t + "p " + "⭐".repeat(s[String(dayNum())].stars);
-  }
-  if (id === "tetris") {
-    s = ls("tetris.v1");
-    if (s && s.best) return "rekord: " + s.best;
-  }
-  if (id === "avioni") {
-    s = ls("avioni.v1");
-    if (s && s.best) return "rekord: " + s.best;
-  }
-  if (id === "cigle") {
-    s = ls("cigle.v1");
-    if (s && s.best) return "rekord: " + s.best;
-  }
-  if (id === "stvorenja") {
-    s = ls("stvorenja.v1");
-    if (s && s.team) return "tim: " + s.team.length + " · značke " + (s.badges || 0) + "/3";
-  }
-  if (id === "jamb") {
-    s = ls("jamb.rekord");
-    if (s) return "rekord: " + s;
-  }
-  if (id === "aparat") {
-    s = ls("aparat.v1");
-    if (s && typeof s.credits === "number") return "kredita: " + s.credits + (s.best ? " · rekord " + s.best : "");
-  }
-  return "";
+  if (id === "sudoku") { s = ls("sudoku.v1"); return !!(s && !s.done && s.values && s.values.some(function (v) { return v; })); }
+  if (id === "solitaire") { s = ls("solitaire.v1"); return !!(s && !s.done && s.moves); }
+  if (id === "kolona") { s = ls("kolona.v1"); return !!(s && !s.done && s.t); }
+  if (id === "svercer") { s = ls("svercer.v1"); return !!(s && s.phase && s.phase !== "final"); }
+  if (id === "tetris") { s = ls("tetris.v1"); return !!(s && s.igra); }
+  if (id === "avioni") { s = ls("avioni.v1"); return !!(s && s.igra); }
+  if (id === "cigle") { s = ls("cigle.v1"); return !!(s && s.tok); }
+  if (id === "stvorenja") { s = ls("stvorenja.v1"); return !!(s && s.team); }
+  if (id === "tablic") { s = ls("tablic.v1"); return !!(s && s.g && !s.g.gotovo); }
+  if (id === "jamb") { s = ls("jamb.v1"); return !!(s && s.g && !s.g.gotovo); }
+  if (id === "geo") { s = ls("geo.v1"); return !!(s && s.g && !s.g.gotovo); }
+  return false;
 }
 
 var g = document.getElementById("grid");
 g.innerHTML = (window.IGRE || []).map(function (x) {
-  var st = stat(x.id);
-  return '<a class="card" href="' + x.href + '">' +
+  var opis = DESC[x.id] || "";
+  return '<a class="card" href="' + x.href + '" title="' + x.nm + (opis ? " — " + opis : "") + '" aria-label="' + x.nm + '">' +
     '<span class="em">' + x.em + '</span>' +
-    '<span class="txt"><span class="nm">' + x.nm + '</span>' +
-    '<div class="ds">' + (DESC[x.id] || "") + '</div>' +
-    (st ? '<div class="st">' + st + '</div>' : '') + '</span>' +
-    '<span class="go">›</span></a>';
+    '<span class="nm">' + x.nm + '</span>' +
+    (uToku(x.id) ? '<span class="tok" title="partija te čeka">▶</span>' : '') + '</a>';
 }).join("");
 for (var a of g.querySelectorAll(".card")) a.addEventListener("click", function () { window.SFX && SFX.tap(); });
 
 function paintSnd() {
   var b = document.getElementById("sndToggle");
   var on = window.SFX ? SFX.isOn() : true;
-  b.textContent = on ? "🔊 uključen" : "🔇 isključen";
+  b.textContent = on ? "🔊 Zvuk" : "🔇 Nemo";
 }
 document.getElementById("sndToggle").onclick = function () { SFX.toggle(); paintSnd(); };
 paintSnd();
@@ -233,8 +195,7 @@ function offlineStatus(pokusaj) {
       var n = counts.reduce(function (a, b) { return a + b; }, 0);
       if (reg && reg.active && n > 0) {
         st.textContent = "✓ spremno"; st.style.color = "var(--good)";
-        hint.textContent = "Sačuvano " + n + " fajlova na telefonu — sve igre rade i bez signala. " +
-          "Dodaj na početni ekran (Podeli \u2192 \u201EDodaj na po\u010Detni ekran\u201C) pa se otvara kao aplikacija.";
+        hint.textContent = "Sačuvano " + n + " fajlova — igre rade i bez signala. Dodaj na početni ekran pa se otvara kao aplikacija.";
       } else if ((pokusaj || 0) < 8) {
         st.textContent = "sprema se…"; st.style.color = "var(--gold)";
         hint.textContent = "Prvo otvaranje uz internet čuva igre na telefon — traje koji trenutak.";
@@ -265,7 +226,7 @@ prikaziVerziju();
 document.getElementById("updBtn").onclick = function () {
   var b = this;
   b.disabled = true; b.textContent = "⏳ proveravam…";
-  var gotov = function (poruka) { b.disabled = false; b.textContent = poruka; setTimeout(function () { b.textContent = "🔄 Proveri novu verziju"; }, 2500); };
+  var gotov = function (poruka) { b.disabled = false; b.textContent = poruka; setTimeout(function () { b.textContent = "🔄 Nova verzija"; }, 2500); };
   if (!("serviceWorker" in navigator)) { gotov("nije podržano"); return; }
   navigator.serviceWorker.getRegistration().then(function (r) {
     if (!r) { location.reload(); return; }
