@@ -445,14 +445,15 @@ function predvidi(ug) {
 /* ================= CRTANJE ================= */
 const IVICA = 9;                                 // drveni okvir oko igrališta
 const LW = W + IVICA * 2, LH = H + IVICA * 2;    // logičko platno
-let stoKes = null;
+let stoKes = null, RAZMERA = 3;                  // koliko pravih piksela ide na jednu jedinicu stola
 function crtajSto() {
-  const kljuc = R + "/" + (G ? G.igra : "");
+  const kljuc = R + "/" + (G ? G.igra : "") + "/" + RAZMERA.toFixed(2);
   if (!stoKes || stoKes._kljuc !== kljuc) {
+    const s = Math.max(2, RAZMERA);
     stoKes = document.createElement("canvas");
-    stoKes.width = LW * 4; stoKes.height = LH * 4;
+    stoKes.width = Math.ceil(LW * s); stoKes.height = Math.ceil(LH * s);
     const c = stoKes.getContext("2d");
-    c.scale(4, 4);
+    c.scale(s, s);
     c.translate(IVICA, IVICA);
     // drvo
     c.translate(-IVICA, -IVICA);
@@ -1258,10 +1259,15 @@ function fit() {
   const sirina = Math.min(window.innerWidth - 16, 460);
   let w = Math.min(sirina, visina * LW / LH);
   w = Math.max(150, Math.floor(w));
-  cv.style.width = w + "px"; cv.style.height = Math.round(w * LH / LW) + "px";
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = Math.round(LW * dpr); cv.height = Math.round(LH * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const v = Math.round(w * LH / LW);
+  cv.style.width = w + "px"; cv.style.height = v + "px";
+  /* Platno mora biti veliko koliko i na ekranu, u pravim pikselima — inače se
+     sto crta u sto osamnaest tačaka pa razvlači, i sve je mutno. */
+  const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+  RAZMERA = w * dpr / LW;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(v * dpr);
+  ctx.setTransform(RAZMERA, 0, 0, RAZMERA, 0, 0);
+  stoKes = null;                                  // keš stola se crta u novoj rezoluciji
 }
 window.addEventListener("resize", fit);
 window.addEventListener("DOMContentLoaded", fit);

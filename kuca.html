@@ -121,6 +121,13 @@
 
   <div class="tabovi col" id="tabovi" hidden></div>
 
+  <div class="alat col" id="alatMere" hidden>
+    <button id="uzi">⬌ −</button>
+    <button id="siri">⬌ +</button>
+    <button id="nizi">⬍ −</button>
+    <button id="visi">⬍ +</button>
+  </div>
+
   <div class="alat col">
     <button id="okreni">↻ Okreni</button>
     <button id="pomocBtn">💡 Pomoć</button>
@@ -387,54 +394,56 @@ const CRTEZ = {
    „leđa“ komada su gornja ivica crteža; komad koji ide uza zid mora leđima na zid. */
 const NAMESTAJ = {
   dnevna: [
-    { nm: "Kauč", crt: "kauc", w: 3, h: 1, zid: true },
-    { nm: "TV komoda", crt: "tv", w: 2, h: 1, zid: true },
-    { nm: "Polica za knjige", crt: "polica", w: 2, h: 1, zid: true },
-    { nm: "Klub sto", crt: "stocic", w: 2, h: 1 },
-    { nm: "Fotelja", crt: "fotelja", w: 1, h: 1 },
-    { nm: "Sobna biljka", crt: "biljka", w: 1, h: 1 },
+    { nm: "Trosed", crt: "kauc", w: 6, h: 2, zid: true },
+    { nm: "Dvosed", crt: "kauc", w: 4, h: 2, zid: true },
+    { nm: "TV komoda", crt: "tv", w: 4, h: 1, zid: true },
+    { nm: "Polica za knjige", crt: "polica", w: 4, h: 1, zid: true },
+    { nm: "Klub sto", crt: "stocic", w: 3, h: 2 },
+    { nm: "Fotelja", crt: "fotelja", w: 2, h: 2 },
+    { nm: "Sobna biljka", crt: "biljka", w: 2, h: 2 },
     { nm: "Podna lampa", crt: "lampa", w: 1, h: 1 },
-    { nm: "Tepih", crt: "tepih", w: 3, h: 2 }
+    { nm: "Tepih", crt: "tepih", w: 6, h: 4 }
   ],
   spavaca: [
-    { nm: "Bračni krevet", crt: "krevet", w: 2, h: 3, zid: true },
-    { nm: "Ormar", crt: "ormar", w: 1, h: 3, zid: true },
-    { nm: "Komoda", crt: "komoda", w: 2, h: 1, zid: true },
+    { nm: "Bračni krevet", crt: "krevet", w: 4, h: 5, zid: true },
+    { nm: "Jednostruki krevet", crt: "krevet", w: 2, h: 5, zid: true },
+    { nm: "Ormar", crt: "ormar", w: 2, h: 6, zid: true },
+    { nm: "Komoda", crt: "komoda", w: 4, h: 1, zid: true },
     { nm: "Noćni stočić", crt: "nocni", w: 1, h: 1 },
-    { nm: "Ogledalo", crt: "ogledalo", w: 1, h: 1, zid: true },
-    { nm: "Tepih", crt: "tepih", w: 2, h: 2 }
+    { nm: "Ogledalo", crt: "ogledalo", w: 2, h: 1, zid: true },
+    { nm: "Tepih", crt: "tepih", w: 5, h: 3 }
   ],
   kuhinja: [
-    { nm: "Šporet", crt: "sporet", w: 1, h: 1, zid: true },
-    { nm: "Frižider", crt: "frizider", w: 1, h: 1, zid: true },
-    { nm: "Sudopera", crt: "sudopera", w: 2, h: 1, zid: true },
-    { nm: "Kuhinjski elementi", crt: "kuhinjaElement", w: 3, h: 1, zid: true },
-    { nm: "Trpezarijski sto", crt: "sto", w: 2, h: 2 },
+    { nm: "Šporet", crt: "sporet", w: 2, h: 2, zid: true },
+    { nm: "Frižider", crt: "frizider", w: 2, h: 2, zid: true },
+    { nm: "Sudopera", crt: "sudopera", w: 3, h: 2, zid: true },
+    { nm: "Kuhinjski elementi", crt: "kuhinjaElement", w: 6, h: 2, zid: true },
+    { nm: "Trpezarijski sto", crt: "sto", w: 4, h: 3 },
     { nm: "Stolica", crt: "stolica", w: 1, h: 1 },
-    { nm: "Veš mašina", crt: "vesMasina", w: 1, h: 1, zid: true }
+    { nm: "Veš mašina", crt: "vesMasina", w: 2, h: 2, zid: true }
   ],
   kupatilo: [
-    { nm: "Kada", crt: "kada", w: 3, h: 1, zid: true },
-    { nm: "Tuš kabina", crt: "tus", w: 1, h: 1, zid: true },
-    { nm: "WC šolja", crt: "wc", w: 1, h: 1, zid: true },
-    { nm: "Lavabo", crt: "lavabo", w: 1, h: 1, zid: true },
-    { nm: "Veš mašina", crt: "vesMasina", w: 1, h: 1, zid: true },
-    { nm: "Ogledalo", crt: "ogledalo", w: 1, h: 1, zid: true }
+    { nm: "Kada", crt: "kada", w: 4, h: 2, zid: true },
+    { nm: "Tuš kabina", crt: "tus", w: 2, h: 2, zid: true },
+    { nm: "WC šolja", crt: "wc", w: 2, h: 2, zid: true },
+    { nm: "Lavabo", crt: "lavabo", w: 2, h: 1, zid: true },
+    { nm: "Veš mašina", crt: "vesMasina", w: 2, h: 2, zid: true },
+    { nm: "Ogledalo", crt: "ogledalo", w: 2, h: 1, zid: true }
   ],
   hodnik: [
-    { nm: "Čiviluk", crt: "civiluk", w: 1, h: 1, zid: true },
-    { nm: "Cipelarnik", crt: "cipelarnik", w: 2, h: 1, zid: true },
-    { nm: "Ogledalo", crt: "ogledalo", w: 1, h: 1, zid: true },
-    { nm: "Komoda", crt: "komoda", w: 2, h: 1, zid: true },
-    { nm: "Sobna biljka", crt: "biljka", w: 1, h: 1 }
+    { nm: "Čiviluk", crt: "civiluk", w: 2, h: 1, zid: true },
+    { nm: "Cipelarnik", crt: "cipelarnik", w: 3, h: 1, zid: true },
+    { nm: "Ogledalo", crt: "ogledalo", w: 2, h: 1, zid: true },
+    { nm: "Komoda", crt: "komoda", w: 4, h: 1, zid: true },
+    { nm: "Sobna biljka", crt: "biljka", w: 2, h: 2 }
   ],
   decija: [
-    { nm: "Dečji krevet", crt: "krevetac", w: 2, h: 2, zid: true },
-    { nm: "Radni sto", crt: "radniSto", w: 2, h: 1, zid: true },
-    { nm: "Ormar", crt: "ormar", w: 1, h: 2, zid: true },
-    { nm: "Sanduk za igračke", crt: "sanduk", w: 1, h: 1 },
-    { nm: "Polica", crt: "polica", w: 2, h: 1, zid: true },
-    { nm: "Tepih", crt: "tepih", w: 2, h: 2 }
+    { nm: "Dečji krevet", crt: "krevetac", w: 3, h: 4, zid: true },
+    { nm: "Radni sto", crt: "radniSto", w: 4, h: 2, zid: true },
+    { nm: "Ormar", crt: "ormar", w: 2, h: 4, zid: true },
+    { nm: "Sanduk za igračke", crt: "sanduk", w: 2, h: 2 },
+    { nm: "Polica", crt: "polica", w: 4, h: 1, zid: true },
+    { nm: "Tepih", crt: "tepih", w: 4, h: 3 }
   ]
 };
 
@@ -455,7 +464,7 @@ function promesaj(niz, r) {
 /* ================= PLAN KUĆE ================= */
 /* Pravougaonik se seče na sobe, pa se između susednih probiju vrata.
    Nameštaj se prvo rasporedi — tako je svaki nivo sigurno rešiv. */
-const NAJMANJA = 3;
+const NAJMANJA = 6;                              // jedno polje je 40 cm, soba najmanje 2,4 m
 function podeliSobe(r, koliko, rnd) {
   let sobe = [{ x: 0, y: 0, w: r.w, h: r.h }];
   let straza = 0;
@@ -499,8 +508,8 @@ function susedne(a, b) {                        // dele li zid, i gde
 function napraviNivo(br) {
   const rnd = mulberry32(0x5eed ^ (br * 2654435761));
   const tezina = Math.min(6, 2 + Math.floor((br - 1) / 3));           // 2 → 6 soba
-  const w = Math.min(9, 5 + Math.floor((br - 1) / 4));
-  const h = Math.min(12, 6 + Math.floor((br - 1) / 3));
+  const w = Math.min(18, 10 + Math.floor((br - 1) / 4) * 2);
+  const h = Math.min(24, 12 + Math.floor((br - 1) / 3) * 2);
   const sirovi = podeliSobe({ w: w, h: h }, tezina, rnd);
   sirovi.sort((a, b) => b.w * b.h - a.w * a.h);
   const tipovi = ["dnevna", "spavaca", "kuhinja", "kupatilo", "decija", "hodnik"];
@@ -529,13 +538,14 @@ function napraviNivo(br) {
 
   /* nameštaj: prvo ga stvarno rasporedimo, pa zapamtimo rešenje */
   const komadi = [];
+  const najviseKomada = 14;                      // više od ovoga ne staje u policu na telefonu
   let redni = 0;
   for (const s of sobe) {
     const spisak = promesaj(NAMESTAJ[s.tip].slice(), rnd);
     const cilj = Math.max(2, Math.round(s.w * s.h * (0.24 + rnd() * 0.14)));
     let popunjeno = 0;
     for (const vrsta of spisak) {
-      if (popunjeno >= cilj) break;
+      if (popunjeno >= cilj || komadi.length >= najviseKomada) break;
       const mesto = nadjiMesto(s, vrsta, komadi, vrata, rnd);
       if (!mesto) continue;
       komadi.push({                              // dok traje pravljenje, komad stvarno stoji na stolu
@@ -663,15 +673,39 @@ function crtaj() {
     const S = SOBE[s.tip], px = x0 + s.x * cel, py = y0 + s.y * cel;
     ctx.fillStyle = S.pod;
     ctx.fillRect(px, py, s.w * cel, s.h * cel);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(px, py, s.w * cel, s.h * cel); ctx.clip();
     ctx.strokeStyle = S.pod2; ctx.lineWidth = 1;
-    const daske = s.tip === "kupatilo" || s.tip === "kuhinja";
-    for (let j = 1; j < s.h * (daske ? 1 : 2); j++) {
-      const y = py + j * cel / (daske ? 1 : 2);
+    const plocice = s.tip === "kupatilo" || s.tip === "kuhinja";
+    const korak = plocice ? cel * 2 : cel * 1.5;   // pločica 80 cm, daska 60 cm
+    for (let y = py + korak; y < py + s.h * cel; y += korak) {
       ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + s.w * cel, y); ctx.stroke();
     }
-    if (daske) for (let i = 1; i < s.w; i++) {
-      ctx.beginPath(); ctx.moveTo(px + i * cel, py); ctx.lineTo(px + i * cel, py + s.h * cel); ctx.stroke();
+    if (plocice) for (let x = px + korak; x < px + s.w * cel; x += korak) {
+      ctx.beginPath(); ctx.moveTo(x, py); ctx.lineTo(x, py + s.h * cel); ctx.stroke();
+    } else {                                       // spojevi dasaka, razbacani
+      ctx.globalAlpha = .55;
+      let red = 0;
+      for (let y = py; y < py + s.h * cel; y += korak, red++)
+        for (let x = px + ((red % 2) ? cel * 3 : cel * 6); x < px + s.w * cel; x += cel * 9) {
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, Math.min(y + korak, py + s.h * cel)); ctx.stroke();
+        }
+      ctx.globalAlpha = 1;
     }
+    ctx.restore();
+  }
+  for (const s of N.sobe) {                      // blaga senka uz zidove — soba dobije dubinu
+    const px = x0 + s.x * cel, py = y0 + s.y * cel, sw = s.w * cel, sh = s.h * cel;
+    const d = Math.max(3, cel * .9);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(px, py, sw, sh); ctx.clip();
+    for (const [gx, gy, gx2, gy2] of [[px, py, px, py + d], [px, py + sh, px, py + sh - d],
+      [px, py, px + d, py], [px + sw, py, px + sw - d, py]]) {
+      const g = ctx.createLinearGradient(gx, gy, gx2, gy2);
+      g.addColorStop(0, "rgba(40,45,55,.20)"); g.addColorStop(1, "rgba(40,45,55,0)");
+      ctx.fillStyle = g; ctx.fillRect(px, py, sw, sh);
+    }
+    ctx.restore();
   }
   for (const s of N.sobe) {                      // zidovi
     ctx.strokeStyle = "#3b3f46"; ctx.lineWidth = Math.max(2.5, cel * .12);
@@ -697,6 +731,13 @@ function crtaj() {
     ctx.restore();
   }
 
+  if (uRuci) {                                   // sitna mreža samo dok nešto nosiš
+    ctx.save();
+    ctx.strokeStyle = "rgba(60,70,85,.18)"; ctx.lineWidth = .6;
+    for (let i = 1; i < N.w; i++) { ctx.beginPath(); ctx.moveTo(x0 + i * cel, y0); ctx.lineTo(x0 + i * cel, y0 + N.h * cel); ctx.stroke(); }
+    for (let j = 1; j < N.h; j++) { ctx.beginPath(); ctx.moveTo(x0, y0 + j * cel); ctx.lineTo(x0 + N.w * cel, y0 + j * cel); ctx.stroke(); }
+    ctx.restore();
+  }
   if (duh && uRuci) {                            // senka gde bi komad pao
     const k = uRuci.k;
     ctx.fillStyle = duh.moze ? "rgba(90,220,150,.35)" : "rgba(230,90,80,.35)";
@@ -799,12 +840,12 @@ function fit() {
   if (!N) return;
 
   /* polica se meri istim rasporedom kojim se i crta, pa uvek stane */
-  let policaCel = Math.min(26, Math.max(14, Math.floor(sirina / 14)));
-  const najvisa = Math.round(visina * 0.42);
+  let policaCel = Math.min(15, Math.max(7, sirina / 26));
+  const najvisa = Math.round(visina * 0.34);
   let policaH = visinaPolice(policaCel, sirina);
-  while (policaH > najvisa && policaCel > 12) { policaCel--; policaH = visinaPolice(policaCel, sirina); }
+  while (policaH > najvisa && policaCel > 5) { policaCel -= .5; policaH = visinaPolice(policaCel, sirina); }
   const zaKucu = visina - policaH - 14;
-  const cel = Math.max(12, Math.floor(Math.min((sirina - 14) / N.w, zaKucu / N.h)));
+  const cel = Math.max(7, Math.min((sirina - 14) / N.w, zaKucu / N.h));
   R.cel = cel;
   R.x0 = Math.round((sirina - N.w * cel) / 2);
   R.y0 = 6;
@@ -855,6 +896,7 @@ stage.addEventListener("pointerdown", e => {
   izabran = k;
   uRuci = { k: k, px: t.x, py: t.y };
   osveziDuha(t);
+  savet("<b>" + k.nm + "</b> — " + mere(k));
   window.SFX && SFX.tap();
   crtaj(); osveziHud();
 });
@@ -904,6 +946,38 @@ stage.addEventListener("pointerup", pusti);
 stage.addEventListener("pointercancel", () => { uRuci = null; duh = null; crtaj(); });
 
 /* ================= DUGMAD ================= */
+const METAR = 0.4;                               // jedno polje je 40 cm
+function mere(k) {
+  const a = (kw(k) * METAR).toFixed(1).replace(".", ","), b = (kh(k) * METAR).toFixed(1).replace(".", ",");
+  return a + " × " + b + " m";
+}
+/* Menjanje veličine gleda ono što vidiš na ekranu, ne kako je komad zapisan. */
+function promeniMeru(osaX, d) {
+  const k = izabran;
+  if (!k) return savet("Prvo dodirni komad kome menjaš veličinu.");
+  if (REZIM !== "slobodno") return savet("Veličina se menja samo u <b>slobodnom uređivanju</b>.");
+  const poW = (k.rot % 2 === 0) === osaX;        // da li diramo k.w ili k.h
+  const staraW = k.w, staraH = k.h, staroX = k.x, staroY = k.y;
+  if (poW) k.w = Math.max(1, Math.min(14, k.w + d));
+  else k.h = Math.max(1, Math.min(14, k.h + d));
+  if (k.w === staraW && k.h === staraH) return;
+  if (k.x != null && !mozeNa(k, k.x, k.y)) {     // ne stane veći — probaj da ga malo pomeriš
+    let uspeo = false;
+    for (const [dx, dy] of [[0, 0], [-1, 0], [0, -1], [-1, -1], [1, 0], [0, 1]]) {
+      if (mozeNa(k, staroX + dx, staroY + dy)) { k.x = staroX + dx; k.y = staroY + dy; uspeo = true; break; }
+    }
+    if (!uspeo) { k.w = staraW; k.h = staraH; k.x = staroX; k.y = staroY;
+      return savet('<span class="los">Nema mesta za veći komad.</span>'); }
+  }
+  window.SFX && SFX.tick();
+  savet(k.nm + " — <b>" + mere(k) + "</b>");
+  crtaj(); osveziHud(); save();
+}
+$("#siri").onclick = () => promeniMeru(true, 1);
+$("#uzi").onclick = () => promeniMeru(true, -1);
+$("#visi").onclick = () => promeniMeru(false, 1);
+$("#nizi").onclick = () => promeniMeru(false, -1);
+
 const STRANE = ["leđima gore", "leđima desno", "leđima dole", "leđima levo"];
 $("#okreni").onclick = () => {
   const k = uRuci ? uRuci.k : izabran;
@@ -912,7 +986,7 @@ $("#okreni").onclick = () => {
   k.rot = (k.rot + 1) % 4;
   if (k.x != null && !mozeNa(k, k.x, k.y)) { k.x = null; k.y = null; }   // ne stane okrenut — nazad u policu
   window.SFX && SFX.tick();
-  savet(k.nm + " — " + STRANE[k.rot] + ".");
+  savet(k.nm + " — " + STRANE[k.rot] + ", " + mere(k) + ".");
   crtaj(); osveziHud(); save();
 };
 $("#ocisti").onclick = () => {
@@ -975,6 +1049,8 @@ function osveziHud() {
     $("#pomocBtn").disabled = gotovo();
   }
   $("#okreni").disabled = !(uRuci || izabran);
+  const meri = REZIM === "slobodno" && izabran && !izabran.uzorak;
+  $("#alatMere").hidden = !meri;
   fit();
 }
 function savet(h) { $("#savet").innerHTML = h; }
@@ -1128,6 +1204,8 @@ function pravila() {
     '<li><b>🎨 Slobodno uređivanje</b> je bez zadatka: biraš sobu gore, vučeš nameštaj gde hoćeš, ' +
     'nema pravila o sobama ni o zidu. Komad koji vratiš dole u policu — nestaje. ' +
     'Dugme <b>🏠 Drugi plan</b> daje novu kuću.</li>' +
+    '<li>Kad u slobodnom uređivanju dodirneš komad, pojavi se red <b>⬌ − +</b> i <b>⬍ − +</b> ' +
+    'kojim mu menjaš veličinu. Jedno polje je <b>40 cm</b>, a mera ti piše ispod stola.</li>' +
     '<li>Tri zvezdice dobijaš kad složiš sve iz prve, bez pomoći.</li>' +
     '</ul>' +
     '<div class="btns"><button id="nazBtn2">← Nazad</button></div>');
@@ -1153,7 +1231,8 @@ window.K = {
   get N() { return N; }, napraviNivo, mozeNa, zastoNe, kreni, meni, izborKuce, pravila,
   get poteza() { return poteza; }, get saveta() { return saveta; },
   uPolici, postavljeni, gotovo, save, load, dostignut, kw, kh, osveziHud, crtaj, fit, zavrsi, CRTEZ, NAMESTAJ,
-  kreniSlobodno, ucitajSlobodno, policaLista, sobaKojaDrzi,
+  kreniSlobodno, ucitajSlobodno, policaLista, sobaKojaDrzi, promeniMeru, mere, METAR,
+  izaberi: id => { izabran = N.komadi.find(k => k.id === id) || null; osveziHud(); crtaj(); },
   get REZIM() { return REZIM; }, get kategorija() { return kategorija; },
   setKategorija: t => { kategorija = t; osveziHud(); crtaj(); },
   dodaj: (crt, nm, w, h, x, y, rot, tip) => {
