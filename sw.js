@@ -1,18 +1,18 @@
 /* Service Worker — igre rade bez interneta, ali se osvežavaju čim ima signala.
    Stranice i skripte: mreža prvo (uz kratak rok), pa keš — tako nova verzija stiže odmah.
    Ikone i slike: keš prvo — one se ne menjaju. */
-const VERSION = "igre-v36";
+const VERSION = "igre-v37";
 const NET_TIMEOUT = 2500;
 const CORE = [
   "./", "./igre.html", "./igre.js", "./pomoc.html", "./manifest.webmanifest",
   "./sudoku.html", "./solitaire.html", "./kolona.html", "./aparat.html", "./svercer.html",
   "./tetris.html", "./avioni.html", "./cigle.html", "./stvorenja.html", "./tablic.html", "./jamb.html", "./geo.html",
-  "./pikado.html", "./bilijar.html", "./mreza.js",
+  "./pikado.html", "./bilijar.html", "./kuca.html", "./mreza.js",
   "./icons/igre-180.png", "./icons/igre-192.png", "./icons/igre-512.png",
   "./icons/sudoku-180.png", "./icons/solitaire-180.png", "./icons/kolona-180.png",
   "./icons/aparat-180.png", "./icons/svercer-180.png", "./icons/tetris-180.png",
   "./icons/avioni-180.png", "./icons/cigle-180.png", "./icons/stvorenja-180.png",
-  "./icons/tablic-180.png", "./icons/jamb-180.png", "./icons/geo-180.png", "./icons/pikado-180.png", "./icons/bilijar-180.png"
+  "./icons/tablic-180.png", "./icons/jamb-180.png", "./icons/geo-180.png", "./icons/pikado-180.png", "./icons/bilijar-180.png", "./icons/kuca-180.png"
 ];
 
 self.addEventListener("install", e => {
