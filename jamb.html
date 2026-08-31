@@ -103,11 +103,24 @@
 
   /* kockice */
   .kocke { display: flex; gap: 8px; justify-content: center; }
-  .k { width: var(--kw, 58px); height: var(--kw, 58px); border-radius: 12px; background: #f4f6fb; color: #16223a;
-       display: flex; align-items: center; justify-content: center; font-size: calc(var(--kw, 58px) * .68);
-       font-weight: 700; box-shadow: 0 2px 0 rgba(0,0,0,.25); cursor: pointer; position: relative; }
-  .k.drzim { background: var(--gold); box-shadow: 0 0 0 2px var(--ink) inset, 0 2px 0 rgba(0,0,0,.25); }
-  .k .lb { position: absolute; bottom: 2px; left: 0; right: 0; font-size: 9px; font-weight: 700; opacity: .6; }
+  /* prava kockica: bela, blago zaobljena, sa udubljenim tačkicama */
+  .k { width: var(--kw, 58px); height: var(--kw, 58px); border-radius: 22%;
+       background: linear-gradient(157deg, #ffffff 0%, #f6f8fc 46%, #e2e7f0 100%);
+       box-shadow: 0 3px 0 rgba(0,0,0,.28), 0 6px 12px rgba(0,0,0,.30),
+                   inset 0 3px 4px rgba(255,255,255,.95), inset 0 -4px 7px rgba(24,34,58,.16);
+       cursor: pointer; position: relative; transition: transform .08s ease; }
+  .k:active { transform: translateY(2px); }
+  .k .pips { position: absolute; inset: 13%; display: grid;
+             grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); }
+  .k .pips i { align-self: center; justify-self: center; width: 0; height: 0; border-radius: 50%; }
+  .k .pips i.on { width: 62%; aspect-ratio: 1; height: auto;
+                  background: radial-gradient(circle at 35% 30%, #4a5570 0%, #1b2233 55%, #0d1220 100%);
+                  box-shadow: inset 0 1px 2px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.75); }
+  .k .pips i.on.crvena { background: radial-gradient(circle at 35% 30%, #ff8a7a 0%, #d8392b 55%, #8f1d12 100%); }
+  .k.drzim { box-shadow: 0 0 0 3px var(--gold), 0 3px 0 rgba(0,0,0,.28), 0 6px 12px rgba(0,0,0,.3),
+                         inset 0 3px 4px rgba(255,255,255,.95), inset 0 -4px 7px rgba(24,34,58,.16); }
+  .k .lb { position: absolute; top: 5%; right: 7%; line-height: 1;                /* ne smeta tačkicama */
+           font-size: calc(var(--kw, 58px) * .19); font-weight: 700; color: #b08c14; }
   .roll { width: 100%; padding: 10px; font-size: 16px; font-weight: 700; border-color: var(--gold); }
 
   .msg { text-align: center; font-size: 15px; color: var(--ink-dim); min-height: 20px; }
@@ -518,8 +531,8 @@ function render() {
 
   // kockice
   $("#kocke").innerHTML = G.kocke.map((v, i) =>
-    '<div class="k' + (G.drzim[i] ? " drzim" : "") + '" data-i="' + i + '">' + ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"][v] +
-    (G.drzim[i] ? '<span class="lb">držim</span>' : '') + '</div>').join("");
+    '<div class="k' + (G.drzim[i] ? " drzim" : "") + '" data-i="' + i + '" aria-label="' + v + '">' +
+    kockaHTML(v) + (G.drzim[i] ? '<span class="lb" title="držim">✓</span>' : '') + '</div>').join("");
   for (const k of document.querySelectorAll(".k")) k.onclick = () => drzi(+k.dataset.i);
 
   // dugme i poruka
@@ -549,6 +562,16 @@ function render() {
   fit();
 }
 function poruka(h) { $("#msg").innerHTML = h; }
+
+/* raspored tačkica u mreži 3×3, kao na pravoj kockici */
+const TACKE = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+function kockaHTML(v) {
+  const t = TACKE[v] || [];
+  let h = '<div class="pips">';
+  for (let c = 0; c < 9; c++)
+    h += '<i class="' + (t.indexOf(c) >= 0 ? "on" + (v === 1 ? " crvena" : "") : "") + '"></i>';
+  return h + '</div>';
+}
 
 /* dugi pritisak na polje kolone N = najava */
 $("#list").addEventListener("pointerdown", e => {
@@ -683,7 +706,7 @@ window.J = {
   novaIgra, baci, drzi, upisi, najavi, primi, render, RED, KOL, statusMreze, posaljiStanje,
   poveziLokalno: u => { mojIndex = u === "gost" ? 1 : 0; return Mreza.lokalno("jamb-test", { uloga: u, poruka: primi, status: statusMreze }); },
   get mojIndex() { return mojIndex; },
-  get gledam() { return gledam; }, gledaj: i => { gledam = i; render(); },
+  get gledam() { return gledam; }, gledaj: i => { gledam = i; render(); }, kockaHTML, TACKE,
   save, load, meni, nastaviPartiju, get sacuvanaMreza() { return sacuvanaMreza; },
   posaljiPoruku, izborPoruke, EMODZI, RECI,
   setKocke: k => { G.kocke = k.slice(); render(); }, setBacanje: n => { G.bacanje = n; render(); },
