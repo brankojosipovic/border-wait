@@ -111,6 +111,7 @@
 
   <div class="alatke col">
     <button id="sndToggle">…</button>
+    <button id="glasToggle">…</button>
     <a class="pomocBtn" href="pomoc.html">❔ Pomoć</a>
     <button id="updBtn">🔄 Nova verzija</button>
   </div>
@@ -211,6 +212,8 @@ function paintSnd() {
   b.textContent = on ? "🔊 Zvuk" : "🔇 Nemo";
 }
 document.getElementById("sndToggle").onclick = function () { SFX.toggle(); paintSnd(); };
+document.getElementById("glasToggle").onclick = function () { window.GLAS && GLAS.toggle(); };
+if (window.GLAS) GLAS.paint();
 document.getElementById("imeBtn").onclick = function () { window.IGRAC && IGRAC.pitaj(); };
 paintSnd();
 

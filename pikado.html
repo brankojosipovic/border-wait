@@ -462,13 +462,14 @@ function baci(cilj) {
   drzim = false; kretanje = 0;
   G.faza = "leti"; letiOd = performance.now(); letiDo = { x: x, y: y };
   window.SFX && SFX.whoosh();
+  window.GLAS && GLAS.stani();
 }
 function sletela() {
   const p = pogodak(letiDo.x, letiDo.y);
   const s = { x: letiDo.x, y: letiDo.y, p: p };
   letiDo = null;
   strele.push(s);
-  window.SFX && (p.ukupno ? SFX.stamp() : SFX.bad());
+  window.SFX && (p.ukupno ? SFX.strelica() : SFX.mimo());
   if (G.rezim === "mreza" && Mreza.uloga() !== "domacin") {
     G.faza = "ceka";                               // domaćin vodi zapisnik i vraća stanje
     Mreza.posalji({ t: "strela", x: s.x, y: s.y });
@@ -612,7 +613,7 @@ function novaPartija(op) {
     })),
     naRedu: op.prvi || 0, strela: 0, pocetakVisita: pocetniRez(igra),
     tezina: op.tezina || null,                   // u sobi svi igraju istom mirnoćom
-    visit: [], faza: "nisani", gotovo: false, pobednik: null, leg: op.leg || 1,
+    visit: [], zbirVisita: 0, faza: "nisani", gotovo: false, pobednik: null, leg: op.leg || 1,
     zapoceta: false                              // dok se ne baci prva strelica, nema šta da se nastavlja
   };
   G.pocetakVisita = G.igraci[G.naRedu].rez;
@@ -623,9 +624,28 @@ function novaPartija(op) {
 function ocistiTajmere() { clearTimeout(racTajmer); clearTimeout(daljeTajmer); racTajmer = daljeTajmer = null; }
 
 /* ---------- upis pogotka ---------- */
+/* Kako se pogodak kaže naglas — kao pravi najavljivač. */
+function najavaPolja(p) {
+  if (!p || !p.ukupno) return "No score";
+  if (p.ime === "BUL") return "Bull's eye";
+  if (p.ime === "25") return "Twenty five";
+  const br = window.RECIMA ? RECIMA(p.bod) : String(p.bod);
+  if (p.mult === 3) return "Treble " + br;
+  if (p.mult === 2) return "Double " + br;
+  return br;
+}
+function najaviZbir(zbir, bust) {
+  if (!window.GLAS) return;
+  if (bust) return GLAS.reci("No score", { rate: 1.05 });
+  if (zbir === 180) return GLAS.reci("One hundred and eighty!", { rate: .92, pitch: 1.15 });
+  if (!zbir) return GLAS.reci("No score", { rate: 1.05 });
+  GLAS.reci((window.RECIMA ? RECIMA(zbir) : String(zbir)), { rate: .98 });
+}
 function upisiPogodak(p) {
   const ig = naRedu();
   G.zapoceta = true;
+  G.zbirVisita = (G.zbirVisita || 0) + p.ukupno;
+  window.GLAS && GLAS.reci(najavaPolja(p), { rate: 1.08 });
   ig.bacanja++; ig.poena += p.ukupno;
   G.visit.push(p.ime === "promašaj" ? "—" : p.ime);
   G.strela++;
@@ -652,17 +672,27 @@ function upisiPogodak(p) {
   }
   if (p.ukupno > ig.najbolji) ig.najbolji = p.ukupno;
 
-  if (kraj) { G.faza = "kraj"; G.gotovo = true; G.pobednik = G.naRedu; ig.legovi++; crtaj(); posaljiStanje(); zavrsiLeg(); return; }
-  if (bust || G.strela >= 3) { G.faza = "posle"; crtaj(); posaljiStanje(); save(); daljeTajmer = setTimeout(smena, bust ? 1100 : 1300); return; }
+  if (kraj) {
+    G.faza = "kraj"; G.gotovo = true; G.pobednik = G.naRedu; ig.legovi++;
+    setTimeout(() => window.GLAS && GLAS.reci("Game shot!", { rate: .95, pitch: 1.1 }), 700);
+    crtaj(); posaljiStanje(); zavrsiLeg(); return;
+  }
+  if (bust || G.strela >= 3) {
+    G.faza = "posle";
+    const zbir = G.zbirVisita || 0;
+    setTimeout(() => najaviZbir(zbir, bust), 750);
+    crtaj(); posaljiStanje(); save();
+    daljeTajmer = setTimeout(smena, bust ? 1500 : 1700); return;
+  }
   G.faza = "nisani"; pomeriRuku(); crtaj(); posaljiStanje(); save();
   if (naRedu().tip === "racunar") racunarBaca();
 }
 function smena() {
   ocistiTajmere();
   if (!G || G.gotovo) return;
-  if (G.igra === "vezba") { G.strela = 0; G.visit = []; strele = []; G.faza = "nisani"; crtaj(); save(); return; }
+  if (G.igra === "vezba") { G.strela = 0; G.visit = []; strele = []; G.zbirVisita = 0; G.faza = "nisani"; crtaj(); save(); return; }
   G.naRedu = (G.naRedu + 1) % G.igraci.length;
-  G.strela = 0; G.visit = []; strele = [];
+  G.strela = 0; G.visit = []; strele = []; G.zbirVisita = 0;
   G.pocetakVisita = G.igraci[G.naRedu].rez;
   G.faza = "nisani";
   crtaj(); posaljiStanje(); save();
@@ -1055,6 +1085,8 @@ function pravila() {
     '<li>Zlatnim slovima ti piše preporučeni izlaz, na primer <b>T20 D20</b> za 100.</li>' +
     '<li><b>Kruženje:</b> redom 1, 2, 3 … 20 pa bul. Vredi svaki pogodak u taj broj.</li>' +
     '<li><b>Žiroskop:</b> u podešavanjima možeš da nišaniš nagibom telefona. Prvo pritisni <b>🎚 Poravnaj</b>.</li>' +
+    '<li><b>Najava:</b> glas ti kaže šta si pogodio („treble twenty“) i koliko si sabrao u krugu. ' +
+    'Isključuje se dugmetom <b>🗣</b> na spisku igara.</li>' +
     '<li><b>U sobi:</b> svi igraju sa <b>istom mirnoćom ruke</b> — onom koju je izabrao domaćin — i svako ima ' +
     '<b>10 sekundi po strelici</b>. Kad vreme istekne, strelica poleti sama tamo gde ti je nišan.</li>' +
     '</ul>' +
@@ -1140,7 +1172,7 @@ window.P = {
   get G() { return G; }, get strele() { return strele; }, get nis() { return nis; },
   pogodak, sredisteP, izlaz, POLJA, RED20, novaPartija, upisiPogodak, smena, meni, crtaj,
   primi, primiPostavu, kreniPartiju, statusMreze, save, load, nastaviPartiju, ciljRacunara,
-  baci: t => baci(t), amplituda, podesavanja, pravila, pocetniNisan, pomeriRuku,
+  baci: t => baci(t), amplituda, podesavanja, pravila, pocetniNisan, pomeriRuku, najavaPolja, najaviZbir,
   get mojIndex() { return mojIndex; }, get postava() { return postava; },
   get sacuvanaMreza() { return sacuvanaMreza; },
   get tezina() { return tezina; }, setTezina: t => { tezina = t; },

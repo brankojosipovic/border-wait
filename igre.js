@@ -79,6 +79,36 @@ function engine() {
     return ctx;
   } catch (e) { return null; }
 }
+/* iOS drži zvučni kanal zatvoren dok ga korisnik prvi put ne dodirne.
+   Zato na prvi dodir bilo gde otvaramo kanal i pustimo nečujan zvuk. */
+var otkljucan = false;
+function otkljucaj() {
+  if (otkljucan) return;
+  var c = engine();
+  if (!c) return;
+  try { if (c.state === "suspended" && c.resume) c.resume(); } catch (e) { }
+  try {
+    var b = c.createBuffer(1, 1, 22050), src = c.createBufferSource();
+    src.buffer = b; src.connect(master || c.destination); src.start(0);
+  } catch (e) { }
+  try {                                          // isto i za izgovor
+    if (window.speechSynthesis && !GLAS._primljen) {
+      var u = new SpeechSynthesisUtterance(" ");
+      u.volume = 0; window.speechSynthesis.speak(u);
+      GLAS._primljen = true;
+    }
+  } catch (e) { }
+  if (c.state === "running") otkljucan = true;
+}
+["pointerdown", "touchend", "mousedown", "keydown"].forEach(function (t) {
+  document.addEventListener(t, otkljucaj, { passive: true, capture: true });
+});
+document.addEventListener("visibilitychange", function () {
+  if (document.hidden) return;
+  otkljucan = false;
+  try { if (ctx && ctx.state === "suspended" && ctx.resume) ctx.resume(); } catch (e) { }
+});
+
 function tone(o) {
   var c = engine(); if (!c) return;
   try {
@@ -117,11 +147,13 @@ var SFX = {
   set: function (x) {
     on = !!x;
     try { localStorage.setItem(SKEY, on ? "1" : "0"); } catch (e) { }
-    if (on) { engine(); SFX.tap(); }
+    if (on) { engine(); SFX.tap(); } else if (window.GLAS) GLAS.stani();
     paintBtn();
+    if (window.GLAS) GLAS.paint();
     return on;
   },
   toggle: function () { return SFX.set(!on); },
+  _paintGlas: function () { if (window.GLAS) GLAS.paint(); },
 
   tick:    function () { tone({ f: 520, d: .05, type: "square", v: .14 }); },
   tap:     function () { tone({ f: 680, to: 900, d: .08, type: "triangle", v: .28 }); },
@@ -137,9 +169,103 @@ var SFX = {
   engine:  function () { tone({ f: 70, to: 135, d: .5, type: "sawtooth", v: .2 }); noise({ d: .5, f: 200, to: 520, v: .1, q: .5 }); },
   siren:   function () { tone({ f: 720, to: 420, d: .34, type: "sawtooth", v: .26 }); tone({ f: 720, to: 420, d: .34, type: "sawtooth", v: .26, at: .37 }); },
   win:     function () { [523, 659, 784, 1047].forEach(function (f, i) { tone({ f: f, d: .3, type: "triangle", v: .28, at: i * .1 }); }); },
-  jackpot: function () { [523, 659, 784, 1047, 1319, 1047, 1319, 1568].forEach(function (f, i) { tone({ f: f, d: .26, type: "square", v: .22, at: i * .085 }); }); }
+  jackpot: function () { [523, 659, 784, 1047, 1319, 1047, 1319, 1568].forEach(function (f, i) { tone({ f: f, d: .26, type: "square", v: .22, at: i * .085 }); }); },
+
+  /* bilijar */
+  kugle:  function (j) { var v = Math.max(.10, Math.min(.55, j == null ? .3 : j));
+            noise({ d: .035, f: 3400, to: 1900, v: v, q: 2.2 });
+            tone({ f: 1500, to: 950, d: .05, type: "square", v: v * .45 }); },
+  banda:  function (j) { var v = Math.max(.08, Math.min(.45, j == null ? .25 : j));
+            noise({ d: .075, f: 760, to: 260, v: v, q: 1.1 });
+            tone({ f: 210, to: 110, d: .1, type: "sine", v: v * .7 }); },
+  rupa:   function () { noise({ d: .09, f: 950, to: 220, v: .38, q: .8 });
+            tone({ f: 280, to: 90, d: .24, type: "sine", v: .32, at: .03 }); },
+  stap:   function () { noise({ d: .04, f: 2400, to: 1300, v: .34, q: 1.6 });
+            tone({ f: 540, to: 260, d: .07, type: "triangle", v: .28 }); },
+  /* pikado */
+  strelica: function () { noise({ d: .06, f: 1600, to: 380, v: .4, q: 1.4 });
+            tone({ f: 340, to: 150, d: .11, type: "triangle", v: .24 }); },
+  mimo:   function () { noise({ d: .12, f: 420, to: 160, v: .3, q: .7 }); }
 };
 window.SFX = SFX;
+
+/* ---------- izgovor (engleski) — „treble twenty“, „foul“, „game shot“ ---------- */
+var GKEY = "igre.glas";
+var glasOn = true;
+try { var gv = localStorage.getItem(GKEY); if (gv !== null) glasOn = gv === "1"; } catch (e) { }
+var izabranGlas = null, glasTrazen = false;
+function nadjiGlas() {
+  if (!window.speechSynthesis) return null;
+  if (izabranGlas) return izabranGlas;
+  var lista = [];
+  try { lista = window.speechSynthesis.getVoices() || []; } catch (e) { }
+  var redom = ["en-gb", "en-us", "en-au", "en-ie", "en"];
+  for (var i = 0; i < redom.length; i++)
+    for (var j = 0; j < lista.length; j++)
+      if ((lista[j].lang || "").toLowerCase().replace("_", "-").indexOf(redom[i]) === 0) {
+        izabranGlas = lista[j]; return izabranGlas;
+      }
+  return null;
+}
+if (window.speechSynthesis && !glasTrazen) {
+  glasTrazen = true;
+  try { window.speechSynthesis.addEventListener("voiceschanged", function () { izabranGlas = null; nadjiGlas(); }); } catch (e) { }
+  setTimeout(nadjiGlas, 300);
+}
+var GLAS = {
+  _primljen: false,
+  moze: function () { return !!window.speechSynthesis; },
+  isOn: function () { return glasOn && on && !!window.speechSynthesis; },
+  set: function (x) {
+    glasOn = !!x;
+    try { localStorage.setItem(GKEY, glasOn ? "1" : "0"); } catch (e) { }
+    if (!glasOn) GLAS.stani(); else GLAS.reci("Voice on");
+    paintGlas();
+    return glasOn;
+  },
+  toggle: function () { return GLAS.set(!glasOn); },
+  stani: function () { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { } },
+  reci: function (tekst, o) {
+    if (!tekst || !GLAS.isOn()) return;
+    o = o || {};
+    try {
+      if (o.prekini !== false) window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(String(tekst));
+      var v = nadjiGlas();
+      if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-GB";
+      u.rate = o.rate || 1.02;
+      u.pitch = o.pitch || 1;
+      u.volume = o.volume == null ? 1 : o.volume;
+      window.speechSynthesis.speak(u);
+    } catch (e) { }
+  }
+};
+function paintGlas() {
+  var b = document.getElementById("glasToggle");
+  if (!b) return;
+  b.textContent = glasOn ? "🗣 Najava" : "🤐 Bez najave";
+  b.disabled = !window.speechSynthesis;
+  b.title = window.speechSynthesis
+    ? "Izgovara šta si pogodio, na engleskom"
+    : "Ovaj pregledač ne ume da govori";
+}
+GLAS.paint = paintGlas;
+window.GLAS = GLAS;
+
+/* brojevi rečima, za najavu */
+var JEDNO = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+  "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+var DESET = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+function recima(n) {
+  n = Math.round(n);
+  if (n < 0) return "minus " + recima(-n);
+  if (n < 20) return JEDNO[n];
+  if (n < 100) return DESET[Math.floor(n / 10)] + (n % 10 ? "-" + JEDNO[n % 10] : "");
+  var st = Math.floor(n / 100), os = n % 100;
+  return JEDNO[st] + " hundred" + (os ? " and " + recima(os) : "");
+}
+window.RECIMA = recima;
+
 window.IGRE = GAMES;
 
 /* ---------- donja traka ---------- */
