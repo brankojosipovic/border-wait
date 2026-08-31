@@ -58,6 +58,17 @@
   .hud .wep { color: var(--gold); font-weight: 700; }
 
   .stage { position: relative; }
+  #nukeBtn { position: absolute; left: 10px; bottom: 10px; z-index: 30;
+             width: 54px; height: 54px; border-radius: 50%; padding: 0; font-size: 26px;
+             background: radial-gradient(circle at 35% 30%, #3a2a12, #1b1408);
+             border: 2px solid var(--gold); color: #fff;
+             box-shadow: 0 0 0 4px rgba(201,162,39,.18), 0 6px 14px rgba(0,0,0,.5);
+             animation: nukePuls 1.1s ease-in-out infinite; }
+  #nukeBtn:active { transform: scale(.94); }
+  @keyframes nukePuls {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(201,162,39,.18), 0 6px 14px rgba(0,0,0,.5); }
+    50% { box-shadow: 0 0 0 9px rgba(201,162,39,.06), 0 0 18px rgba(255,210,90,.55), 0 6px 14px rgba(0,0,0,.5); }
+  }
   canvas { display: block; border: 1px solid var(--line); border-radius: 12px;
            background: #060b16; box-shadow: var(--shadow); touch-action: none; }
   [data-theme="light"] canvas { background: #0c1navy; background: #0b1526; }
@@ -113,11 +124,12 @@
 
   <div class="stage">
     <canvas id="cv"></canvas>
+    <button id="nukeBtn" hidden title="Nuklearka — čisti ekran (jednom po nivou)">☢️</button>
     <div class="overlay" id="overlay" hidden></div>
   </div>
 
   <div class="foot col">
-    Prevlači prstom (ili strelicama) — top puca sam. Kupi 🔫 jače oružje, ⚡ laser, 🔆 fazer, 🚀 rakete, 💣 bombe, 🛰 satelit, 🛩 pratioca, ❤️ život, 🛡 štit.
+    Prevlači prstom (ili strelicama) — top puca sam. Kupi 🔫 jače oružje, ⚡ laser, 🔆 fazer, 🚀 navođene rakete, 🎯 balističke, 💣 bombe, 🛰 satelit, ☢️ nuklearku, ❤️ život, 🛡 štit.
     <br><a href="igre.html">🎮 Sve igre</a> · <a href="pomoc.html">❔ Pomoć</a> · <a href="index.html">← Border Wait</a>
   </div>
 </div>
@@ -135,6 +147,8 @@ let P, bullets, ebullets, foes, drops, parts, stars, boss;
 let level = 1, score = 0, lives = 3, wep = 1, wings = 0, shield = 0, best = 0;
 let oruzje = "top", oruzjeT = 0, bombe = 0, bombaT = 0;   // laser i rakete traju neko vreme, bombe se troše
 let sateliti = [], satT = 0, fazer = 0;                   // 🛰 pratilac koji sam gađa i 🔆 stalni snop
+let balT = 0, balCool = 0;                                // 🎯 balističke rakete: lete uvis pa padaju po metama
+let nuke = 0, nukeIzbacen = false, blesak = 0, udar = null;   // ☢️ jednom po nivou
 let state = "intro";                            // intro | play | pause | levelup | over
 let waveIdx = 0, waveT = 0, spawnT = 0, fireT = 0, invuln = 0, raf = 0, lastTs = 0, flash = 0;
 let sacuvana = null;                            // prekinuti let čeka da ga nastaviš
@@ -147,7 +161,7 @@ function sacuvaj() {
     const zivo = (state === "play" || state === "levelup" || state === "pause") && lives > 0;
     localStorage.setItem(KEY, JSON.stringify({
       best: best,
-      igra: zivo ? { level: level, score: score, lives: lives, wep: wep, wings: wings, bombe: bombe } : null
+      igra: zivo ? { level: level, score: score, lives: lives, wep: wep, wings: wings, bombe: bombe, nuke: nuke } : null
     }));
   } catch (e) { }
 }
@@ -247,6 +261,32 @@ function bacikBombu() {                                      // rasprskavajuća 
   window.SFX && SFX.stamp();
   updHud();
 }
+function pucajBalisticku() {                              // poleti uvis, pa padne po meti odozgo
+  const c = najblizi(P.x, P.y);
+  const cx = c ? clamp(c.x + rnd(-6, 6), 14, LW - 14) : rnd(30, LW - 30);
+  const cy = c ? c.y : rnd(60, 160);
+  bullets.push({ x: P.x + rnd(-6, 6), y: P.y - 10, vx: rnd(-50, 50), vy: -560, dmg: 4, r: 3.4,
+                 tip: "bal", faza: "gore", ciljX: cx, ciljY: cy, t: 0 });
+  window.SFX && SFX.whoosh();
+}
+function nuklearka() {                                   // jednom po nivou: čisti ekran
+  if (nuke <= 0 || state !== "play") return;
+  nuke--; nukeDugme();
+  blesak = .55; udar = { t: 0, x: P.x, y: P.y - 40 };
+  for (const f of foes) { score += f.scoreV; boom(f.x, f.y, 16, "#ffe08a"); }
+  foes = []; ebullets = [];
+  for (let i = 0; i < 40; i++) boom(rnd(0, LW), rnd(20, LH - 40), 2, i % 2 ? "#ffd166" : "#ff8c42");
+  if (boss && !boss.entering) {
+    boss.hp -= boss.maxHp * .38; flash = .3;
+    if (boss.hp <= 0) padaoBos();
+  }
+  window.SFX && SFX.jackpot();
+  updHud();
+}
+function nukeDugme() {
+  const b = document.getElementById("nukeBtn");
+  if (b) b.hidden = !(nuke > 0 && state === "play");
+}
 function rasprsni(x, y, jako) {                              // iveri lete na sve strane
   const n = jako ? 14 : 10;
   for (let i = 0; i < n; i++) {
@@ -271,9 +311,10 @@ function pocniNivo(lv, poeni, zivota, oruzjeN, krila, bombi) {   // start nivoa 
   stars = Array.from({ length: 46 }, () => ({ x: rnd(0, LW), y: rnd(0, LH), z: rnd(.35, 1) }));
   level = lv; score = poeni; lives = zivota; wep = oruzjeN; wings = krila; shield = 0;
   oruzje = "top"; oruzjeT = 0; bombe = bombi || 0; bombaT = 1.6;
-  sateliti = []; satT = 0; fazer = 0;
+  sateliti = []; satT = 0; fazer = 0; balT = 0; balCool = 0;
+  nuke = 0; nukeIzbacen = false; blesak = 0; udar = null;
   waves = levelWaves(level); waveIdx = 0; waveT = 1.2; spawnT = 0; fireT = 0; invuln = 1.5;
-  resetPlayer(); hideOverlay(); state = "play"; lastTs = 0; fit();
+  resetPlayer(); hideOverlay(); state = "play"; lastTs = 0; fit(); nukeDugme();
   window.SFX && SFX.engine();
   updHud(); sacuvaj();
   if (!raf) raf = requestAnimationFrame(loop);
@@ -282,9 +323,11 @@ function newGame() { sacuvana = null; pocniNivo(1, 0, 3, 1, 0, 0); }
 function nastaviIgru() {
   const g = sacuvana; if (!g) return newGame();
   pocniNivo(g.level || 1, g.score || 0, Math.max(1, g.lives || 3), g.wep || 1, g.wings || 0, g.bombe || 0);
+  if (g.nuke) { nuke = g.nuke; nukeIzbacen = true; updHud(); }
 }
 function nextLevel() {
   level++; score += 250;
+  nukeIzbacen = false; nuke = 0; nukeDugme();          // svaki nivo ima svoju jednu nuklearku
   waves = levelWaves(level); waveIdx = 0; waveT = 1.6; boss = null;
   ebullets = []; foes = [];
   state = "levelup"; sacuvaj();
@@ -305,7 +348,7 @@ function hit() {
   else { resetPlayer(); sacuvaj(); }
 }
 function gameOver() {
-  state = "over";
+  state = "over"; nukeDugme();
   const rek = score > best;
   if (rek) best = score;
   sacuvana = null; sacuvaj();                   // let je gotov; rekord ostaje
@@ -325,6 +368,8 @@ function intro() {
     '<li><b>💣 bombe</b> se same izbacuju na svake dve i po sekunde i <b>rasprskavaju se</b> na sve strane; bos ti ostavi još dve.</li>' +
     '<li><b>🛰 satelit</b> kruži oko tebe 18 s i <b>sam gađa</b> najbližu metu — mogu ti dva odjednom.</li>' +
     '<li><b>🔆 fazer</b> je <b>stalni snop</b> koji 7 s peče sve što ti se nađe iznad glave.</li>' +
+    '<li><b>🎯 balističke rakete</b> polete uvis, pa <b>padnu odozgo</b> tačno na metu — krstić pokazuje gde će udariti.</li>' +
+    '<li><b>☢️ nuklearka</b> se nađe <b>jednom po nivou</b>: pritisni okruglo dugme dole levo i ekran se očisti, a bos izgubi trećinu snage.</li>' +
     '<li>Posle četiri talasa dolazi <b>bos</b> — jači je i puca u nizovima.</li></ul>' +
     (best ? '<p>Rekord: <b style="color:#eef2f9">' + best + '</b></p>' : '') +
     '<div class="btns" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
@@ -345,6 +390,7 @@ function updHud() {
      : "🔫" + wep) +
     (bombe ? " 💣" + bombe : "") + (satT > 0 ? " 🛰" + Math.ceil(satT) : "") +
     (fazer > 0 ? " 🔆" + Math.ceil(fazer) : "") +
+    (balT > 0 ? " 🎯" + Math.ceil(balT) : "") + (nuke > 0 ? " ☢️" : "") +
     (wings ? " 🛩".repeat(wings) : "") + (shield > 0 ? " 🛡" : "");
   $("#hLives").textContent = "❤️".repeat(Math.max(0, lives));
 }
@@ -375,6 +421,15 @@ function update(dt) {
   }
   bombaT -= dt;
   if (bombe > 0 && bombaT <= 0) { bacikBombu(); bombaT = 2.6; }
+
+  if (balT > 0) {                                      // 🎯 balističke rakete
+    balT -= dt; balCool -= dt;
+    if (balCool <= 0) { pucajBalisticku(); balCool = 1.05; }
+    if (balT <= 0) updHud();
+    else if (Math.floor(balT + dt) !== Math.floor(balT)) updHud();
+  }
+  if (blesak > 0) blesak -= dt;
+  if (udar) { udar.t += dt; if (udar.t > 1.1) udar = null; }
 
   if (satT > 0) {                                      // 🛰 satelit kruži oko aviona i sam gađa
     satT -= dt;
@@ -409,11 +464,7 @@ function update(dt) {
       }
       if (boss && !boss.entering && Math.abs(boss.x - P.x) < boss.r + 7 && boss.y < P.y) {
         boss.hp -= steta; flash = .04;
-        if (boss.hp <= 0) {
-          score += 400 + level * 120; boom(boss.x, boss.y, 60, "#ff5d3b");
-          window.SFX && SFX.jackpot();
-          boss = null; bombe = Math.min(6, bombe + 2); nextLevel();
-        }
+        if (boss.hp <= 0) padaoBos();
       }
       if (Math.random() < dt * 26) boom(P.x + rnd(-4, 4), rnd(20, P.y - 20), 1, "#9ef0ff");
       if (Math.ceil(fazer) !== pre) updHud();
@@ -429,6 +480,7 @@ function update(dt) {
     if (waveT <= 0 && waveIdx < waves.length) { spawnWave(waves[waveIdx++]); waveT = 3.4 - Math.min(1.4, level * .12); }
     else if (waveIdx >= waves.length && foes.length === 0 && waveT <= -1) {
       boss = mkBoss(level); window.SFX && SFX.drum();
+      if (!nukeIzbacen && nuke === 0) { nukeIzbacen = true; drops.push({ x: LW / 2 + rnd(-40, 40), y: -10, k: "n", t: 0 }); }
       if (wep < 2) drops.push({ x: LW / 2, y: -10, k: "w", t: 0 });   // milost: bez ijednog pojačanja bos je nemoguć
     }
   }
@@ -436,13 +488,24 @@ function update(dt) {
   // meci igrača
   for (const b of bullets) {
     b.t = (b.t || 0) + dt;
-    if (b.tip === "raketa") {                          // blago navođenje ka najbližoj meti
-      const c = najblizi(b.x, b.y);
+    if (b.tip === "raketa") {                          // navođena: zaključa metu i drži je
+      if (!b.meta || b.meta.hp <= 0 || (b.meta !== boss && foes.indexOf(b.meta) < 0)) b.meta = najblizi(b.x, b.y);
+      const c = b.meta;
       if (c) {
-        const a = Math.atan2(c.y - b.y, c.x - b.x), sp = 330;
-        b.vx += (Math.cos(a) * sp - b.vx) * Math.min(1, dt * 3.2);
-        b.vy += (Math.sin(a) * sp - b.vy) * Math.min(1, dt * 3.2);
+        const a = Math.atan2(c.y - b.y, c.x - b.x), sp = 360;
+        b.vx += (Math.cos(a) * sp - b.vx) * Math.min(1, dt * 6);
+        b.vy += (Math.sin(a) * sp - b.vy) * Math.min(1, dt * 6);
       } else b.vy -= 240 * dt;
+      if (Math.random() < dt * 30) parts.push({ x: b.x, y: b.y, vx: rnd(-8, 8), vy: rnd(10, 30), t: 0, life: .35, col: "#7c8aa6" });
+    }
+    if (b.tip === "bal") {
+      if (b.faza === "gore") {
+        b.vy -= 120 * dt;
+        if (b.y < -8) { b.faza = "dole"; b.x = b.ciljX; b.y = -10; b.vx = 0; b.vy = 300; }
+      } else {
+        b.vy += 260 * dt;
+        if (b.y >= b.ciljY) { b.dead = true; rasprsni(b.x, b.y, true); okolina(b.x, b.y, 30, 4); }
+      }
     }
     if (b.tip === "bomba") {
       b.vy += 150 * dt;                                // uspori pa počne da pada
@@ -452,7 +515,7 @@ function update(dt) {
     if (b.tip === "iver") { b.zivot -= dt; if (b.zivot <= 0) b.dead = true; }
     b.x += b.vx * dt; b.y += b.vy * dt;
   }
-  bullets = bullets.filter(b => !b.dead && b.y > -14 && b.y < LH + 14 && b.x > -14 && b.x < LW + 14);
+  bullets = bullets.filter(b => !b.dead && (b.tip === "bal" || (b.y > -14 && b.y < LH + 14)) && b.x > -30 && b.x < LW + 30);
 
   // neprijatelji
   for (const f of foes) {
@@ -516,21 +579,28 @@ function update(dt) {
   if (flash > 0) flash -= dt;
 }
 
+function okolina(x, y, r, dmg) {                        // šteta u krugu (rakete, bombe, balistika)
+  for (const f of foes) {
+    if (f.hp <= 0) continue;
+    if ((f.x - x) ** 2 + (f.y - y) ** 2 < (r + f.r) ** 2) {
+      f.hp -= dmg;
+      if (f.hp <= 0) { score += f.scoreV; boom(f.x, f.y, 12, "#ff8c42"); maybeDrop(f.x, f.y); }
+    }
+  }
+  if (boss && !boss.entering && (boss.x - x) ** 2 + (boss.y - y) ** 2 < (r + boss.r) ** 2) {
+    boss.hp -= dmg; flash = .06;
+    if (boss.hp <= 0) padaoBos();
+  }
+  updHud();
+}
+function padaoBos() {
+  if (!boss) return;
+  score += 400 + level * 120; boom(boss.x, boss.y, 60, "#ff5d3b");
+  window.SFX && SFX.jackpot();
+  boss = null; bombe = Math.min(6, bombe + 2); nextLevel();
+}
 function collisions() {
   // meci → neprijatelji
-  const okolina = (x, y, r, dmg) => {                   // šteta u krugu (rakete i bombe)
-    for (const f of foes) {
-      if (f.hp <= 0) continue;
-      if ((f.x - x) ** 2 + (f.y - y) ** 2 < (r + f.r) ** 2) {
-        f.hp -= dmg;
-        if (f.hp <= 0) { score += f.scoreV; boom(f.x, f.y, 12, "#ff8c42"); maybeDrop(f.x, f.y); }
-      }
-    }
-    if (boss && !boss.entering && (boss.x - x) ** 2 + (boss.y - y) ** 2 < (r + boss.r) ** 2) {
-      boss.hp -= dmg; flash = .06;
-    }
-    updHud();
-  };
   for (const b of bullets) {
     if (b.dead) continue;
     for (const f of foes) {
@@ -559,11 +629,7 @@ function collisions() {
       boom(b.x, b.y, 3, b.tip === "laser" ? "#7ce7ff" : "#ffd166");
       if (b.prasak) { rasprsni(b.x, b.y, false); okolina(b.x, b.y, b.prasak, 2); }
       if (b.tip === "bomba") rasprsni(b.x, b.y, true), okolina(b.x, b.y, 34, 3);
-      if (boss.hp <= 0) {
-        score += 400 + level * 120; boom(boss.x, boss.y, 60, "#ff5d3b");
-        window.SFX && SFX.jackpot();
-        boss = null; bombe = Math.min(6, bombe + 2); nextLevel();
-      }
+      if (boss.hp <= 0) padaoBos();
     }
   }
   bullets = bullets.filter(b => !b.dead);
@@ -600,6 +666,8 @@ function collisions() {
         window.SFX && SFX.good();
       }
       else if (d.k === "f") { fazer = 7; score += 35; window.SFX && SFX.siren(); }   // 🔆 stalni snop
+      else if (d.k === "j") { balT = 12; balCool = 0; score += 35; window.SFX && SFX.drum(); }   // 🎯 balističke
+      else if (d.k === "n") { nuke = 1; score += 50; window.SFX && SFX.jackpot(); nukeDugme(); }  // ☢️ jednom po nivou
       window.SFX && SFX.coin();
       updHud();
     }
@@ -607,6 +675,11 @@ function collisions() {
   drops = drops.filter(d => !d.dead);
 }
 function maybeDrop(x, y) {
+  if (!nukeIzbacen && nuke === 0 && Math.random() < .12) {   // ☢️ pada najviše jednom po nivou
+    nukeIzbacen = true;
+    drops.push({ x: x, y: y, k: "n", t: 0 });
+    return;
+  }
   const r = Math.random();
   let k = null;
   if (r < .11) k = "w";                       // 🔫 jači top
@@ -618,6 +691,7 @@ function maybeDrop(x, y) {
   else if (r < .30) k = "b";                  // 💣 bombe
   else if (r < .335) k = "t";                 // 🛰 satelit
   else if (r < .36) k = "f";                  // 🔆 fazer
+  else if (r < .40) k = "j";                  // 🎯 balističke rakete
   if (k) drops.push({ x, y, k, t: 0 });
 }
 
@@ -699,6 +773,18 @@ function crtajMetke() {
       ctx.beginPath(); ctx.arc(b.x, b.y, 10 + p * 4, 0, 7); ctx.fill();
       ctx.fillStyle = "rgba(255,235,180,.95)";
       ctx.beginPath(); ctx.arc(b.x, b.y - 6, 1.6 + p, 0, 7); ctx.fill();   // varnica na fitilju
+    } else if (b.tip === "bal") {
+      if (b.faza === "gore") {
+        ctx.fillStyle = "rgba(255,170,60," + (.25 + .3 * p) + ")";
+        ctx.beginPath(); ctx.arc(b.x, b.y, 7, 0, 7); ctx.fill();
+        ctx.fillStyle = "#ffe9c0";
+        ctx.fillRect(b.x - 1.6, b.y - 5, 3.2, 10);
+      } else {
+        ctx.fillStyle = "rgba(255,120,90," + (.3 + .3 * p) + ")";
+        ctx.beginPath(); ctx.arc(b.x, b.y, 9, 0, 7); ctx.fill();
+        ctx.fillStyle = "#fff0d0";
+        ctx.fillRect(b.x - 2, b.y - 7, 4, 13);
+      }
     } else if (b.tip === "sat") {
       ctx.fillStyle = "rgba(150,255,190," + (.25 + .3 * p) + ")";
       ctx.beginPath(); ctx.arc(b.x, b.y, 5.5, 0, 7); ctx.fill();
@@ -724,6 +810,42 @@ function crtajMetke() {
     ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, 7); ctx.fill();
     ctx.strokeStyle = "rgba(255,90,90,.9)"; ctx.lineWidth = 1.4;
     ctx.beginPath(); ctx.arc(b.x, b.y, 6.5, 0, 7); ctx.stroke();
+  }
+}
+function crtajNisane() {                                  // krstić tamo gde će pasti balistička
+  const t = performance.now() / 1000;
+  for (const b of bullets) {
+    if (b.tip !== "bal") continue;
+    const p = .5 + .5 * Math.sin(t * 12);
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,120,90," + (.35 + .45 * p) + ")";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(b.ciljX, b.ciljY, 9 + p * 3, 0, 7); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(b.ciljX - 13, b.ciljY); ctx.lineTo(b.ciljX - 5, b.ciljY);
+    ctx.moveTo(b.ciljX + 5, b.ciljY); ctx.lineTo(b.ciljX + 13, b.ciljY);
+    ctx.moveTo(b.ciljX, b.ciljY - 13); ctx.lineTo(b.ciljX, b.ciljY - 5);
+    ctx.moveTo(b.ciljX, b.ciljY + 5); ctx.lineTo(b.ciljX, b.ciljY + 13);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+function crtajUdar() {                                    // nuklearni blesak i udarni talas
+  if (udar) {
+    const k = udar.t / 1.1;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = "rgba(255,220,150," + (1 - k) * .85 + ")";
+    ctx.lineWidth = 6 * (1 - k) + 1;
+    ctx.beginPath(); ctx.arc(udar.x, udar.y, 30 + k * 320, 0, 7); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,120,60," + (1 - k) * .5 + ")";
+    ctx.lineWidth = 12 * (1 - k) + 1;
+    ctx.beginPath(); ctx.arc(udar.x, udar.y, 10 + k * 230, 0, 7); ctx.stroke();
+    ctx.restore();
+  }
+  if (blesak > 0) {
+    ctx.fillStyle = "rgba(255,250,235," + Math.min(.85, blesak * 1.5) + ")";
+    ctx.fillRect(0, 0, LW, LH);
   }
 }
 function crtajFazer() {                                   // stalni snop od aviona do vrha ekrana
@@ -764,7 +886,10 @@ function crtajSatelite() {
   }
 }
 function draw() {
-  ctx.clearRect(0, 0, LW, LH);
+  const tres = udar && udar.t < .32 ? (1 - udar.t / .32) * 5 : 0;   // ekran se zatrese od nuklearke
+  ctx.save();
+  if (tres) ctx.translate(rnd(-tres, tres), rnd(-tres, tres));
+  ctx.clearRect(-8, -8, LW + 16, LH + 16);
   ctx.fillStyle = "#060b16"; ctx.fillRect(0, 0, LW, LH);
   for (const s of stars) {
     ctx.fillStyle = "rgba(190,215,255," + (.18 + s.z * .5) + ")";
@@ -773,13 +898,14 @@ function draw() {
   for (const d of drops) {
     const em = d.k === "w" ? "🔫" : d.k === "m" ? "🛩" : d.k === "h" ? "❤️"
       : d.k === "l" ? "⚡" : d.k === "r" ? "🚀" : d.k === "b" ? "💣"
-      : d.k === "t" ? "🛰" : d.k === "f" ? "🔆" : "🛡";
+      : d.k === "t" ? "🛰" : d.k === "f" ? "🔆" : d.k === "j" ? "🎯" : d.k === "n" ? "☢️" : "🛡";
     ctx.font = "15px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.globalAlpha = .85 + Math.sin(d.t * 9) * .15;
     ctx.fillText(em, d.x, d.y); ctx.globalAlpha = 1;
   }
   for (const f of foes) drawFoe(f);
   if (boss) drawBoss();
+  crtajNisane();
   crtajMetke();
   crtajFazer();
   crtajSatelite();
@@ -802,6 +928,8 @@ function draw() {
       ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(P.x, P.y, 17, 0, 7); ctx.stroke();
     }
   }
+  crtajUdar();
+  ctx.restore();
 }
 
 /* ---------- ulaz ---------- */
@@ -845,6 +973,7 @@ function togglePause() {
     $("#resBtn").onclick = togglePause;
   } else if (state === "pause") { state = "play"; hideOverlay(); lastTs = 0; }
 }
+$("#nukeBtn").onclick = e => { e.preventDefault(); e.stopPropagation(); nuklearka(); };
 $("#bPause").onclick = togglePause;
 $("#theme").onclick = () => {
   const b = document.body;
@@ -899,6 +1028,9 @@ window.A = {
   setBombe: n => { bombe = n; bombaT = 0; updHud(); }, rasprsni,
   get sateliti() { return sateliti; }, get satT() { return satT; }, get fazer() { return fazer; },
   setFazer: t => { fazer = t; updHud(); },
+  get balT() { return balT; }, get nuke() { return nuke; }, get nukeIzbacen() { return nukeIzbacen; },
+  get udar() { return udar; }, setBal: t => { balT = t; balCool = 0; updHud(); },
+  setNuke: n => { nuke = n; nukeIzbacen = true; nukeDugme(); updHud(); }, nuklearka, okolina,
   setBoss: b => { boss = b; }, addDrop: (x, y, k) => drops.push({ x, y, k, t: 0 }),
   step: (dt, n) => { for (let i = 0; i < (n || 1); i++) update(dt); }
 };
