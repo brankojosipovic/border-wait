@@ -361,6 +361,18 @@ function ogranici() {
   const r = Math.hypot(nis.x, nis.y);
   if (r > 196) { nis.x = nis.x / r * 196; nis.y = nis.y / r * 196; }
 }
+/* Nišan nikad ne kreće od mete — kao kad tek podigneš ruku, negde kod kece.
+   Do trostruke dvadesetice moraš sam da ga dovučeš. */
+function pocetniNisan() {
+  const c = sredisteP("1");
+  return { x: c.x + (Math.random() * 2 - 1) * 9, y: c.y + (Math.random() * 2 - 1) * 9 };
+}
+/* Između strelica ruka se spusti pa opet digne — linija se malo pomeri. */
+function pomeriRuku() {
+  nis.x += (Math.random() * 2 - 1) * 6;
+  nis.y += (Math.random() * 2 - 1) * 6;
+  ogranici();
+}
 function normalno(sig) {                         // Box–Muller
   const u = Math.max(1e-9, Math.random());
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * Math.random()) * sig;
@@ -604,7 +616,7 @@ function novaPartija(op) {
     zapoceta: false                              // dok se ne baci prva strelica, nema šta da se nastavlja
   };
   G.pocetakVisita = G.igraci[G.naRedu].rez;
-  strele = []; nis = sredisteP(igra === "krug" ? "1" : "T20");
+  strele = []; nis = pocetniNisan();
   hideOverlay(); crtaj(); posaljiStanje(); save();
   posleSmene();
 }
@@ -642,7 +654,7 @@ function upisiPogodak(p) {
 
   if (kraj) { G.faza = "kraj"; G.gotovo = true; G.pobednik = G.naRedu; ig.legovi++; crtaj(); posaljiStanje(); zavrsiLeg(); return; }
   if (bust || G.strela >= 3) { G.faza = "posle"; crtaj(); posaljiStanje(); save(); daljeTajmer = setTimeout(smena, bust ? 1100 : 1300); return; }
-  G.faza = "nisani"; crtaj(); posaljiStanje(); save();
+  G.faza = "nisani"; pomeriRuku(); crtaj(); posaljiStanje(); save();
   if (naRedu().tip === "racunar") racunarBaca();
 }
 function smena() {
@@ -658,7 +670,7 @@ function smena() {
 }
 function posleSmene() {
   const ig = naRedu(); if (!ig) return;
-  nis = sredisteP(G.igra === "krug" ? String(Math.min(20, ig.meta)) : "T20");
+  nis = pocetniNisan();
   if (ig.tip === "racunar") return racunarBaca();
   // na jednom telefonu telefon menja vlasnika — sačekaj da novi igrač bude spreman
   if (G.rezim === "vise" && G.igraci.length > 1) {
@@ -1033,6 +1045,8 @@ function pravila() {
   showOverlay('<h2>Pravila i nišanjenje</h2>' +
     '<ul>' +
     '<li><b>Bacanje:</b> prevlači prstom po tabli — nišan ide za prstom. <b>Čim pustiš prst, strelica leti.</b></li>' +
+    '<li>Svaki krug nišan kreće <b>kod kece</b>, a ne na meti — do trostruke dvadesetice ' +
+    'moraš sam da ga dovučeš. Između strelica ti se ruka malo pomeri, pa je i tada treba doterati.</li>' +
     '<li>Oko nišana je krug: to je koliko možeš da promašiš. Manji krug = mirnija ruka. ' +
     'Krug raste dok mrdaš i ako predugo nišaniš — kao u životu, ne vredi odugovlačiti.</li>' +
     '<li><b>501:</b> svako baca po tri strelice i oduzima pogodak od svog rezultata. ' +
@@ -1126,7 +1140,7 @@ window.P = {
   get G() { return G; }, get strele() { return strele; }, get nis() { return nis; },
   pogodak, sredisteP, izlaz, POLJA, RED20, novaPartija, upisiPogodak, smena, meni, crtaj,
   primi, primiPostavu, kreniPartiju, statusMreze, save, load, nastaviPartiju, ciljRacunara,
-  baci: t => baci(t), amplituda, podesavanja, pravila,
+  baci: t => baci(t), amplituda, podesavanja, pravila, pocetniNisan, pomeriRuku,
   get mojIndex() { return mojIndex; }, get postava() { return postava; },
   get sacuvanaMreza() { return sacuvanaMreza; },
   get tezina() { return tezina; }, setTezina: t => { tezina = t; },
