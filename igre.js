@@ -622,6 +622,7 @@ var PRAVILA = {
     "Poeni idu <b>po udaljenosti</b>: najviše 1000 po pitanju. Kod država je pun pogodak ako dodirneš bilo gde unutar zemlje.",
     "Karta se <b>pomera prevlačenjem</b>, a zumira sa <b>dva prsta</b> ili dugmićima ＋ − ; 🌍 vraća ceo svet.",
     "Bira se oblast (ceo svet, Evropa ili naš kraj), šta se pita (države, gradovi ili mešano) i težina.",
+    "<b>⏱ Vreme</b> po pitanju je izbor: bez žurbe, 10 ili 20 sekundi. Kad sat istekne, važi ono što si pribo — a ako nisi ništa, pitanje nosi nula.",
     "Posle odgovora vidiš tačno mesto, crtu do svog pribadanja i koliko si kilometara promašio.",
     "<b>🌐 Igra u sobi</b> — do četiri igrača dobiju ista pitanja i vide ko je bio bliži."
   ]],

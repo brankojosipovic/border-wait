@@ -207,7 +207,7 @@ function novaIgra(rezim, ljudi, imena) {
     rezim, ljudi,                               // ljudi: niz true/false — ko je čovek
     imena: imena || ljudi.map((c, i) => c ? "Igrač " + (i + 1) : "Računar " + (i + 1)),
     figure: [0, 1, 2, 3].map(() => [KUCI, KUCI, KUCI, KUCI]),
-    naRedu: 0, kocka: 0, bacanja: 0, gotovo: false, poredak: [], poruka: ""
+    naRedu: 0, kocka: 0, bacanja: 0, iskoriscena: false, gotovo: false, poredak: [], poruka: ""
   };
   animacija = null; cekamPotez = false;
   hideOverlay(); osveziIgrace(); osveziDugme();
@@ -248,7 +248,7 @@ function potezi(igrac, kocka) {                 // svi mogući potezi za bačeni
 function baci(broj, odmah) {
   if (!G || G.gotovo || animacija || cekamPotez) return;
   const k = broj || (1 + ((Math.random() * 6) | 0));
-  G.kocka = k; G.bacanja++;
+  G.kocka = k; G.bacanja++; G.iskoriscena = false;
   if (soba && G.rezim === "mreza" && !primam) Mreza.posalji({ t: "K", k });
   if (!odmah) { window.SFX && SFX.drum(); kockaVrti = performance.now() + 420; }
   const posle = (ms, f) => odmah ? f() : setTimeout(f, ms);
@@ -280,11 +280,11 @@ function baci(broj, odmah) {
   osveziDugme();
 }
 function odigraj(figura, tiho, odmah) {
-  if (!G || G.gotovo || animacija) return false;
+  if (!G || G.gotovo || animacija || G.iskoriscena) return false;
   const mogu = potezi(G.naRedu, G.kocka);
   const potez = mogu.find(p => p.figura === figura);
   if (!potez) return false;
-  cekamPotez = false;
+  cekamPotez = false; G.iskoriscena = true;     // isti bačeni broj se igra samo jednom
   const igrac = G.naRedu, od = G.figure[igrac][figura];
   G.figure[igrac][figura] = potez.cilj;
   if (odmah) { zavrsiPotez(igrac, figura); return true; }
@@ -338,7 +338,7 @@ function sledeci() {
     i = (i + 1) % 4;
     if (G.poredak.indexOf(i) < 0) break;
   }
-  G.naRedu = i; G.kocka = 0; G.bacanja = 0; cekamPotez = false;
+  G.naRedu = i; G.kocka = 0; G.bacanja = 0; G.iskoriscena = false; cekamPotez = false;
   javi("Na potezu je " + imeIgraca(i) + ".");
   osveziIgrace(); osveziDugme(); sacuvajPartiju(); sinhronizuj();
   if (naPotezuRacunar()) setTimeout(potezRacunara, 700);
@@ -374,7 +374,7 @@ function kraj() {
 /* ---------- računar ---------- */
 function potezRacunara() {
   if (!G || G.gotovo || !naPotezuRacunar()) return;
-  if (!G.kocka || (!cekamPotez && !potezi(G.naRedu, G.kocka).length)) return baci();
+  if (!G.kocka || G.iskoriscena || (!cekamPotez && !potezi(G.naRedu, G.kocka).length)) return baci();
   const mogu = potezi(G.naRedu, G.kocka);
   if (!mogu.length) return;
   let naj = null, najOcena = -1e9;
@@ -584,7 +584,7 @@ function meni() {
     '<div class="btns"><button id="sobaBtn2">🌐 Igra u sobi</button>' +
     '<button id="pravBtn">❔ Pravila</button></div>');
   const nb = $("#nastaviBtn");
-  if (nb) nb.onclick = () => { G = tok; animacija = null; cekamPotez = false; hideOverlay(); osveziIgrace(); osveziDugme(); javi(G.poruka || ""); if (naPotezuRacunar()) setTimeout(potezRacunara, 600); };
+  if (nb) nb.onclick = () => { G = tok; G.kocka = 0; G.bacanja = 0; G.iskoriscena = false; animacija = null; cekamPotez = false; hideOverlay(); osveziIgrace(); osveziDugme(); javi(G.poruka || ""); if (naPotezuRacunar()) setTimeout(potezRacunara, 600); };
   $("#protivBtn").onclick = () => biraj("protiv");
   $("#jedanBtn").onclick = () => biraj("jedan");
   $("#sobaBtn2").onclick = sobaMeni;
@@ -624,7 +624,7 @@ const SOBNE_BOJE = BOJE.map(b => b.p);
 function sinhronizuj() {
   if (!soba || !G || G.rezim !== "mreza" || primam) return;
   Mreza.posalji({ t: "S", g: {
-    figure: G.figure, naRedu: G.naRedu, kocka: G.kocka, bacanja: G.bacanja,
+    figure: G.figure, naRedu: G.naRedu, kocka: G.kocka, bacanja: G.bacanja, iskoriscena: G.iskoriscena,
     poredak: G.poredak, gotovo: G.gotovo, poruka: G.poruka
   } });
 }
@@ -632,7 +632,8 @@ function primiStanje(g) {
   if (!G) return;
   primam = true;
   G.figure = g.figure; G.naRedu = g.naRedu; G.kocka = g.kocka;
-  G.bacanja = g.bacanja; G.poredak = g.poredak || []; G.poruka = g.poruka || "";
+  G.bacanja = g.bacanja; G.iskoriscena = !!g.iskoriscena;
+  G.poredak = g.poredak || []; G.poruka = g.poruka || "";
   cekamPotez = false; animacija = null;
   osveziIgrace(); osveziDugme(); javi(G.poruka);
   primam = false;
@@ -756,7 +757,7 @@ function sobaPrimi(m, od) {
   }
   if (!G) return;
   if (m.t === "K") {                            // neko je bacio — da se vidi kockica
-    G.kocka = m.k; kockaVrti = performance.now() + 420;
+    G.kocka = m.k; G.iskoriscena = false; kockaVrti = performance.now() + 420;
     window.SFX && SFX.drum();
     return;
   }
@@ -817,7 +818,7 @@ window.C = {
   potezRacunara, meni, biraj, fit, crtaj, gotovIgrac, imeIgraca,
   postavi: (igrac, figura, mesto) => { G.figure[igrac][figura] = mesto; },
   sobaMeni, sobaKraj, kreniUSobi, sinhronizuj,
-  naRed: i => { G.naRedu = i; G.kocka = 0; cekamPotez = false; },
+  naRed: i => { G.naRedu = i; G.kocka = 0; G.iskoriscena = false; cekamPotez = false; },
   zavrsiAnimaciju: () => { if (animacija) { const a = animacija; animacija = null; zavrsiPotez(a.igrac, a.figura); } },
   odigrajOdmah: f => odigraj(f, false, true),
   baciOdmah: k => baci(k, true),

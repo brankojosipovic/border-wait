@@ -192,6 +192,11 @@ const OBLASTI = {
 };
 const VRSTE = { drzave: "Države", gradovi: "Gradovi", mesano: "Mešano" };
 const TEZINE = { lako: { nm: "Lako", max: 1 }, srednje: { nm: "Srednje", max: 2 }, tesko: { nm: "Teško", max: 3 } };
+const VREMENA = {                              // koliko se sme misliti po pitanju
+  bez: { nm: "Bez žurbe", opis: "misli koliko hoćeš", sek: 0 },
+  s10: { nm: "10 sekundi", opis: "brzo, po osećaju", sek: 10 },
+  s20: { nm: "20 sekundi", opis: "ima vremena i da se zumira", sek: 20 }
+};
 const PO_PARTIJI = 10;
 
 /* ---------- projekcija (Merkator) i rastojanje ---------- */
@@ -240,6 +245,8 @@ function najbliziRub(lon, lat, prsteni) {      // koliko je promašaj, u kilomet
 /* ---------- stanje ---------- */
 let P = null;            // partija: {pitanja, i, poeni, oblast, vrsta, tez}
 let pribod = null;       // moj dodir {lon, lat}
+let rok = 0;             // kad ističe vreme za odgovor (0 = bez ograničenja)
+let pokazanoSek = -1;
 let resenje = null;      // posle potvrde: {km, poeni, drzava}
 let rekordi = {};
 const kam = { x: .5, y: .43, z: 1 };           // sredina karte i uvećanje
@@ -247,8 +254,8 @@ let ciljKam = null, raf = null, lastTs = 0;
 
 function ucitaj() { try { rekordi = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { rekordi = {}; } }
 function upisi() { try { localStorage.setItem(KEY, JSON.stringify(rekordi)); } catch (e) { } }
-const kljucRek = () => (P ? P.oblast + "-" + P.vrsta + "-" + P.tez : "");
-const brojKm = km => km < 10 ? km.toFixed(1) : Math.round(km).toLocaleString("sr-RS");
+const kljucRek = () => (P ? P.oblast + "-" + P.vrsta + "-" + P.tez + (P.vreme ? "-" + P.vreme : "") : "");
+const brojKm = km => km == null ? "—" : (km < 10 ? km.toFixed(1) : Math.round(km).toLocaleString("sr-RS"));
 
 /* ---------- pitanja ---------- */
 function izvor(oblast, vrsta, tez) {
@@ -266,11 +273,12 @@ function izvor(oblast, vrsta, tez) {
   if (vrsta !== "drzave") for (const g of gr) spisak.push({ tip: "grad", ime: g.ime, lon: g.lon, lat: g.lat, drzava: g.drzava });
   return spisak;
 }
-function novaPartija(oblast, vrsta, tez, pitanja) {
+function novaPartija(oblast, vrsta, tez, pitanja, vreme) {
   const spisak = pitanja || probraj(izvor(oblast, vrsta, tez), PO_PARTIJI);
-  P = { pitanja: spisak, i: 0, poeni: 0, oblast, vrsta, tez, gotovo: false, rezultati: [] };
-  pribod = null; resenje = null;
-  rekordi.izbor = { oblast, vrsta, tez }; upisi();
+  const sek = VREMENA[vreme || izbor.vreme] ? VREMENA[vreme || izbor.vreme].sek : 0;
+  P = { pitanja: spisak, i: 0, poeni: 0, oblast, vrsta, tez, vreme: sek, gotovo: false, rezultati: [] };
+  pribod = null; resenje = null; rok = 0;
+  rekordi.izbor = { oblast, vrsta, tez, vreme: vreme || izbor.vreme }; upisi();
   naSvet(true);
   hideOverlay(); osveziTraku(); pokaziPitanje();
 }
@@ -290,7 +298,25 @@ function pokaziPitanje() {
     '<small>' + (p.tip === "grad" ? "grad" : "država") + ' · dodirni mesto na karti</small>';
   $("#zOdgovor").textContent = ""; $("#zOdgovor").className = "odgovor";
   $("#potvrdi").disabled = true; $("#potvrdi").hidden = false; $("#dalje").hidden = true;
+  rok = P.vreme ? performance.now() + P.vreme * 1000 : 0;
+  pokazanoSek = -1;
+  osveziSat();
   osveziTraku();
+}
+function osveziSat() {                         // odbrojavanje stoji tamo gde posle ide odgovor
+  if (!rok || resenje) return;
+  const sek = Math.max(0, Math.ceil((rok - performance.now()) / 1000));
+  if (sek === pokazanoSek) return;
+  pokazanoSek = sek;
+  const o = $("#zOdgovor");
+  o.className = "odgovor" + (sek <= 3 ? " lose" : "");
+  o.innerHTML = "<b>⏱ " + sek + "</b>sekundi";
+  if (sek <= 3 && sek > 0) window.SFX && SFX.tick();
+}
+function istekloVreme() {
+  rok = 0;
+  if (!P || P.gotovo || resenje) return;
+  potvrdi(true);
 }
 function osveziTraku() {
   if (!P) return;
@@ -311,16 +337,19 @@ function oceni(p, lon, lat) {
   const poeni = unutra ? 1000 : Math.round(1000 * Math.exp(-km / opseg));
   return { km, poeni, unutra };
 }
-function potvrdi() {
+function potvrdi(isteklo) {
   const p = pitanje();
-  if (!p || !pribod || resenje) return;
-  resenje = oceni(p, pribod.lon, pribod.lat);
+  if (!p || resenje || (!pribod && !isteklo)) return;
+  rok = 0;
+  resenje = pribod ? oceni(p, pribod.lon, pribod.lat)
+    : { km: null, poeni: 0, unutra: false, isteklo: true };
   P.poeni += resenje.poeni;
   P.rezultati.push({ ime: p.ime, km: resenje.km, poeni: resenje.poeni });
   window.SFX && (resenje.poeni >= 800 ? SFX.win() : resenje.poeni >= 400 ? SFX.good() : SFX.bad());
   const o = $("#zOdgovor");
   o.className = "odgovor " + (resenje.poeni >= 600 ? "dobro" : resenje.poeni >= 250 ? "" : "lose");
-  o.innerHTML = "<b>+" + resenje.poeni + "</b>" + (resenje.unutra ? "pun pogodak" : brojKm(resenje.km) + " km");
+  o.innerHTML = "<b>+" + resenje.poeni + "</b>" +
+    (resenje.isteklo ? "isteklo vreme" : resenje.unutra ? "pun pogodak" : brojKm(resenje.km) + " km");
   $("#zPitanje").innerHTML = "<b>" + p.ime + "</b>" +
     '<small>' + (p.tip === "grad" ? p.drzava : p.drz.kont) + '</small>';
   $("#potvrdi").hidden = true; $("#dalje").hidden = false;
@@ -345,7 +374,8 @@ function kraj() {
   window.SFX && SFX.jackpot();
   if (soba) return soba.kraj();
   const red = P.rezultati.map(r =>
-    "<div><b>" + r.ime + "</b> — " + brojKm(r.km) + " km · " + r.poeni + "</div>").join("");
+    "<div><b>" + r.ime + "</b> — " + (r.km == null ? "nije stigao" : brojKm(r.km) + " km") +
+    " · " + r.poeni + "</div>").join("");
   showOverlay('<h2>🏁 Gotovo — ' + P.poeni + ' poena</h2>' +
     '<p>Najviše je moguće ' + (P.pitanja.length * 1000) + '. Najbolje do sada: <b style="color:#eef2f9">' +
     Math.max(stari, P.poeni) + '</b></p>' +
@@ -382,7 +412,12 @@ function naOblast(odmah) {                     // priljubi kartu uz oblast u koj
 }
 function pokaziOboje() {                       // posle odgovora se vide i pribod i tačno mesto
   const p = pitanje();
-  if (!p || !pribod) return;
+  if (!p) return;
+  if (!pribod) {                               // niko nije stigao — bar pokaži gde je
+    const t = uSvet(p.lon, p.lat);
+    postavi(t.x, t.y, Math.max(granicaZuma() * 2.5, Math.min(granicaZuma() * 5, kam.z)), false);
+    return;
+  }
   const a = uSvet(pribod.lon, pribod.lat), b = uSvet(p.lon, p.lat);
   const x = (a.x + b.x) / 2, y = (a.y + b.y) / 2;
   const dx = Math.abs(a.x - b.x) || .02, dy = Math.abs(a.y - b.y) || .02;
@@ -441,7 +476,14 @@ function crtaj() {
 
   if (resen) {                                 // linija od mog dodira do tačnog mesta
     const p = pitanje();
-    const a = uSvet(pribod.lon, pribod.lat), b = uSvet(p.lon, p.lat);
+    const b = uSvet(p.lon, p.lat);
+    if (!pribod) {
+      const [bx, by] = naEkran(b.x, b.y);
+      tacka(bx, by, "#2e9e6b", p.ime, true);
+      if (soba) soba.crtaj();
+      return;
+    }
+    const a = uSvet(pribod.lon, pribod.lat);
     const [ax, ay] = naEkran(a.x, a.y), [bx, by] = naEkran(b.x, b.y);
     ctx.setLineDash([6, 5]); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(238,242,249,.75)";
     ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
@@ -552,25 +594,27 @@ cv.addEventListener("wheel", e => {
 function showOverlay(h) { const o = $("#overlay"); o.innerHTML = h; o.hidden = false; }
 function hideOverlay() { $("#overlay").hidden = true; }
 
-let izbor = { oblast: "svet", vrsta: "mesano", tez: "srednje" };
+let izbor = { oblast: "svet", vrsta: "mesano", tez: "srednje", vreme: "bez" };
 function meni() {
   const r = rekordi[izbor.oblast + "-" + izbor.vrsta + "-" + izbor.tez] || 0;
   showOverlay('<h2>🗺 Mapa</h2>' +
     '<p>Pitanje kaže koju državu ili grad tražimo, ti dodirneš mesto na karti. ' +
     'Poeni idu po tome koliko si blizu — najviše 1000 po pitanju.</p>' +
     '<p>Oblast: <b style="color:#eef2f9">' + OBLASTI[izbor.oblast].nm + '</b> · ' +
-    VRSTE[izbor.vrsta] + ' · ' + TEZINE[izbor.tez].nm +
+    VRSTE[izbor.vrsta] + ' · ' + TEZINE[izbor.tez].nm + ' · ' + VREMENA[izbor.vreme].nm +
     (r ? ' · najbolje <b style="color:#eef2f9">' + r + '</b>' : '') + '</p>' +
     '<div class="btns"><button id="igrajBtn">▶ Igraj</button>' +
     '<button id="oblastBtn">🌍 Oblast</button>' +
     '<button id="vrstaBtn">🏙 Šta se pita</button>' +
-    '<button id="tezBtn">⚙︎ Težina</button></div>' +
+    '<button id="tezBtn">⚙︎ Težina</button>' +
+    '<button id="vremeBtn">⏱ Vreme</button></div>' +
     '<div class="btns"><button id="sobaBtn2">🌐 Igra u sobi</button>' +
     '<button id="pravBtn">❔ Pravila</button></div>');
   $("#igrajBtn").onclick = () => novaPartija(izbor.oblast, izbor.vrsta, izbor.tez);
   $("#oblastBtn").onclick = () => biraj("oblast", OBLASTI, "🌍 Koji deo sveta");
   $("#vrstaBtn").onclick = () => biraj("vrsta", VRSTE, "🏙 Šta se pita");
   $("#tezBtn").onclick = () => biraj("tez", TEZINE, "⚙︎ Težina");
+  $("#vremeBtn").onclick = () => biraj("vreme", VREMENA, "⏱ Vreme za odgovor");
   $("#sobaBtn2").onclick = sobaMeni;
   $("#pravBtn").onclick = () => window.PRAVILA_IGRE && PRAVILA_IGRE.pokazi("mapa");
 }
@@ -586,7 +630,7 @@ function biraj(sta, spisak, naslov) {
   h += '</div><div class="btns"><button id="nazadBtn">← Nazad</button></div>';
   showOverlay(h);
   for (const b of document.querySelectorAll(".izbor button"))
-    b.onclick = () => { izbor[sta] = b.dataset.k; window.SFX && SFX.tap(); meni(); };
+    b.onclick = () => { izbor[sta] = b.dataset.k; rekordi.izbor = Object.assign({}, izbor); upisi(); window.SFX && SFX.tap(); meni(); };
   $("#nazadBtn").onclick = meni;
 }
 
@@ -619,8 +663,8 @@ function novaSoba(uloga) {
     },
     posaljiRezultat(r) {
       if (!P || !this.postava) return;
-      Mreza.posalji({ t: "R", i: P.i, km: Math.round(r.km), poeni: r.poeni,
-        x: +pribod.lon.toFixed(2), y: +pribod.lat.toFixed(2) });
+      Mreza.posalji({ t: "R", i: P.i, km: r.km == null ? null : Math.round(r.km), poeni: r.poeni,
+        x: pribod ? +pribod.lon.toFixed(2) : null, y: pribod ? +pribod.lat.toFixed(2) : null });
       this.poeni[Mreza.jaSam()] = P.poeni;
     },
     crtaj() {                                  // tuđi pribodi za tekuće pitanje
@@ -628,7 +672,7 @@ function novaSoba(uloga) {
       for (let i = 0; i < this.postava.length; i++) {
         if (i === this.moj) continue;
         const d = this.dodiri[this.postava[i].id];
-        if (!d || d.i !== P.i) continue;
+        if (!d || d.i !== P.i || d.x == null) continue;
         const t = uSvet(d.x, d.y);
         const [sx, sy] = naEkran(t.x, t.y);
         ctx.beginPath(); ctx.arc(sx, sy, 6, 0, 7);
@@ -728,10 +772,12 @@ function pokaziKod(kod) {
     'border:1px solid #283a5e;border-radius:12px;padding:10px 16px">' + kod + '</div>' +
     '<div class="mesta">' + red + (svi.length < 4 ? '<div class="mesto prazno">+ ima mesta do četiri igrača</div>' : '') + '</div>' +
     (jeDomacin
-      ? '<p>' + OBLASTI[izbor.oblast].nm + ' · ' + VRSTE[izbor.vrsta] + ' · ' + TEZINE[izbor.tez].nm + '</p>'
+      ? '<p>' + OBLASTI[izbor.oblast].nm + ' · ' + VRSTE[izbor.vrsta] + ' · ' + TEZINE[izbor.tez].nm +
+        ' · ' + VREMENA[izbor.vreme].nm + '</p>'
       : '<p>Čekamo da domaćin krene…</p>') +
     '<div class="btns">' +
-    (jeDomacin ? '<button id="oblastSoba">🌍 Oblast</button><button id="vrstaSoba">🏙 Šta se pita</button>' : '') +
+    (jeDomacin ? '<button id="oblastSoba">🌍 Oblast</button><button id="vrstaSoba">🏙 Šta se pita</button>' +
+      '<button id="vremeSoba">⏱ Vreme</button>' : '') +
     (jeDomacin && svi.length >= 2 ? '<button id="kreniBtn">▶ Kreni (' + svi.length + ')</button>' : '') +
     '<button id="odustBtn">Odustani</button></div>' +
     ((window.IGRAC && !IGRAC.ime()) ? '<p><button id="imeBtn2">👤 Upiši svoje ime</button></p>' : ''));
@@ -746,6 +792,11 @@ function pokaziKod(kod) {
     izbor.vrsta = red3[(red3.indexOf(izbor.vrsta) + 1) % red3.length];
     pokaziKod(kod);
   };
+  const tb = $("#vremeSoba"); if (tb) tb.onclick = () => {
+    const red4 = Object.keys(VREMENA);
+    izbor.vreme = red4[(red4.indexOf(izbor.vreme) + 1) % red4.length];
+    pokaziKod(kod);
+  };
   const ib = $("#imeBtn2"); if (ib) ib.onclick = () => IGRAC.pitaj(() => pokaziKod(kod));
   $("#odustBtn").onclick = () => { sobaKraj(); meni(); };
 }
@@ -754,8 +805,8 @@ function kreniUSobi() {
   if (svi.length < 2) return;
   const pitanja = probraj(izvor(izbor.oblast, izbor.vrsta, izbor.tez), PO_PARTIJI)
     .map(p => ({ t: p.tip === "grad" ? "g" : "d", n: p.ime }));
-  Mreza.posalji({ t: "P", ig: svi, p: pitanja, o: izbor.oblast, v: izbor.vrsta, z: izbor.tez });
-  pocniUSobi(svi, pitanja, izbor.oblast, izbor.vrsta, izbor.tez);
+  Mreza.posalji({ t: "P", ig: svi, p: pitanja, o: izbor.oblast, v: izbor.vrsta, z: izbor.tez, s: izbor.vreme });
+  pocniUSobi(svi, pitanja, izbor.oblast, izbor.vrsta, izbor.tez, izbor.vreme);
 }
 function pitanjaIzImena(spisak) {              // svi imaju iste podatke, pa idu samo nazivi
   const izlaz = [];
@@ -770,14 +821,15 @@ function pitanjaIzImena(spisak) {              // svi imaju iste podatke, pa idu
   }
   return izlaz;
 }
-function pocniUSobi(svi, pitanja, oblast, vrsta, tez) {
+function pocniUSobi(svi, pitanja, oblast, vrsta, tez, vreme) {
   soba.postava = svi;
   soba.moj = Math.max(0, svi.findIndex(x => x.id === Mreza.jaSam()));
   soba.poeni = {}; soba.dodiri = {};
   for (const x of svi) soba.poeni[x.id] = 0;
   cekaonica = false;
   izbor.oblast = oblast; izbor.vrsta = vrsta; izbor.tez = tez;
-  novaPartija(oblast, vrsta, tez, pitanjaIzImena(pitanja));
+  if (vreme && VREMENA[vreme]) izbor.vreme = vreme;
+  novaPartija(oblast, vrsta, tez, pitanjaIzImena(pitanja), izbor.vreme);
 }
 function sobaPrimi(m, od) {
   if (window.CET && CET.primi(m, od)) return;
@@ -788,7 +840,7 @@ function sobaPrimi(m, od) {
       $("#punaBtn").onclick = () => { sobaKraj(); meni(); };
       return;
     }
-    return pocniUSobi(m.ig, m.p, m.o, m.v, m.z);
+    return pocniUSobi(m.ig, m.p, m.o, m.v, m.z, m.s);
   }
   if (m.t === "R") {
     soba.poeni[od] = (soba.poeni[od] || 0) + m.poeni;
@@ -800,8 +852,8 @@ function sobaPrimi(m, od) {
       window.SFX && SFX.tick();
       const o = $("#zOdgovor");
       o.innerHTML = o.innerHTML + '<small style="display:block;color:#9fb0cc">' +
-        ko + ": " + brojKm(m.km) + " km</small>";
-      if (m.km < moj) window.SFX && SFX.mimo();
+        ko + ": " + (m.km == null ? "nije stigao" : brojKm(m.km) + " km") + "</small>";
+      if (m.km != null && moj != null && m.km < moj) window.SFX && SFX.mimo();
     }
     return;
   }
@@ -813,6 +865,7 @@ function loop(ts) {
   if (!lastTs) lastTs = ts;
   const dt = Math.min(.05, (ts - lastTs) / 1000); lastTs = ts;
   pomeriKameru(dt);
+  if (rok) { osveziSat(); if (performance.now() >= rok) istekloVreme(); }
   crtaj();
 }
 function fit() {
@@ -846,6 +899,7 @@ $("#theme").onclick = () => {
 };
 ucitaj();
 if (rekordi.izbor) izbor = Object.assign(izbor, rekordi.izbor);
+if (!VREMENA[izbor.vreme]) izbor.vreme = "bez";
 let soba = null;
 fit(); naSvet(true); crtaj(); meni();
 raf = requestAnimationFrame(loop);
@@ -855,6 +909,7 @@ window.M = {
   get P() { return P; }, get pribod() { return pribod; }, get resenje() { return resenje; },
   get kam() { return kam; }, get rekordi() { return rekordi; }, get izbor() { return izbor; },
   uSvet, izSveta, kmIzmedju, uPoligonu, najbliziRub, oceni, izvor,
+  VREMENA, get rok() { return rok; }, set rok(v) { rok = v; }, istekloVreme,
   novaPartija, potvrdi, dalje, meni, biraj, naSvet, zumiraj, granicaZuma, fit, crtaj,
   dodirni: (lon, lat) => { pribod = { lon, lat }; $("#potvrdi").disabled = false; },
   get soba() { return soba; }, sobaMeni, sobaKraj, kreniUSobi, pitanjaIzImena,

@@ -177,6 +177,10 @@ odgovora se sama namesti tako da se vide i pribadanje i tačno mesto, sa crtom i
 osvetljenom državom. Bira se oblast (ceo svet, Evropa, naš kraj — od Beča do Soluna), šta se pita
 (države, gradovi, mešano) i težina; sve se pamti za sledeći put, kao i najbolji rezultat.
 
+**⏱ Vreme** po pitanju se bira: bez žurbe, 10 ili 20 sekundi. Sat stoji tamo gde posle ide odgovor
+i pocrveni na poslednje tri sekunde; kad istekne, važi ono što je pribodeno, a ako nema ničega —
+pitanje nosi nulu i karta samo pokaže gde je tačno mesto. Rekordi se vode odvojeno po vremenu.
+
 **🌐 Igra u sobi** — do četiri igrača dobiju **ista pitanja** (domaćin šalje samo nazive, jer svi
 imaju iste podatke). Svako odgovara svojim tempom; čim potvrdiš, ostalima stiže koliko si bio
 blizu i gde si dodirnuo, pa se tuđa pribadanja vide na karti posle odgovora, a u traci stoji ko
@@ -191,7 +195,8 @@ pravila kratka: šestica izvodi iz kuće i donosi novo bacanje, u cilj se ulazi 
 polje blokira a tuđa figura se vraća kući; kad su sve četiri u kući, ide se tri puta.
 
 Kad ima više različitih poteza, igrač dodirne figuru; kad su svi izbori isti (npr. četiri figure u
-kući na šesticu) igra odigra sama. Računar bira po jednostavnoj oceni: jelo protivnika, izlazak iz
+kući na šesticu) igra odigra sama. Svako bacanje važi za tačno jedan potez (`iskoriscena`), pa
+šestica donosi **novo bacanje**, a ne još jedan potez istim brojem. Računar bira po jednostavnoj oceni: jelo protivnika, izlazak iz
 kuće, ulazak u cilj, pa bežanje sa polja na kojem ga neko može pojesti (`ugrozenost` gleda ko je u
 dometu od šest polja iza).
 
