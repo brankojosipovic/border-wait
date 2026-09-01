@@ -263,25 +263,69 @@ function prikaziVerziju() {
   if (!("caches" in window)) { v.textContent = ""; return; }
   caches.keys().then(function (k) {
     var mine = k.filter(function (x) { return x.indexOf("igre-") === 0; });
-    v.textContent = (mine.length ? "verzija " + mine.join(", ") + " · " : "") + (window.IGRE ? window.IGRE.length + " igara" : "");
+    var t = (mine.length ? "verzija " + mine.join(", ") + " · " : "") + (window.IGRE ? window.IGRE.length + " igara" : "");
+    var na = window.SWPomoc && window.SWPomoc.naServeru;
+    if (na && mine.length && mine.indexOf(na) < 0) t += " · nova je " + na + ", dodirni 🔄";
+    v.textContent = t;
   }).catch(function () { });
 }
 prikaziVerziju();
+setTimeout(prikaziVerziju, 3000);              // kad stigne odgovor sa servera, dopiši ima li nova
+
+var cekamServer = null;                        // ponavljanje provere dok GitHub deli staru kopiju
+function ponavljajProveru(nova) {
+  if (cekamServer) clearInterval(cekamServer);
+  var pokusaja = 0;
+  cekamServer = setInterval(function () {
+    if (++pokusaja > 15) { clearInterval(cekamServer); cekamServer = null; return; }
+    window.SWPomoc.deljenaVerzija().then(function (deljena) {
+      if (!deljena || deljena === nova) {         // server je najzad počeo da deli novu
+        clearInterval(cekamServer); cekamServer = null;
+        if (window.__swReg) window.__swReg.update().catch(function () { });
+      }
+    }).catch(function () { });
+  }, 60000);
+}
 
 document.getElementById("updBtn").onclick = function () {
   var b = this;
   b.disabled = true; b.textContent = "⏳ proveravam…";
-  var gotov = function (poruka) { b.disabled = false; b.textContent = poruka; setTimeout(function () { b.textContent = "🔄 Nova verzija"; }, 2500); };
-  if (!("serviceWorker" in navigator)) { gotov("nije podržano"); return; }
+  var gotov = function (poruka, dugo) {
+    b.disabled = false; b.textContent = poruka;
+    setTimeout(function () { b.textContent = "🔄 Nova verzija"; }, dugo ? 6000 : 3000);
+    prikaziVerziju();
+  };
+  if (!("serviceWorker" in navigator) || !window.SWPomoc) { gotov("nije podržano"); return; }
+  var P = window.SWPomoc;
   navigator.serviceWorker.getRegistration().then(function (r) {
     if (!r) { location.reload(); return; }
     if (r.active) r.active.postMessage("dopuni");        // usput dovuci fajlove koji fale za offline
-    return r.update().then(function () {
-      if (r.waiting) { r.waiting.postMessage("skipWaiting"); gotov("⬇️ preuzimam…"); return; }
-      if (r.installing) { gotov("⬇️ preuzimam…"); return; }
-      // nema nove verzije preko SW-a — probaj direktno sa mreže
-      return fetch("igre.html", { cache: "no-store" }).then(function () { location.reload(); })
-        .catch(function () { gotov("✓ već je najnovija"); });
+    return Promise.all([P.serverskaVerzija(), P.deljenaVerzija(), P.mojaVerzija()]).then(function (par) {
+      var nova = par[0], deljena = par[1], moja = par[2];
+      P.naServeru = nova; P.moja = moja;
+      if (!nova) { gotov("nema signala"); return; }      // bez mreže nema ni provere
+      if (moja && nova === moja) { gotov("✓ već je najnovija"); return; }
+      if (deljena && moja && deljena === moja) {
+        /* Objavljena je nova verzija, ali server još deli staru kopiju (GitHub je
+           drži do desetak minuta). Nema svrhe brisati keš — sačekaćemo i sami. */
+        ponavljajProveru(nova);
+        gotov("⏳ " + nova + " stiže za koji minut", true);
+        var h = document.getElementById("offHint");
+        if (h) h.textContent = "Nova verzija (" + nova + ") je objavljena, ali je server još ne deli. " +
+          "Ostavi spisak igara otvoren — sam će se preuzeti, ili probaj ponovo za koji minut.";
+        return;
+      }
+      b.textContent = "⬇️ preuzimam " + nova + "…";
+      return r.update().catch(function () { }).then(function () {
+        if (r.installing || r.waiting) {
+          if (r.waiting) r.waiting.postMessage("skipWaiting");
+          return;                                       // stranica će se sama osvežiti kad bude gotovo
+        }
+        /* Server deli novu verziju, a pregledač je ne uzima — tada se briše sve
+           sačuvano i povlači iznova. */
+        b.textContent = "🧹 osvežavam do kraja…";
+        return P.tvrdoOsvezi();
+      });
     });
   }).catch(function () { gotov("nije uspelo"); });
 };

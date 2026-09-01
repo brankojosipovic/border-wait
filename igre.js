@@ -744,10 +744,69 @@ else build();
     reg.update().catch(function () { });
   }
 
+  /* Koja verzija stoji na serveru — pita se mimo svakog keša (i pregledačevog i
+     onog na GitHub-u), pa se zna da li uopšte ima šta da se preuzme. */
+  function serverskaVerzija() {
+    return fetch("sw.js?ts=" + Date.now(), { cache: "no-store" })
+      .then(function (o) { return o.ok ? o.text() : ""; })
+      .then(function (t) { var m = /VERSION\s*=\s*"([^"]+)"/.exec(t || ""); return m ? m[1] : null; });
+  }
+  /* Šta server deli na običnoj adresi — baš to vidi pregledač kad traži novog
+     radnika. GitHub-ov keš ume da do deset minuta posle objave deli staru kopiju. */
+  function deljenaVerzija() {
+    return fetch("sw.js", { cache: "reload" })
+      .then(function (o) { return o.ok ? o.text() : ""; })
+      .then(function (t) { var m = /VERSION\s*=\s*"([^"]+)"/.exec(t || ""); return m ? m[1] : null; });
+  }
+  function mojaVerzija() {                            // šta trenutno radi na telefonu
+    return new Promise(function (res) {
+      var c = navigator.serviceWorker.controller;
+      if (!c) return res(null);
+      var gotovo = false;
+      var slusaj = function (e) {
+        if (!e.data || !e.data.version || gotovo) return;
+        gotovo = true;
+        navigator.serviceWorker.removeEventListener("message", slusaj);
+        res(e.data.version);
+      };
+      navigator.serviceWorker.addEventListener("message", slusaj);
+      try { c.postMessage("version"); } catch (e) { res(null); }
+      setTimeout(function () { if (!gotovo) { gotovo = true; res(null); } }, 2500);
+    });
+  }
+  /* Poslednje sredstvo kad pregledač neće da preuzme novog radnika: obriši sve
+     sačuvano i odjavi radnika, pa stranica krene iz početka sa mreže. */
+  function tvrdoOsvezi() {
+    return caches.keys()
+      .then(function (k) { return Promise.all(k.map(function (x) { return caches.delete(x); })); })
+      .catch(function () { })
+      .then(function () { return navigator.serviceWorker.getRegistration(); })
+      .then(function (r) { return r ? r.unregister() : null; })
+      .catch(function () { })
+      .then(function () { try { sessionStorage.clear(); } catch (e) { } location.reload(); });
+  }
+  window.SWPomoc = {
+    serverskaVerzija: serverskaVerzija, deljenaVerzija: deljenaVerzija,
+    mojaVerzija: mojaVerzija, tvrdoOsvezi: tvrdoOsvezi
+  };
+
   function reg() {
-    navigator.serviceWorker.register("sw.js").then(function (r) {
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(function (r) {
       window.__swReg = r;
+      window.SWPomoc.reg = r;
       proveri(r);                                     // odmah pitaj ima li nove verzije
+      /* Ako na serveru stoji druga verzija, a pregledač je ne vidi (keš na putu),
+         probaj još jednom odmah — a ako ni to ne prođe, stranica će to i napisati. */
+      setTimeout(function () {
+        serverskaVerzija().then(function (na) {
+          if (!na) return;
+          window.SWPomoc.naServeru = na;
+          return mojaVerzija().then(function (moja) {
+            window.SWPomoc.moja = moja;
+            if (moja && na !== moja) r.update().catch(function () { });
+          });
+        }).catch(function () { });
+      }, 1200);
       document.addEventListener("visibilitychange", function () {
         if (!document.hidden) proveri(r);             // i svaki put kad se aplikacija vrati u prvi plan
       });

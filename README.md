@@ -164,6 +164,14 @@ pa `pomoc.html` prikaže dugme **← Nazad u igru** (odredište se proverava po 
 
 `sw.js` je service worker koji pri prvom otvaranju sačuva sve igre na telefon i posle ih
 servira iz keša (keš prvo, a nova verzija se povlači u pozadini za sledeće pokretanje).
+Registruje se sa `updateViaCache: "none"`, pa provera novog radnika nikad ne ide kroz keš
+pregledača. Dugme **🔄 Nova verzija** pita server dvaput: `sw.js?ts=…` (uvek sveže, pa se zna
+šta je zaista objavljeno) i običan `sw.js` sa `cache: "reload"` (baš ono što vidi pregledač kad
+traži novog radnika). Odatle se razlikuju tri slučaja: ništa novo → tako i piše; server deli novo
+a pregledač neće → briše se sve sačuvano i povlači iznova; objavljeno je novo ali server još deli
+staru kopiju (GitHub-ov keš je drži do desetak minuta) → to se kaže korisniku i provera se sama
+ponavlja svakog minuta dok ne prođe. Traka na dnu spiska igara u tom slučaju piše i koja verzija
+čeka na serveru.
 `manifest.webmanifest` + ikone u `icons/` daju pravu prečicu na početnom ekranu — otvara se
 preko celog ekrana, bez adresne trake, i radi kad nema signala. Svaka igra ima svoju ikonu.
 
