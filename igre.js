@@ -600,10 +600,11 @@ var PRAVILA = {
   teren: ["🟩 Teren", [
     "Izađi iz svoje boje, napravi krug i vrati se na svoje — <b>sve unutar kruga postaje tvoje</b>.",
     "Dok si napolju, za tobom stoji <b>trag</b>: ko ga pregazi, gotov si. Tako i ti obaraš protivnika — preseci njegov trag.",
-    "Smer se menja <b>prevlačenjem prsta</b> po tabli ili tipkama ispod; unazad se ne može.",
-    "Na ivici table se <b>staje</b>, ne gine — ali <b>sopstveni trag ubija</b>. Ko izgubi sav teren, ispada; protivnici se posle nekog vremena vrate na novo mesto.",
-    "Tabla je <b>mnogo veća od ekrana</b> — ekran prati tvoju glavu, a cela tabla i svi protivnici se vide na <b>mapici u desnom uglu</b>.",
-    "Cilj je zauzeti zadati deo table (10–15%, po težini). <b>🏁 Trka u dvoje</b> daje obojici istu tablu i iste protivnike, pa se trka ko će prvi."
+    "Smer se menja <b>prevlačenjem prsta</b> po tabli ili tipkama ispod; unazad se ne može. Na ivici table se <b>staje</b>, ne gine — ali sopstveni trag ubija.",
+    "Tabla je <b>mnogo veća od ekrana</b> — ekran prati tvoju glavu, a cela tabla i svi igrači se vide na <b>mapici u desnom uglu</b>.",
+    "Po tabli su <b>skriveni dragulji</b>: vide se tek kad im priđeš. 🛡 štit — deset sekundi te niko ne može oboriti · ⚡ brzina · ❄ led (protivnici uspore) · 💎 parče terena odmah.",
+    "Cilj se bira: <b>25, 40, 50 ili 60%</b> table. Ko prvi stigne — pobedio je.",
+    "<b>🌐 Igra u sobi</b> — do <b>četiri igrača</b> na istoj tabli, svako na svom telefonu; ko izgubi teren, vraća se na novo mesto i partija ide dalje."
   ]],
   kuca: ["🛋 Kuća", [
     "Nameštaj se <b>prevlači</b> u sobu koja mu odgovara — kuhinja, spavaća, dnevna, kupatilo.",

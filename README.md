@@ -116,11 +116,24 @@ Trag je jedina slaba tačka: ko ga pregazi, vlasnik gine (i sam sebi). Ivica tab
 se staje dok ne skreneš. Protivnici prvih šest sekundi ostaju kod kuće, ne udaljavaju se previše od
 svog terena, a na težim nivoima love tuđe tragove (sa pauzom posle lova, da ne budu nemilosrdni).
 Kad neko priđe tvom tragu, trag počne da trepće crveno. Poginuli protivnik oslobodi sav svoj teren
-i vrati se na novo mesto. Cilj je 10/12/15% table, po težini (protivnici za tri minuta stignu do
-4–6%, pa cilj znači da si ubedljivo prvi).
+i vrati se na novo mesto (protivnici za tri minuta stignu do 5–6% table, pa cilj znači da si
+ubedljivo prvi).
 
-**🏁 Trka u dvoje** ide istim putem kao u Ciglama: oba telefona dobiju isti raspored (isti seed),
-svako igra svoju partiju, a mrežom idu samo procenti i kraj runde — pa kašnjenje veze ništa ne kvari.
+**Skriveni dragulji** padaju u okolinu igrača (12–26 polja od nekog), a vide se tek kad im priđeš na
+14 polja — i pokupe se prolaskom pored (3×3). Četiri vrste: 🛡 štit (deset sekundi te ništa ne obara,
+ni presečen trag ni sudar), ⚡ brzina, ❄ led (protivnici uspore) i 💎 parče terena odmah.
+
+**Cilj se bira** — 25, 40, 50 ili 60% table; izbor i težina se pamte, a najbrže vreme se čuva za svaki
+par (težina, cilj).
+
+**🌐 Igra u sobi — do četiri igrača na istoj tabli.** Domaćin je jedini sudija: on vodi ceo svet
+(i preostale protivnike iz igre) i na svakih 110 ms šalje kratak snimak — gde je čija glava, ko ima
+štit, gde su dragulji. Gosti crtaju taj snimak, ali **svoju glavu vode i sami** (tipke rade odmah,
+bez čekanja na mrežu) i poravnaju se sa domaćinom tek ako odlutaju više od tri polja. Zauzimanje,
+smrt, oživljavanje i pokupljen dragulj stižu kao poruke od domaćina i primenjuju se kod svih isto,
+pa tabla ostaje ista na svim telefonima bez slanja cele mreže. U sobi se ne ispada: ko izgubi teren,
+vraća se na novo prazno mesto, a partija traje dok neko ne stigne do cilja. Ako neko izgubi vezu,
+njegovu boju preuzme računar.
 
 ## Pravila u samoj igri
 
