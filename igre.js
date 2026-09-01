@@ -19,7 +19,8 @@ var GAMES = [
   { id: "bilijar",   href: "bilijar.html",   em: "🎱", nm: "Bilijar" },
   { id: "kuca",      href: "kuca.html",      em: "🛋", nm: "Kuća" },
   { id: "teren",     href: "teren.html",     em: "🟩", nm: "Teren" },
-  { id: "mapa",      href: "mapa.html",      em: "🗺", nm: "Mapa" }
+  { id: "mapa",      href: "mapa.html",      em: "🗺", nm: "Mapa" },
+  { id: "covece",    href: "covece.html",    em: "🔴", nm: "Čoveče" }
 ];
 var SKEY = "igre.sound";
 var IKEY = "igre.ime";
@@ -597,6 +598,14 @@ var PRAVILA = {
     "Felš menja belu posle udara: donji je vraća nazad, gornji je gura napred, bočni je skreće.",
     "U osmici prvo svoje kugle (pune ili polupune), pa <b>osmica na kraju</b>.",
     "U snukeru ide crvena pa boja; posle poslednje crvene boje idu <b>redom</b>. Faul poklanja poene protivniku. U meniju pod <b>🔈</b> se pali najava šta je palo."
+  ]],
+  covece: ["🔴 Čoveče, ne ljuti se", [
+    "Cilj je izvesti sve <b>četiri figure</b> iz kuće, obići tablu i ući u svoja četiri polja u sredini.",
+    "<b>Šestica izvodi</b> figuru iz kuće i uvek donosi novo bacanje. Ako su ti sve figure u kući, imaš tri pokušaja da je dobiješ.",
+    "Ko stane na <b>tuđu figuru</b> — vraća je kući. Na svoju ne sme, to polje je zauzeto.",
+    "U cilj se ulazi <b>tačnim brojem</b>; ako je previše, taj potez ne može.",
+    "Kad ima više mogućnosti, dodirni figuru koju hoćeš da pomeriš; kad je samo jedna, igra je odigra sama.",
+    "Igra se <b>protiv računara</b>, <b>na jednom telefonu</b> u dvoje do četvoro, ili <b>🌐 u sobi</b> — prazna mesta tada vodi računar."
   ]],
   mapa: ["🗺 Mapa", [
     "Pitanje kaže koju <b>državu ili grad</b> tražimo — ti dodirneš mesto na karti i potvrdiš.",

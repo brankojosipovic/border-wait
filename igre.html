@@ -144,7 +144,8 @@ var DESC = {
   bilijar:   "Osmica i snuker sa felšom — protiv računara ili u sobi preko interneta",
   kuca:      "Tlocrt stana — slagalica po sobama i slobodno uređivanje nameštaja",
   teren:     "Zaokruži i zauzmi tablu, nađi skrivene dragulje — sam ili do četvoro u sobi",
-  mapa:      "Pogodi gde je država ili grad na karti sveta — poeni po udaljenosti"
+  mapa:      "Pogodi gde je država ili grad na karti sveta — poeni po udaljenosti",
+  covece:    "Klasik sa kockicom — protiv računara, na jednom telefonu ili do četvoro u sobi"
 };
 function ls(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
 function dayNum() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
@@ -163,6 +164,7 @@ function uToku(id) {
   if (id === "tablic") { s = ls("tablic.v1"); return !!(s && s.g && !s.g.gotovo); }
   if (id === "jamb") { s = ls("jamb.v1"); return !!(s && s.g && !s.g.gotovo); }
   if (id === "geo") { s = ls("geo.v1"); return !!(s && s.g && !s.g.gotovo); }
+  if (id === "covece") { s = ls("covece.v1.tok"); return !!(s && s.figure && !s.gotovo); }
   return false;
 }
 
