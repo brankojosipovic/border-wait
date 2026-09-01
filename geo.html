@@ -160,6 +160,7 @@
 
 <script src="igre.js"></script>
 <script src="mreza.js"></script>
+<script src="cet.js"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -463,6 +464,7 @@ function sediste(id) {                       // koje mesto zauzima pošiljalac
 }
 function primi(m, od) {
   if (!m) return;
+  if (window.CET && CET.primi(m, od)) return;
   if (m.t === "postava") return primiPostavu(m.igraci);
   if (!G) return;
   if (m.t === "stanje") {
@@ -477,6 +479,11 @@ function primi(m, od) {
   }
   if (m.t === "javio") { if (m.k === G.k) { javili[m.ko] = true; render(); } return; }
   if (m.t === "odg" && domacin()) zapisi(sediste(od), m.poz, m.ms);
+}
+function imeOd(id) {                          // ko je poslao poruku
+  if (postava) { const x = postava.find(p => p.id === id); if (x) return x.ime; }
+  const d = (window.Mreza && Mreza.drustvo() || []).find(p => p.id === id);
+  return (d && d.ime) || (window.Mreza ? Mreza.tudjeIme() : "Protivnik");
 }
 function primiPostavu(lista) {               // domaćin je rasporedio igrače
   if (!lista || !lista.length) return;
@@ -503,6 +510,7 @@ function statusMreze(st, detalj) {
   if (st === "cekam") { cekaonica = true; pokaziKod(detalj); }
   if (st === "ucesnici") { if (cekaonica) pokaziKod(Mreza.kod()); else if (G) render(); return; }
   if (st === "povezan") {
+    window.CET && CET.ukljuci({ mreza: Mreza, ime: id => imeOd(id) });
     if (nastavljam && G && !G.gotovo && G.rezim === "mreza") {
       cekaonica = false; hideOverlay(); render(); posaljiStanje(); save();
       poruka("Nastavljamo gde smo stali.");

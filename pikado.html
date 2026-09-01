@@ -173,6 +173,7 @@
 
 <script src="igre.js"></script>
 <script src="mreza.js"></script>
+<script src="cet.js"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -832,6 +833,11 @@ function posaljiStanje() {
   if (G && G.rezim === "mreza" && window.Mreza && Mreza.povezan() && Mreza.uloga() === "domacin")
     Mreza.posalji({ t: "stanje", g: G, strele: strele });
 }
+function imeOd(id) {                             // ko je poslao poruku
+  if (postava) { const x = postava.find(p => p.id === id); if (x) return x.ime; }
+  const d = (window.Mreza && Mreza.drustvo() || []).find(p => p.id === id);
+  return (d && d.ime) || "Protivnik";
+}
 function sediste(id) {
   if (!postava) return 1;
   const i = postava.findIndex(x => x.id === id);
@@ -839,6 +845,7 @@ function sediste(id) {
 }
 function primi(m, od) {
   if (!m) return;
+  if (window.CET && CET.primi(m, od)) return;
   if (m.t === "postava") return primiPostavu(m.igraci, m.igra, m.tezina);
   if (!G) return;
   if (m.t === "stanje") {
@@ -884,6 +891,7 @@ function statusMreze(st, detalj) {
   if (st === "cekam") { cekaonica = true; pokaziKod(detalj); }
   if (st === "ucesnici") { if (cekaonica) pokaziKod(Mreza.kod()); else if (G) crtaj(); return; }
   if (st === "povezan") {
+    window.CET && CET.ukljuci({ mreza: Mreza, ime: imeOd });
     if (nastavljam && G && !G.gotovo && G.rezim === "mreza") {
       cekaonica = false; hideOverlay(); crtaj(); posaljiStanje(); save();
     } else { cekaonica = true; pokaziKod(Mreza.kod()); }
