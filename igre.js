@@ -17,7 +17,8 @@ var GAMES = [
   { id: "geo",       href: "geo.html",       em: "🌍", nm: "Geo" },
   { id: "pikado",    href: "pikado.html",    em: "🎯", nm: "Pikado" },
   { id: "bilijar",   href: "bilijar.html",   em: "🎱", nm: "Bilijar" },
-  { id: "kuca",      href: "kuca.html",      em: "🛋", nm: "Kuća" }
+  { id: "kuca",      href: "kuca.html",      em: "🛋", nm: "Kuća" },
+  { id: "teren",     href: "teren.html",     em: "🟩", nm: "Teren" }
 ];
 var SKEY = "igre.sound";
 var IKEY = "igre.ime";
@@ -595,6 +596,13 @@ var PRAVILA = {
     "Felš menja belu posle udara: donji je vraća nazad, gornji je gura napred, bočni je skreće.",
     "U osmici prvo svoje kugle (pune ili polupune), pa <b>osmica na kraju</b>.",
     "U snukeru ide crvena pa boja; posle poslednje crvene boje idu <b>redom</b>. Faul poklanja poene protivniku. U meniju pod <b>🔈</b> se pali najava šta je palo."
+  ]],
+  teren: ["🟩 Teren", [
+    "Izađi iz svoje boje, napravi krug i vrati se na svoje — <b>sve unutar kruga postaje tvoje</b>.",
+    "Dok si napolju, za tobom stoji <b>trag</b>: ko ga pregazi, gotov si. Tako i ti obaraš protivnika — preseci njegov trag.",
+    "Smer se menja <b>prevlačenjem prsta</b> po tabli ili tipkama ispod; unazad se ne može.",
+    "Na ivici table se <b>staje</b>, ne gine — ali <b>sopstveni trag ubija</b>. Ko izgubi sav teren, ispada; protivnici se posle nekog vremena vrate na novo mesto.",
+    "Cilj je zauzeti zadati deo table (45–55%, po težini). <b>🏁 Trka u dvoje</b> daje obojici istu tablu i iste protivnike, pa se trka ko će prvi."
   ]],
   kuca: ["🛋 Kuća", [
     "Nameštaj se <b>prevlači</b> u sobu koja mu odgovara — kuhinja, spavaća, dnevna, kupatilo.",

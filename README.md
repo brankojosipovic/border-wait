@@ -101,6 +101,28 @@ binarnom pretragom podešava na najveću koja staje u ekran; poseban raspored za
 **bos** sa trakom života i dve faze pucanja, pa sledeći nivo. Izdržljivost bosa raste kvadratno
 sa nivoom da prati rast oružja — borba traje 7–11 s kroz sve nivoe.
 
+## Teren
+
+`teren.html` — zauzimanje table u stilu paper.io. Tabla je mreža 40×56 ćelija; vlasništvo i tragovi
+stoje u `Uint8Array`-ima, a teren se crta u keširani sloj koji se osvežava samo kad se nešto zauzme,
+pa po kadru ostaje samo blit sloja plus tragovi i glave. Kad se krug zatvori, plavljenje sa ivica
+table nađe šta je ostalo zatvoreno i sve to postaje tvoje.
+
+Trag je jedina slaba tačka: ko ga pregazi, vlasnik gine (i sam sebi). Ivica table ne ubija — na njoj
+se staje dok ne skreneš. Protivnici prvih šest sekundi ostaju kod kuće, ne udaljavaju se previše od
+svog terena, a na težim nivoima love tuđe tragove (sa pauzom posle lova, da ne budu nemilosrdni).
+Kad neko priđe tvom tragu, trag počne da trepće crveno. Poginuli protivnik oslobodi sav svoj teren
+i vrati se na novo mesto. Cilj je 30/35/40% table, po težini.
+
+**🏁 Trka u dvoje** ide istim putem kao u Ciglama: oba telefona dobiju isti raspored (isti seed),
+svako igra svoju partiju, a mrežom idu samo procenti i kraj runde — pa kašnjenje veze ništa ne kvari.
+
+## Pravila u samoj igri
+
+`igre.js` nosi kratka pravila za svaku igru (`PRAVILA`) i ubacuje **❔** u zaglavlje svake igre — otvara
+prozorčić sa pravilima baš te igre, i usred partije. Veze ka opštoj pomoći dobiju `?od=<igra>.html`,
+pa `pomoc.html` prikaže dugme **← Nazad u igru** (odredište se proverava po spisku igara).
+
 ## Rad bez interneta (PWA)
 
 `sw.js` je service worker koji pri prvom otvaranju sačuva sve igre na telefon i posle ih
