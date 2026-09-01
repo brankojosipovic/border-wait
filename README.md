@@ -158,6 +158,30 @@ pa tabla ostaje ista na svim telefonima bez slanja cele mreže. U sobi se ne isp
 vraća se na novo prazno mesto, a partija traje dok neko ne stigne do cilja. Ako neko izgubi vezu,
 njegovu boju preuzme računar.
 
+## Mapa
+
+`mapa.html` — pitanje kaže koju državu ili grad tražimo („Gde je Portugal?“), igrač dodirne mesto na
+karti sveta i potvrdi; poeni idu po udaljenosti (1000 na tačnom mestu, pa opada eksponencijalno —
+kod država je pun pogodak dodir bilo gde **unutar** zemlje, što se proverava pravim testom tačke u
+poligonu). Rastojanje je haversinsko, po Zemlji, a ne po ekranu.
+
+Karta nije slika nego **vektorski svet u `svet.js`**: 169 država sa granicama, tačkom za natpis i
+kontinentom, i 148 gradova sa koordinatama i srpskim nazivima. Napravljeno je iz **Natural Earth
+50m** (javno vlasništvo) skriptom `scripts/napravi_svet.py`: prstenovi se uproste
+(Ramer–Douglas–Peucker, sa posebnim postupkom za zatvorene prstenove), zaokruže na stotinku stepena
+i zapišu Google „polyline“ kodom — cela karta staje u **~100 KB**, pa radi i offline.
+
+Prikaz je Merkatorova projekcija sa pogledom ograničenim na pojas u kome ima kopna (84°S do 58°J);
+karta se pomera prevlačenjem, zumira sa dva prsta (ili dugmićima ＋ − 🌍) do šezdeset puta, a posle
+odgovora se sama namesti tako da se vide i pribadanje i tačno mesto, sa crtom između njih i
+osvetljenom državom. Bira se oblast (ceo svet, Evropa, naš kraj — od Beča do Soluna), šta se pita
+(države, gradovi, mešano) i težina; sve se pamti za sledeći put, kao i najbolji rezultat.
+
+**🌐 Igra u sobi** — do četiri igrača dobiju **ista pitanja** (domaćin šalje samo nazive, jer svi
+imaju iste podatke). Svako odgovara svojim tempom; čim potvrdiš, ostalima stiže koliko si bio
+blizu i gde si dodirnuo, pa se tuđa pribadanja vide na karti posle odgovora, a u traci stoji ko
+koliko ima.
+
 ## Pravila u samoj igri
 
 `igre.js` nosi kratka pravila za svaku igru (`PRAVILA`) i ubacuje **❔** u zaglavlje svake igre — otvara
