@@ -199,6 +199,33 @@ Igra se protiv računara (1–3), na jednom telefonu (2–4) ili **🌐 u sobi**
 prazna mesta vodi domaćin kao računarske igrače. Mrežom ide malo: bacanje (da se vidi kockica) i
 celo stanje posle poteza — šesnaest brojeva, pa nema šanse da se telefoni raziđu.
 
+## Riziko
+
+`riziko.html` — osvajanje sveta na pravoj karti. Granice dolaze iz istog `svet.js` koji koristi
+Mapa, a `riziko.js` (pravi ga `scripts/napravi_riziko.js`) grupiše 169 država u **41 oblast** i šest
+kontinenata, računa gde stoji broj vojske i ko je s kim u komšiluku. Susedstvo se dobija iz samih
+granica — najmanje rastojanje između tačaka dva obrisa, sa ispravkom po geografskoj širini — pa se
+ručno dopune prelazi preko mora (Brazil — Zapadna Afrika, Grenland — Skandinavija, Aljaska —
+Rusija…). Skripta na kraju proveri da je karta povezana i da nijedna oblast nije ostala bez suseda,
+a prekomorski delovi država koji bi pravili lažne veze (Francuska Gvajana, Reunion) se izbacuju.
+
+Potez ima tri dela: **pojačanja** (`max(3, oblasti/3)` plus bonus za ceo kontinent — Azija 7, Evropa
+5, Severna Amerika 4, Afrika i Južna Amerika 3, Okeanija 2), **napad** i jedno **prebacivanje**
+između svojih spojenih oblasti. Kockice su klasične: napadač do tri, branilac do dve, poredi se
+najveća sa najvećom i **nerešeno brani**. ⚡ *Do kraja* vrti napad dok jedna strana ne padne. Kad
+oblast padne, u nju pređe sva vojska osim jedne. Kraj je kad neko drži zadati deo karte — 50%, 70%
+ili baš sve.
+
+Brojevi vojske se crtaju kao znaci koji se **razmiču dok se ne prestanu poklapati** i tanko povežu
+sa svojim mestom na karti, pa se i gusta Evropa da dodirnuti prstom; dodir prvo gleda znak, pa
+kopno, pa najbliži znak. Karta se pomera prevlačenjem i zumira sa dva prsta, kao u Mapi.
+
+Računar rasporedi pojačanja tamo gde gori (protivnička vojska minus svoja), napada samo kad ima
+bar 1,35 puta više vojske, uz dodatak za zaokruživanje kontinenta i izbacivanje protivnika, pa na
+kraju prebaci višak iz mirne pozadine na prvu liniju. Igra se protiv računara, na jednom telefonu
+ili **🌐 u sobi** do četiri igrača — tada je domaćin sudija (kod njega padaju kockice) i posle svake
+promene pošalje celu tablu, a gost šalje samo šta hoće da uradi; prazne stolice vodi računar.
+
 ## Pravila u samoj igri
 
 `igre.js` nosi kratka pravila za svaku igru (`PRAVILA`) i ubacuje **❔** u zaglavlje svake igre — otvara

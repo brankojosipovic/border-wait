@@ -145,7 +145,8 @@ var DESC = {
   kuca:      "Tlocrt stana — slagalica po sobama i slobodno uređivanje nameštaja",
   teren:     "Zaokruži i zauzmi tablu, nađi skrivene dragulje — sam ili do četvoro u sobi",
   mapa:      "Pogodi gde je država ili grad na karti sveta — poeni po udaljenosti",
-  covece:    "Klasik sa kockicom — protiv računara, na jednom telefonu ili do četvoro u sobi"
+  covece:    "Klasik sa kockicom — protiv računara, na jednom telefonu ili do četvoro u sobi",
+  riziko:    "Osvajanje sveta kockicama — 41 oblast, kontinenti i borba za kartu"
 };
 function ls(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
 function dayNum() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
@@ -165,6 +166,7 @@ function uToku(id) {
   if (id === "jamb") { s = ls("jamb.v1"); return !!(s && s.g && !s.g.gotovo); }
   if (id === "geo") { s = ls("geo.v1"); return !!(s && s.g && !s.g.gotovo); }
   if (id === "covece") { s = ls("covece.v1.tok"); return !!(s && s.figure && !s.gotovo); }
+  if (id === "riziko") { s = ls("riziko.v1.tok"); return !!(s && s.g && !s.g.gotovo); }
   return false;
 }
 

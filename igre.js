@@ -20,7 +20,8 @@ var GAMES = [
   { id: "kuca",      href: "kuca.html",      em: "🛋", nm: "Kuća" },
   { id: "teren",     href: "teren.html",     em: "🟩", nm: "Teren" },
   { id: "mapa",      href: "mapa.html",      em: "🗺", nm: "Mapa" },
-  { id: "covece",    href: "covece.html",    em: "🔴", nm: "Čoveče" }
+  { id: "covece",    href: "covece.html",    em: "🔴", nm: "Čoveče" },
+  { id: "riziko",    href: "riziko.html",    em: "⚔️", nm: "Riziko" }
 ];
 var SKEY = "igre.sound";
 var IKEY = "igre.ime";
@@ -606,6 +607,15 @@ var PRAVILA = {
     "U cilj se ulazi <b>tačnim brojem</b>; ako je previše, taj potez ne može.",
     "Kad ima više mogućnosti, dodirni figuru koju hoćeš da pomeriš; kad je samo jedna, igra je odigra sama.",
     "Igra se <b>protiv računara</b>, <b>na jednom telefonu</b> u dvoje do četvoro, ili <b>🌐 u sobi</b> — prazna mesta tada vodi računar."
+  ]],
+  riziko: ["⚔️ Riziko", [
+    "Svet je podeljen na <b>41 oblast</b> u šest kontinenata; cilj je držati zadati deo karte — <b>50%, 70% ili sve</b>.",
+    "Potez ima tri dela: <b>pojačanja</b> (dodirni svoju oblast pa dodaj vojsku, ili ▣ rasporedi sve odjednom), <b>napad</b> i jedno <b>prebacivanje</b>.",
+    "Napad: dodirni svoju oblast (treba bar <b>2 vojske</b>), pa susednu protivničku. 🎲 <b>Napadni</b> baca jednom, ⚡ <b>Do kraja</b> dok neko ne padne.",
+    "Napadač baca do <b>tri kockice</b>, branilac do <b>dve</b>; poredi se najveća sa najvećom. <b>Nerešeno brani</b> — gubi napadač.",
+    "Kad oblast padne, u nju prelazi sva vojska osim jedne. Ko drži <b>ceo kontinent</b>, svaki potez dobija dodatnu vojsku (Azija 7, Evropa 5, Severna Amerika 4, Afrika i Južna Amerika 3, Okeanija 2).",
+    "Karta se <b>pomera prevlačenjem</b> i zumira sa <b>dva prsta</b>; <b>isprekidane linije</b> su prelazi preko mora (npr. Brazil — Zapadna Afrika).",
+    "Igra se <b>protiv računara</b>, <b>na jednom telefonu</b> ili <b>🌐 u sobi</b> do četiri igrača — prazne stolice vodi računar."
   ]],
   mapa: ["🗺 Mapa", [
     "Pitanje kaže koju <b>državu ili grad</b> tražimo — ti dodirneš mesto na karti i potvrdiš.",
