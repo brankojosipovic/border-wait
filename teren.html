@@ -51,14 +51,16 @@
   header .sub { color: var(--ink-dim); font-size: 12px; }
   .spacer { flex: 1; }
 
-  .hud { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink-dim);
+  .hud { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--ink-dim);
          white-space: nowrap; overflow: hidden; }
-  .hud > span { overflow: hidden; text-overflow: ellipsis; }
+  .hud > span { overflow: hidden; text-overflow: ellipsis; flex: 0 0 auto; }
   .hud b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 700; }
-  .cip { display: inline-flex; align-items: center; gap: 3px; margin-left: 5px;
+  .hud .od { color: var(--ink-dim); }
+  .cip { display: inline-flex; align-items: center; gap: 3px; margin-left: 4px;
          font-variant-numeric: tabular-nums; }
-  .cip i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; }
+  .cip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; }
   .cip.pao { opacity: .35; }
+  @media (max-width: 360px) { .hud { font-size: 11.5px; gap: 5px; } }
   #hProt:not(:empty) { color: var(--ink); background: var(--panel-2); border: 1px solid var(--line);
             border-radius: 999px; padding: 1px 8px; }
 
@@ -107,19 +109,18 @@
   <header class="col">
     <div>
       <h1>Teren</h1>
-      <div class="sub">Izađi, napravi krug i vrati se — sve unutra je tvoje</div>
+      <div class="sub">Velika tabla — zaokruži što više, mapa je u uglu</div>
     </div>
     <div class="spacer"></div>
     <button id="theme" title="Svetla/tamna tema">☀︎ / ☾</button>
   </header>
 
   <div class="hud col">
-    <span>Moje <b id="hMoje">0%</b></span>
-    <span>Cilj <b id="hCilj">50%</b></span>
-    <span id="hBotovi"></span>
+    <span title="tvoj teren i cilj"><b id="hMoje">0%</b> <span class="od">/ <span id="hCilj">15%</span></span></span>
+    <span id="hBotovi" title="protivnici"></span>
     <div class="spacer"></div>
     <span id="hProt"></span>
-    <span>⏱ <b id="hVreme">0:00</b></span>
+    <span title="vreme"><b id="hVreme">0:00</b></span>
     <button id="bPause" title="Pauza">⏸</button>
   </div>
 
@@ -136,7 +137,7 @@
   </div>
 
   <div class="foot col">
-    Prevlači prstom po tabli ili koristi tipke. Van svoje boje si ranjiv — ko ti pregazi trag, gotov si. Na ivici se staje.
+    Prevlači prstom po tabli ili koristi tipke. Tabla je veća od ekrana — cela se vidi na mapici u uglu. Van svoje boje si ranjiv: ko ti pregazi trag, gotov si.
     <br><a href="igre.html">🎮 Sve igre</a> · <a href="pomoc.html">❔ Pomoć</a> · <a href="index.html">← Border Wait</a>
   </div>
 </div>
@@ -150,27 +151,34 @@ const $ = s => document.querySelector(s);
 const KEY = "teren.v1", THEME_KEY = "sudoku.theme";
 
 /* ---------- tabla ----------
-   Sve je mreža ćelija; jedna ćelija je C logičkih piksela. Vlasništvo i tragovi
-   stoje u ravnim nizovima (brzo i lako se kopira), a crta se preko keširanog sloja. */
-const KOL = 40, RED = 56, C = 6;
-const LW = KOL * C, LH = RED * C, POLJA = KOL * RED;
+   Tabla je mnogo veća od ekrana: ekran je prozor koji prati igrača, a ceo teren se
+   vidi na mapici u uglu. Vlasništvo i tragovi stoje u ravnim nizovima, po ćeliji
+   jedan bajt. */
+const KOL = 132, RED = 180, POLJA = KOL * RED;
+const VID_KOL = 38;                            // koliko ćelija stane preko ekrana
 const cv = $("#cv"), ctx = cv.getContext("2d");
-const sloj = document.createElement("canvas");
-const sctx = sloj.getContext("2d");
+const mapaCv = document.createElement("canvas");    // cela tabla, jedan piksel po ćeliji
+const mctx = mapaCv.getContext("2d");
+mapaCv.width = KOL; mapaCv.height = RED;
+let PPC = 10;                                  // pravih piksela po ćeliji
+let vidW = VID_KOL, vidH = 50;                 // koliko ćelija se vidi
+const kam = { x: 0, y: 0 };                    // gornji levi ugao prozora, u ćelijama
 
 const TEZINE = {
-  lako:    { nm: "Lako",    opis: "dva protivnika, ne love",      botovi: 2, brzina: 6.2, agro: 0,  dubina: [4, 9],  domet: 9,  cilj: 30 },
-  srednje: { nm: "Srednje", opis: "tri protivnika, gledaju trag", botovi: 3, brzina: 7.2, agro: 8,  dubina: [5, 12], domet: 12, cilj: 35 },
-  tesko:   { nm: "Teško",   opis: "četiri, brzi i love te",       botovi: 4, brzina: 7.9, agro: 13, dubina: [6, 16], domet: 16, cilj: 40 }
+  lako:    { nm: "Lako",    opis: "tri protivnika, ne love",       botovi: 3, brzina: 6.4, agro: 0,  dubina: [7, 16],  domet: 18, cilj: 10 },
+  srednje: { nm: "Srednje", opis: "četiri, gledaju tuđi trag",     botovi: 4, brzina: 7.4, agro: 12, dubina: [9, 20],  domet: 24, cilj: 12 },
+  tesko:   { nm: "Teško",   opis: "šest, brzi su i love te",       botovi: 6, brzina: 8.1, agro: 18, dubina: [10, 24], domet: 30, cilj: 15 }
 };
-const BRZINA_JA = 7.6;
+const BRZINA_JA = 7.8;
 const STARTNI_MIR = 6;                         // sekundi koliko protivnici ostaju na svom terenu
 const BOJE = [
   { p: "#c9a227", t: "#f5da7a", nm: "ti" },
   { p: "#d65a4e", t: "#f5a79e", nm: "crveni" },
   { p: "#3f8fd6", t: "#a0cbef", nm: "plavi" },
   { p: "#2e9e6b", t: "#8adcb4", nm: "zeleni" },
-  { p: "#9a6bd6", t: "#c9aaf0", nm: "ljubičasti" }
+  { p: "#9a6bd6", t: "#c9aaf0", nm: "ljubičasti" },
+  { p: "#d98324", t: "#f3c188", nm: "narandžasti" },
+  { p: "#2ba6a6", t: "#8ad9d9", nm: "tirkizni" }
 ];
 
 const idx = (x, y) => y * KOL + x;
@@ -210,15 +218,16 @@ function noviIgrac(i, bot) {
   };
 }
 function bazu(e, x, y) {
-  e.x = clamp(x, 3, KOL - 4); e.y = clamp(y, 3, RED - 4);
-  for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) vlas[idx(e.x + i, e.y + j)] = e.id;
+  e.x = clamp(x, 4, KOL - 5); e.y = clamp(y, 4, RED - 5);
+  for (let j = -3; j <= 3; j++) for (let i = -3; i <= 3; i++) vlas[idx(e.x + i, e.y + j)] = e.id;
   e.dx = 0; e.dy = e.y > RED / 2 ? -1 : 1; e.p = 0; e.trag.length = 0; e.dom = null; e.meta = null;
 }
 function rasporedi(n, rnd) {                 // svako dobije svoj ugao table, isto na oba telefona
   const a0 = rnd() * Math.PI * 2, out = [];
   for (let i = 0; i < n; i++) {
     const a = a0 + i * 2 * Math.PI / n;
-    out.push({ x: Math.round(KOL / 2 + Math.cos(a) * (KOL / 2 - 6)), y: Math.round(RED / 2 + Math.sin(a) * (RED / 2 - 8)) });
+    const r = .62 + rnd() * .28;               // ne svi na istom krugu, ali svako u svom pravcu
+    out.push({ x: Math.round(KOL / 2 + Math.cos(a) * (KOL / 2 - 8) * r), y: Math.round(RED / 2 + Math.sin(a) * (RED / 2 - 10) * r) });
   }
   return out;
 }
@@ -362,9 +371,9 @@ function pogini(e, razlog, krivac) {
 function ozivi(e) {
   if (stanje !== "igra") { e.ozivi = 1; return; }
   for (let pok = 0; pok < 80; pok++) {
-    const x = 3 + ((Math.random() * (KOL - 6)) | 0), y = 3 + ((Math.random() * (RED - 6)) | 0);
+    const x = 4 + ((Math.random() * (KOL - 8)) | 0), y = 4 + ((Math.random() * (RED - 8)) | 0);
     let slobodno = true;
-    for (let j = -3; j <= 3 && slobodno; j++) for (let i = -3; i <= 3; i++)
+    for (let j = -4; j <= 4 && slobodno; j++) for (let i = -4; i <= 4; i++)
       if (vlas[idx(clamp(x + i, 0, KOL - 1), clamp(y + j, 0, RED - 1))]) { slobodno = false; break; }
     if (!slobodno) continue;
     e.ziv = true; e.ozivi = 0; e.brzina = TEZINE[tez].brzina;
@@ -447,33 +456,117 @@ function zidBlizu(e, n) {
   return nx < 0 || ny < 0 || nx >= KOL || ny >= RED;
 }
 
-/* ---------- crtanje ---------- */
-let RAZM = 1;                                  // koliko pravih piksela ide na jednu logičku jedinicu
-function crtajSloj() {
-  sctx.setTransform(RAZM, 0, 0, RAZM, 0, 0);
-  sctx.clearRect(0, 0, LW, LH);
-  sctx.fillStyle = "#0a1120";
-  sctx.fillRect(0, 0, LW, LH);
-  sctx.strokeStyle = "rgba(255,255,255,.05)"; sctx.lineWidth = .5;
-  sctx.beginPath();
-  for (let x = 4; x < KOL; x += 4) { sctx.moveTo(x * C + .25, 0); sctx.lineTo(x * C + .25, LH); }
-  for (let y = 4; y < RED; y += 4) { sctx.moveTo(0, y * C + .25); sctx.lineTo(LW, y * C + .25); }
-  sctx.stroke();
-  for (let y = 0; y < RED; y++) for (let x = 0; x < KOL; x++) {
-    const v = vlas[idx(x, y)];
-    if (!v) continue;
-    sctx.fillStyle = BOJE[v - 1].p;
-    sctx.fillRect(x * C, y * C, C, C);
-    if (y === 0 || vlas[idx(x, y - 1)] !== v) {          // svetla ivica gore — teren se lepo vidi
-      sctx.fillStyle = "rgba(255,255,255,.28)";
-      sctx.fillRect(x * C, y * C, C, 1.2);
+/* ---------- crtanje ----------
+   Tabla je prevelika da bi stala u jedan keširani sloj (bilo bi desetine megabajta),
+   pa se svaki kadar crtaju samo ćelije u prozoru — i to spajanjem uzastopnih ćelija
+   iste boje u jedan pravougaonik, tako da ih ostane par stotina. Cela tabla se drži
+   samo u mapici od jednog piksela po ćeliji, koja se osvežava kad se nešto zauzme. */
+function crtajMapu() {
+  mctx.setTransform(1, 0, 0, 1, 0, 0);
+  mctx.fillStyle = "#0a1120";
+  mctx.fillRect(0, 0, KOL, RED);
+  for (let y = 0; y < RED; y++) {
+    let x = 0;
+    while (x < KOL) {
+      const v = vlas[idx(x, y)];
+      if (!v) { x++; continue; }
+      let k = x + 1;
+      while (k < KOL && vlas[idx(k, y)] === v) k++;
+      mctx.fillStyle = BOJE[v - 1].p;
+      mctx.fillRect(x, y, k - x, 1);
+      x = k;
     }
   }
 }
+function crtajTeren(x0, y0, x1, y1) {
+  for (let y = y0; y < y1; y++) {
+    let x = x0;
+    while (x < x1) {
+      const v = vlas[idx(x, y)];
+      if (!v) { x++; continue; }
+      let k = x + 1;
+      while (k < x1 && vlas[idx(k, y)] === v) k++;
+      ctx.fillStyle = BOJE[v - 1].p;
+      ctx.fillRect(x, y, k - x, 1);
+      x = k;
+    }
+  }
+  ctx.fillStyle = "rgba(255,255,255,.28)";     // svetla ivica na vrhu svake mrlje
+  for (let y = y0; y < y1; y++) {
+    let x = x0;
+    while (x < x1) {
+      const v = vlas[idx(x, y)];
+      if (!v || (y > 0 && vlas[idx(x, y - 1)] === v)) { x++; continue; }
+      let k = x + 1;
+      while (k < x1 && vlas[idx(k, y)] === v && !(y > 0 && vlas[idx(k, y - 1)] === v)) k++;
+      ctx.fillRect(x, y, k - x, .16);
+      x = k;
+    }
+  }
+}
+function ciljKamere() {
+  if (!ja) return { x: 0, y: 0 };
+  const cx = ja.x + ja.dx * ja.p + .5, cy = ja.y + ja.dy * ja.p + .5;
+  return {
+    x: clamp(cx - vidW / 2, 0, Math.max(0, KOL - vidW)),
+    y: clamp(cy - vidH / 2, 0, Math.max(0, RED - vidH))
+  };
+}
+function pomeriKameru(dt) {
+  const c = ciljKamere();
+  const k = dt > 0 ? Math.min(1, dt * 14) : 1;          // meko praćenje, bez trzanja
+  kam.x += (c.x - kam.x) * k;
+  kam.y += (c.y - kam.y) * k;
+}
+function mapa() {                              // cela tabla u uglu, sa prozorom i glavama
+  const sirina = Math.round(Math.min(cv.width * .27, cv.height * .27 * KOL / RED));
+  const visina = Math.round(sirina * RED / KOL);
+  const pad = Math.round(PPC * .7);
+  const mx = cv.width - sirina - pad, my = pad;
+  ctx.save();
+  ctx.fillStyle = "rgba(4,7,13,.82)";
+  ctx.fillRect(mx - 3, my - 3, sirina + 6, visina + 6);
+  ctx.imageSmoothingEnabled = true;
+  ctx.globalAlpha = .95;
+  ctx.drawImage(mapaCv, 0, 0, KOL, RED, mx, my, sirina, visina);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = "rgba(238,242,249,.45)"; ctx.lineWidth = 1;
+  ctx.strokeRect(mx - 2.5, my - 2.5, sirina + 5, visina + 5);
+  const sx = sirina / KOL, sy = visina / RED;
+  ctx.strokeStyle = "rgba(255,255,255,.8)";              // gde je prozor na tabli
+  ctx.strokeRect(mx + kam.x * sx, my + kam.y * sy, vidW * sx, vidH * sy);
+  for (const e of igraci) {                              // glave, da se vidi ko je gde
+    if (!e.ziv) continue;
+    ctx.fillStyle = e.boja.p;
+    ctx.beginPath(); ctx.arc(mx + (e.x + .5) * sx, my + (e.y + .5) * sy, e === ja ? 2.8 : 2.1, 0, 7); ctx.fill();
+    if (e === ja) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.2; ctx.stroke(); }
+  }
+  ctx.restore();
+}
 function crtaj() {
-  if (prljav) { crtajSloj(); prljav = false; }
-  ctx.clearRect(0, 0, LW, LH);
-  ctx.drawImage(sloj, 0, 0, LW, LH);
+  if (prljav) { crtajMapu(); prljav = false; }
+  const ox = Math.round(clamp(kam.x, 0, Math.max(0, KOL - vidW)) * PPC);
+  const oy = Math.round(clamp(kam.y, 0, Math.max(0, RED - vidH)) * PPC);
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#06090f";                   // van table
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(PPC, 0, 0, PPC, -ox, -oy);  // dalje se crta u ćelijama
+
+  const x0 = Math.max(0, Math.floor(ox / PPC)), y0 = Math.max(0, Math.floor(oy / PPC));
+  const x1 = Math.min(KOL, Math.ceil((ox + cv.width) / PPC) + 1);
+  const y1 = Math.min(RED, Math.ceil((oy + cv.height) / PPC) + 1);
+
+  ctx.fillStyle = "#0a1120";                   // sama tabla
+  ctx.fillRect(0, 0, KOL, RED);
+  ctx.strokeStyle = "rgba(255,255,255,.05)"; ctx.lineWidth = 1 / PPC;
+  ctx.beginPath();
+  for (let x = Math.ceil(x0 / 5) * 5; x < x1; x += 5) { ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
+  for (let y = Math.ceil(y0 / 5) * 5; y < y1; y += 5) { ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
+  ctx.stroke();
+
+  crtajTeren(x0, y0, x1, y1);
+
   const opasno = ja && ja.ziv && ja.trag.length ? blizuMomTragu() : false;
   for (const e of igraci) {
     if (!e.ziv || !e.trag.length) continue;
@@ -481,33 +574,42 @@ function crtaj() {
     ctx.fillStyle = (e === ja && opasno)
       ? (Math.floor(performance.now() / 160) % 2 ? "#ff7b6c" : e.boja.t)   // trepće kad neko juri tvoj trag
       : e.boja.t;
-    for (const i of e.trag) ctx.fillRect((i % KOL) * C, ((i / KOL) | 0) * C, C, C);
+    for (const i of e.trag) {
+      const x = i % KOL, y = (i / KOL) | 0;
+      if (x < x0 - 1 || x > x1 || y < y0 - 1 || y > y1) continue;
+      ctx.fillRect(x, y, 1, 1);
+    }
     const hx = e.x + e.dx * e.p, hy = e.y + e.dy * e.p;   // komad do glave, da linija ne skakuće
-    ctx.fillRect(Math.min(e.x, hx) * C, Math.min(e.y, hy) * C,
-      (Math.abs(hx - e.x) + 1) * C, (Math.abs(hy - e.y) + 1) * C);
+    ctx.fillRect(Math.min(e.x, hx), Math.min(e.y, hy), Math.abs(hx - e.x) + 1, Math.abs(hy - e.y) + 1);
     ctx.globalAlpha = 1;
   }
-  if (priprema > 0 && stanje === "igra") {
-    ctx.fillStyle = "rgba(238,242,249,.92)";
-    ctx.font = "bold 22px system-ui, sans-serif";
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(priprema > .5 ? "Spremi se…" : "Kreni!", LW / 2, LH / 2);
-    ctx.font = "11px system-ui, sans-serif";
-    ctx.fillStyle = "rgba(159,176,204,.95)";
-    ctx.fillText("cilj: " + cilj + "% table", LW / 2, LH / 2 + 20);
-  }
+  ctx.strokeStyle = "rgba(159,176,204,.5)"; ctx.lineWidth = .3;
+  ctx.strokeRect(-.15, -.15, KOL + .3, RED + .3);        // ivica table
   for (const e of igraci) {
     if (!e.ziv) continue;
-    const px = (e.x + e.dx * e.p + .5) * C, py = (e.y + e.dy * e.p + .5) * C;
+    const px = e.x + e.dx * e.p + .5, py = e.y + e.dy * e.p + .5;
+    if (px < x0 - 2 || px > x1 + 2 || py < y0 - 2 || py > y1 + 2) continue;
     if (e === ja) {
-      ctx.beginPath(); ctx.arc(px, py, C * 1.55, 0, 7);
+      ctx.beginPath(); ctx.arc(px, py, 1.8, 0, 7);
       ctx.fillStyle = "rgba(255,255,255,.14)"; ctx.fill();
     }
-    ctx.beginPath(); ctx.arc(px, py, C * .95, 0, 7);
+    ctx.beginPath(); ctx.arc(px, py, 1.05, 0, 7);
     ctx.fillStyle = e.boja.p; ctx.fill();
-    ctx.lineWidth = 1.2; ctx.strokeStyle = e === ja ? "#ffffff" : "rgba(255,255,255,.65)"; ctx.stroke();
-    ctx.beginPath(); ctx.arc(px + e.dx * C * .45, py + e.dy * C * .45, C * .28, 0, 7);
+    ctx.lineWidth = .18; ctx.strokeStyle = e === ja ? "#ffffff" : "rgba(255,255,255,.65)"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(px + e.dx * .5, py + e.dy * .5, .32, 0, 7);
     ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.fill();
+  }
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  mapa();
+  if (priprema > 0 && stanje === "igra") {
+    ctx.fillStyle = "rgba(238,242,249,.92)";
+    ctx.font = "bold " + Math.round(PPC * 2.2) + "px system-ui, sans-serif";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(priprema > .5 ? "Spremi se…" : "Kreni!", cv.width / 2, cv.height / 2);
+    ctx.font = Math.round(PPC * 1.15) + "px system-ui, sans-serif";
+    ctx.fillStyle = "rgba(159,176,204,.95)";
+    ctx.fillText("cilj: " + cilj + "% cele table", cv.width / 2, cv.height / 2 + PPC * 2.2);
   }
 }
 
@@ -529,16 +631,20 @@ function blizuMomTragu() {                     // je li neko na šest polja od m
 
 /* ---------- HUD ---------- */
 let hudTs = 0;
+const pisiPr = v => (v < 10 ? v.toFixed(1) : Math.round(v)) + "%";
 function hud() {
-  $("#hMoje").textContent = (ja ? Math.round(ja.pr) : 0) + "%";
+  $("#hMoje").textContent = pisiPr(ja ? ja.pr : 0);
   $("#hCilj").textContent = cilj + "%";
   $("#hVreme").textContent = mmss(vreme);
+  const protiv = igraci.filter(e => e !== ja).sort((a, b) => (b.ziv - a.ziv) || (b.pr - a.pr));
+  const zivih = protiv.filter(e => e.ziv).length;
   let h = "";
-  for (const e of igraci) {
-    if (e === ja) continue;
+  const koliko = Math.min(2, protiv.length);
+  for (const e of protiv.slice(0, koliko)) {
     h += '<span class="cip' + (e.ziv ? "" : " pao") + '"><i style="background:' + e.boja.p + '"></i>' +
       (e.ziv ? Math.round(e.pr) + "%" : "✖") + '</span>';
   }
+  if (protiv.length > koliko) h += '<span class="cip">+' + Math.max(0, zivih - koliko) + '</span>';
   $("#hBotovi").innerHTML = h;
   if (trka) {
     const p = trka.prot;
@@ -583,6 +689,8 @@ function pocetak() {
   showOverlay('<h2>🟩 Teren</h2>' +
     '<p>Izađi iz svoje boje, napravi krug i vrati se — sve unutra postaje tvoje. ' +
     'Dok si napolju, tvoj trag je slaba tačka.</p>' +
+    '<p>Tabla je <b>mnogo veća od ekrana</b> — ekran te prati, a cela tabla i svi ' +
+    'protivnici se vide na <b>mapici u desnom uglu</b>.</p>' +
     '<p>Težina: <b style="color:#eef2f9">' + TEZINE[tez].nm + '</b>' +
     (r.pr ? ' · najbolje <b style="color:#eef2f9">' + r.pr + '%</b>' : '') + '</p>' +
     '<div class="btns"><button id="igrajBtn">▶ Igraj</button>' +
@@ -858,6 +966,7 @@ function loop(ts) {
     korak(dt);
     if (ts - hudTs > 250) { hudTs = ts; hud(); }
   }
+  pomeriKameru(stanje === "igra" && priprema <= 0 ? dt : 0);
   crtaj();
 }
 function fit() {
@@ -869,16 +978,17 @@ function fit() {
   const gaps = (parseFloat(cs.rowGap) || 0) * Math.max(0, kids.length - 1);
   const availH = limit - wrap.getBoundingClientRect().top - others - gaps - (parseFloat(cs.paddingBottom) || 0) - 12;
   const availW = Math.min(window.innerWidth - 20, 460);
-  const w = Math.max(150, Math.floor(Math.min(availW, availH * LW / LH)));
-  const h = Math.round(w * LH / LW);
+  const w = Math.max(150, Math.floor(availW));
+  const h = Math.max(200, Math.floor(availH));
   cv.style.width = w + "px"; cv.style.height = h + "px";
   /* Platno mora da ima onoliko pravih piksela koliko ga ekran zaista crta —
      inače je slika mutna na gustim ekranima. */
   const dpr = Math.min(2.5, window.devicePixelRatio || 1);
   cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-  RAZM = cv.width / LW;
-  ctx.setTransform(RAZM, 0, 0, RAZM, 0, 0);
-  sloj.width = cv.width; sloj.height = cv.height;
+  PPC = Math.max(5, Math.round(cv.width / VID_KOL));       // pravih piksela po ćeliji
+  vidW = Math.min(KOL, cv.width / PPC);
+  vidH = Math.min(RED, cv.height / PPC);
+  const c = ciljKamere(); kam.x = c.x; kam.y = c.y;
   prljav = true;
 }
 window.addEventListener("resize", fit);
@@ -894,7 +1004,9 @@ fit(); crtaj(); pocetak();
 raf = requestAnimationFrame(loop);
 
 window.T = {
-  KOL, RED, POLJA, TEZINE, BOJE,
+  KOL, RED, POLJA, TEZINE, BOJE, VID_KOL,
+  get PPC() { return PPC; }, get vidW() { return vidW; }, get vidH() { return vidH; }, get kam() { return kam; },
+  ciljKamere, pomeriKameru,
   get stanje() { return stanje; }, set stanje(v) { stanje = v; },
   get igraci() { return igraci; }, get ja() { return ja; }, get vlas() { return vlas; },
   get trag() { return tragV; }, get cilj() { return cilj; }, get tez() { return tez; },

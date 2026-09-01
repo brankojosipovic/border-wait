@@ -103,16 +103,21 @@ sa nivoom da prati rast oružja — borba traje 7–11 s kroz sve nivoe.
 
 ## Teren
 
-`teren.html` — zauzimanje table u stilu paper.io. Tabla je mreža 40×56 ćelija; vlasništvo i tragovi
-stoje u `Uint8Array`-ima, a teren se crta u keširani sloj koji se osvežava samo kad se nešto zauzme,
-pa po kadru ostaje samo blit sloja plus tragovi i glave. Kad se krug zatvori, plavljenje sa ivica
-table nađe šta je ostalo zatvoreno i sve to postaje tvoje.
+`teren.html` — zauzimanje table u stilu paper.io. Tabla je mreža **132×180 ćelija (23 760 polja)**,
+znatno veća od ekrana: ekran je prozor koji meko prati glavu, a cela tabla, svi protivnici i
+trenutni prozor se vide na **mapici** u desnom uglu (poseban canvas, jedan piksel po ćeliji,
+osvežava se tek kad se nešto zauzme). Ceo teren se ne kešira u sloj — na toj veličini bi to bilo
+desetina megabajta — nego se svaki kadar crtaju samo ćelije u prozoru, uz spajanje uzastopnih
+ćelija iste boje u jedan pravougaonik, pa ih ostane par stotina (60 fps i pri `devicePixelRatio` 3).
+Vlasništvo i tragovi stoje u `Uint8Array`-ima, po jedan bajt na ćeliju. Kad se krug zatvori,
+plavljenje sa ivica table nađe šta je ostalo zatvoreno i sve to postaje tvoje.
 
 Trag je jedina slaba tačka: ko ga pregazi, vlasnik gine (i sam sebi). Ivica table ne ubija — na njoj
 se staje dok ne skreneš. Protivnici prvih šest sekundi ostaju kod kuće, ne udaljavaju se previše od
 svog terena, a na težim nivoima love tuđe tragove (sa pauzom posle lova, da ne budu nemilosrdni).
 Kad neko priđe tvom tragu, trag počne da trepće crveno. Poginuli protivnik oslobodi sav svoj teren
-i vrati se na novo mesto. Cilj je 30/35/40% table, po težini.
+i vrati se na novo mesto. Cilj je 10/12/15% table, po težini (protivnici za tri minuta stignu do
+4–6%, pa cilj znači da si ubedljivo prvi).
 
 **🏁 Trka u dvoje** ide istim putem kao u Ciglama: oba telefona dobiju isti raspored (isti seed),
 svako igra svoju partiju, a mrežom idu samo procenti i kraj runde — pa kašnjenje veze ništa ne kvari.
