@@ -378,7 +378,30 @@ var CSS =
 'body{padding-bottom:calc(var(--navh) + 4px) !important}' +
 '.wrap{min-height:calc(100dvh - var(--navh) - var(--sat) - 4px) !important}' +
 '@media (orientation:landscape) and (max-height:620px){' +
-':root{--navh:38px}.gamenav .t{display:none}.gamenav .e{font-size:17px}.gamenav a,.gamenav button{min-height:34px}}';
+':root{--navh:38px}.gamenav .t{display:none}.gamenav .e{font-size:17px}.gamenav a,.gamenav button{min-height:34px}}' +
+/* pravila igre — isti prozorčić u svakoj igri */
+'.uputBtn{display:inline-flex;align-items:center;justify-content:center;' +
+'font:inherit;font-size:15px;color:var(--ink);background:var(--panel);border:1px solid var(--line);' +
+'border-radius:10px;padding:6px 10px;cursor:pointer;touch-action:manipulation;line-height:1.2;' +
+'position:relative;z-index:60}' +
+'.uputBtn:active{transform:translateY(1px)}' +
+'@media (hover:hover){.uputBtn:hover{border-color:var(--gold)}}' +
+'@media (max-width:360px){.uputBtn{padding:5px 7px;font-size:14px}}' +
+'@media (max-height:600px){.uputBtn{padding:4px 8px;font-size:13px}}' +
+'header button,header .homeBtn,header .zvukBtn,header .uputBtn{white-space:nowrap;flex:0 0 auto}' +
+'.pravilaSloj{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;' +
+'background:rgba(6,11,22,.74);backdrop-filter:blur(3px);padding:14px}' +
+'.pravilaBox{background:var(--panel,#16223a);border:1px solid var(--line,#283a5e);border-radius:16px;' +
+'padding:14px 16px;max-width:420px;width:100%;max-height:82vh;overflow:auto;-webkit-overflow-scrolling:touch;' +
+'box-shadow:0 12px 30px rgba(0,0,0,.55);color:var(--ink,#eef2f9)}' +
+'.pravilaBox h3{margin:0 0 8px;font-size:17px}' +
+'.pravilaBox ul{margin:0;padding-left:20px;font-size:14px;line-height:1.55;color:var(--ink-dim,#9fb0cc)}' +
+'.pravilaBox li{margin-bottom:7px}' +
+'.pravilaBox li b{color:var(--ink,#eef2f9)}' +
+'.pravilaBtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}' +
+'.pravilaBtns button,.pravilaBtns a{padding:8px 14px;border-radius:10px;border:1px solid var(--line,#283a5e);' +
+'background:var(--panel-2,#1b2a4a);color:var(--ink,#eef2f9);font:inherit;font-size:14px;cursor:pointer;text-decoration:none}' +
+'.pravilaBtns #pravZatvori{border-color:var(--gold,#c9a227);color:var(--gold,#c9a227);font-weight:700}';
 
 /* Kratka lestvica koja se ne može promašiti — služi da korisnik čuje da zvuk radi. */
 SFX.proba = function () {
@@ -471,6 +494,147 @@ function pratiTraku() {
   if (window.visualViewport) window.visualViewport.addEventListener("resize", measure);
 }
 
+/* ---------- pravila svake igre (dugme ❔ u zaglavlju) ----------
+   Kratko uputstvo baš za igru koja je otvorena; opšta pomoć (soba, offline)
+   ostaje na pomoc.html, a odavde do nje vodi dugme. */
+var PRAVILA = {
+  sudoku: ["🔢 Sudoku", [
+    "U svakom <b>redu</b>, svakoj <b>koloni</b> i svakom <b>kvadratu 3×3</b> stoje cifre od 1 do 9, svaka tačno jednom.",
+    "Tapni polje pa cifru ispod table. <b>⌫</b> briše, <b>↶</b> vraća potez.",
+    "<b>✎ Beleške</b> — cifre se upisuju sitno, kao podsetnik šta sve može u to polje.",
+    "<b>💡 Savet</b> popunjava jedno polje umesto tebe; broj grešaka se broji.",
+    "Težina se bira gore levo; nova zagonetka uvek ima tačno jedno rešenje."
+  ]],
+  solitaire: ["🎴 Soliter (Klondike)", [
+    "Cilj: sva četiri <b>temelja</b> gore desno složiti od keca do kralja, po bojama.",
+    "U kolonama se slaže <b>naniže i naizmenično crveno-crno</b>; prazna kolona prima samo kralja.",
+    "Tapni kartu pa je tapni <b>drugi put</b> — sama nađe gde može. Ili tapni kartu pa odredište.",
+    "<b>Vuci 1 / Vuci 3</b> gore levo: koliko karata izlazi sa špila. U „Vuci 1“ se na otpadu vidi jedna karta, u „Vuci 3“ tri.",
+    "<b>💡 Potez</b> nalazi potez, <b>↶ Poništi</b> vraća, <b>⏫ Završi</b> sam slaže kad su sve karte otvorene, <b>⟲ Isti špil</b> deli isto deljenje ispočetka."
+  ]],
+  kolona: ["🚧 Kolona", [
+    "Stojiš u koloni na prelazu i biraš traku. Cilj je <b>proći za što manje minuta</b>.",
+    "Svaki tap na <b>⏳ sačekaj minut</b> je jedan minut. Rampa obrađuje: 🚗 1′ · 🚐 2′ · 🚌 3′ · 🚚 4′, a 🔍 pregled dodaje +3′.",
+    "<b>⬅ levo</b> i <b>desno ➡</b> menjaju traku — ali staješ <b>na kraj</b> nove trake.",
+    "I drugi vozači menjaju trake, pa procena nije uvek tačna: rizik je deo igre.",
+    "<b>📅 Dnevna kolona</b> je ista za sve tog dana — rezultat se poredi; <b>🎲 Slobodna igra</b> je nasumična."
+  ]],
+  aparat: ["🎰 Aparat", [
+    "Krediti su <b>virtuelni</b> i ništa ne vrede. Kad ih potrošiš, <b>＋100</b> ih vrati, a <b>⟲</b> te vrati na početnih 100.",
+    "<b>🃏 Poker:</b> uzmeš pet karata, tapneš one koje <b>zadržavaš</b>, pa DELI još jednom. Isplata piše ispod: par (J+) 1× … rojal 250×.",
+    "<b>🍒 Voćkice:</b> pet linija (tri reda i dve dijagonale). Tri ista na liniji plaćaju po tabeli, ulog je po liniji.",
+    "Posle dobitka ide <b>duplanje</b>: pogodiš boju — duplo, promašiš — nema ništa. Možeš i odmah da naplatiš.",
+    "Ulog se bira dugmićima iznad; statistika ispod pamti kako ti ide."
+  ]],
+  svercer: ["🚬 Švercer", [
+    "Pet tura. U svakoj natovariš <b>gepek od 8 mesta</b> i voziš kroz <b>tri punkta</b>.",
+    "Vrednija roba nosi <b>veći rizik pregleda</b>. Na punktu vidiš raspoloženje carinika i još uvek smeš da baciš robu kroz prozor.",
+    "Posle svakog prođenog punkta biraš: <b>prodaj tu</b> (×1,5 pa ×2) ili <b>teraj do pijace</b> (×3).",
+    "Padneš li na pregledu — <b>sve ti uzmu</b> za tu turu. Zato se zna kad je dosta.",
+    "<b>📅 Dnevna sezona</b> je ista za sve tog dana; na kraju se rezultat poredi sa „savršenim švercerom“."
+  ]],
+  tetris: ["🧱 Tetris", [
+    "Slažeš kockice tako da <b>popuniš ceo red</b> — pun red nestaje i nosi bodove.",
+    "Dugmad ispod: <b>◀ ▶</b> pomeraju, <b>⟳</b> okreće, <b>▼</b> spušta brže, <b>⤓</b> tresne do dna.",
+    "<b>↹ sačuvaj</b> odloži komad za kasnije. Sa strane se vidi šta sledi.",
+    "Više redova odjednom nosi više bodova; sa nivoom komadi padaju brže.",
+    "Igra se pamti posle svakog spuštenog komada — <b>▶ Nastavi</b> te vraća gde si stao."
+  ]],
+  avioni: ["✈️ Avioni", [
+    "Prevlačiš prstom po ekranu da voziš avion; <b>puca sam</b>, ne moraš da držiš dugme.",
+    "Pokupi <b>nadogradnje oružja</b> koje padaju — topovi, laser, rakete, fazer; isto oružje dvaput je jače.",
+    "<b>☢️ nuklearka</b> čisti ceo ekran — jednom po nivou, kad zagusti.",
+    "Svaki nivo se završava <b>bosom</b>; on ima svoj obrazac napada, uči se izbegavanje.",
+    "<b>⏸</b> pauzira. Nivo, poeni, životi i oružje se pamte — <b>▶ Nastavi</b> vraća partiju."
+  ]],
+  cigle: ["🕹️ Cigle", [
+    "<b>Prevlači prstom</b> ispod palice da je pomeriš, tapni da ispališ lopticu.",
+    "Cigle: <b>zelena</b> puca iz prve, <b>žuta</b> traži dva, <b>crvena</b> tri udarca; <b>siva čelična</b> se ne razbija.",
+    "Bonusi padaju: 🟦 šira palica, ⬤ tri loptice, 🐢 sporije, 🔫 pištolj, ❤️ život.",
+    "Ugao odbijanja zavisi od toga <b>gde loptica pogodi palicu</b> — tako biraš smer.",
+    "<b>🏁 Trka u dvoje</b> — isti nivo na dva telefona preko sobe, gleda se ko brže odmakne."
+  ]],
+  stvorenja: ["🐉 Bića", [
+    "Šetaj mapom strelicama i ulazi u <b>🍀 travu</b> — tamo iskaču divlja stvorenja.",
+    "U borbi ih prvo <b>oslabi</b>, pa baci <b>🔮 loptu</b> da ih uhvatiš. Tim ide do šest.",
+    "Tipovi: 🔥 tuče 🌿, 🌿 tuče 💧, 💧 tuče 🔥 — u prednosti je <b>dvostruka šteta</b>.",
+    "Na nivou 12 se većina <b>razvija</b>. Kod <b>💚 vidara</b> se lečiš, a cilj su <b>🏛️ tri arene</b>.",
+    "<b>👥</b> pokazuje tim i statistiku, <b>⟲</b> počinje sasvim novu igru."
+  ]],
+  tablic: ["🃏 Tablić", [
+    "Kartom iz ruke <b>uzimaš</b> karte sa stola: ili istu vrednost, ili više karata čiji je <b>zbir</b> jednak tvojoj.",
+    "<b>Kec vredi 1 ili 11</b> — kecom se uzimaju i 8 i 3 zajedno, i sam kec sa stola.",
+    "Ako ne uzimaš, karta se <b>odlaže</b> na sto. Ko pokupi sve sa stola ima <b>tablu</b>.",
+    "Poeni na kraju: karo 10 i tref 2 posebno, kečevi, pa bod onome ko ima <b>više karata</b>.",
+    "U sobi se igra <b>udvoje</b>, uz 💬 poruke protivniku."
+  ]],
+  jamb: ["🎲 Jamb", [
+    "Bacaš pet kocki, do <b>tri puta</b> po potezu; između bacanja zadržavaš koje hoćeš.",
+    "Rezultat upisuješ u polje po kolonama: <b>naniže</b>, <b>naviše</b>, <b>slobodno</b> i <b>najava</b>.",
+    "<b>Najava</b> se kaže posle prvog bacanja i mora se ispuniti baš to polje — nosi najviše.",
+    "Gore idu jedinice do šestica (dovoljan zbir nosi bonus), dole kenta, ful, poker i jamb.",
+    "U sobi igraju do <b>četiri igrača</b>, svako na svom telefonu; ima i dugme za poruke."
+  ]],
+  geo: ["🌍 Geo", [
+    "Kviz iz geografije: zastave, glavni gradovi, reke, mora, planine, granice.",
+    "<b>Vežbanje</b> je samo za tebe i pamti dokle si stigao; <b>kviz u sobi</b> ide na vreme, do četvoro igrača.",
+    "Posle svakog pitanja piše šta je tačno — i zašto, kad je zeznuto.",
+    "Oblasti i broj pitanja biraju se na početnom ekranu.",
+    "U sobi svi vide isto pitanje u isto vreme i tabelu posle svakog kruga."
+  ]],
+  pikado: ["🎯 Pikado", [
+    "Igra se <b>501</b>, oduzima se, a izlazi se <b>na duplo</b>.",
+    "Nišan se pomera <b>prevlačenjem prsta</b>, a strelica ide <b>tapom</b>. Ruka se ljulja — zato se cilja mirno i kratko.",
+    "Ako je uključen žiroskop, nagib telefona pomera nišan; može i bez njega, samo prstom.",
+    "U sobi svi imaju <b>istu mirnoću ruke</b> i po <b>10 sekundi</b> na strelicu.",
+    "Na kraju lega ide <b>statistika</b>: prosek za tri strelice, najbolji krug, koliko trostrukih dvadesetica i bulova. Pod <b>⚙︎</b> se pali glasovna najava."
+  ]],
+  bilijar: ["🎱 Bilijar", [
+    "<b>Osmica</b> ili <b>snuker</b>, protiv računara (tri težine) ili udvoje u sobi.",
+    "Smer se bira <b>prevlačenjem</b>, jačina klizačem, a na kugli se prstom namešta <b>felš</b> — gore/dole i levo/desno.",
+    "Felš menja belu posle udara: donji je vraća nazad, gornji je gura napred, bočni je skreće.",
+    "U osmici prvo svoje kugle (pune ili polupune), pa <b>osmica na kraju</b>.",
+    "U snukeru ide crvena pa boja; posle poslednje crvene boje idu <b>redom</b>. Faul poklanja poene protivniku. U meniju pod <b>🔈</b> se pali najava šta je palo."
+  ]],
+  kuca: ["🛋 Kuća", [
+    "Nameštaj se <b>prevlači</b> u sobu koja mu odgovara — kuhinja, spavaća, dnevna, kupatilo.",
+    "Tapni komad pa ga okreni dugmetom <b>⟳</b>, a veličinu menjaj sa <b>⬌</b> i <b>⬍</b>.",
+    "Komadi se lepe za mrežu i <b>naslanjaju leđima na zid</b> kad im je tu mesto — krevet, orman, sudopera.",
+    "<b>Slagalica</b> ima zadatak i proverava se, a u <b>slobodnom uređivanju</b> radiš šta hoćeš i sve se pamti.",
+    "<b>🏠 Drugi plan</b> daje novi raspored soba."
+  ]]
+};
+
+function pravilaZa(ime) { return PRAVILA[ime] || null; }
+
+function pokaziPravila(ime) {
+  var pr = pravilaZa(ime);
+  if (!pr) return;
+  var stari = document.querySelector(".pravilaSloj");
+  if (stari) stari.remove();
+  var sloj = document.createElement("div");
+  sloj.className = "pravilaSloj";
+  var stavke = "";
+  for (var i = 0; i < pr[1].length; i++) stavke += "<li>" + pr[1][i] + "</li>";
+  sloj.innerHTML = '<div class="pravilaBox" role="dialog" aria-modal="true">' +
+    "<h3>❔ " + pr[0] + " — pravila</h3><ul>" + stavke + "</ul>" +
+    '<div class="pravilaBtns"><button type="button" id="pravZatvori">Nastavi igru</button>' +
+    '<a href="pomoc.html?od=' + ime + '.html">❔ Opšta pomoć</a></div></div>';
+  document.body.appendChild(sloj);
+  var zatvori = function () { sloj.remove(); };
+  sloj.querySelector("#pravZatvori").addEventListener("click", zatvori);
+  sloj.addEventListener("click", function (e) { if (e.target === sloj) zatvori(); });
+  document.addEventListener("keydown", function beg(e) {
+    if (e.key === "Escape") { zatvori(); document.removeEventListener("keydown", beg); }
+  });
+}
+
+/* svaka veza ka opštoj pomoći nosi ime igre, da pomoć zna kuda da vrati */
+function obeleziPomoc(ime) {
+  var veze = document.querySelectorAll('a[href="pomoc.html"]');
+  for (var i = 0; i < veze.length; i++) veze[i].href = "pomoc.html?od=" + ime + ".html";
+}
+
 function build() {
   if (document.querySelector(".gamenav")) return;
   var st = document.createElement("style");
@@ -495,6 +659,14 @@ function build() {
   if (here !== "igre.html" && here !== "") {          // kućica i zvuk u zaglavlju svake igre
     var thm = document.querySelector("header #theme") || document.querySelector("header button:last-of-type");
     if (thm && thm.parentNode) {
+      var imeIgre = here.replace(/\.html$/, "");
+      if (pravilaZa(imeIgre) && !document.querySelector(".uputBtn")) {
+        var pb = document.createElement("button");
+        pb.type = "button"; pb.className = "uputBtn"; pb.textContent = "❔";
+        pb.title = "Pravila igre";
+        pb.addEventListener("click", function () { pokaziPravila(imeIgre); });
+        thm.parentNode.insertBefore(pb, thm);
+      }
       if (!document.querySelector(".zvukBtn")) {
         var zb = document.createElement("button");
         zb.type = "button"; zb.className = "zvukBtn"; zb.textContent = "🔊";
@@ -508,6 +680,8 @@ function build() {
       }
     }
   }
+  if (here !== "igre.html" && here !== "pomoc.html" && here !== "")
+    obeleziPomoc(here.replace(/\.html$/, ""));
   document.getElementById("sndBtn").addEventListener("click", prekidacZvuka);
   paintBtn();
   paintIme();
@@ -520,6 +694,8 @@ function build() {
   var wake = function () { engine(); document.removeEventListener("pointerdown", wake); };
   document.addEventListener("pointerdown", wake);
 }
+
+window.PRAVILA_IGRE = { spisak: PRAVILA, pokazi: pokaziPravila };
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", build);
 else build();

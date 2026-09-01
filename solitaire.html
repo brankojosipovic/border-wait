@@ -194,7 +194,8 @@ const isRed = s => s === 1 || s === 2;
 const KEY = "solitaire.v1", THEME_KEY = "sudoku.theme";
 
 /* ---------- stanje ---------- */
-let S = null;   // {stock,waste,found[4],tab[7], draw, moves, elapsed, seed, done}
+let S = null;   // {stock,waste,found[4],tab[7], draw, otvoreno, moves, elapsed, seed, done}
+                //  otvoreno = koliko karata je izašlo poslednjim vučenjem — toliko ih se i vidi na otpadu
 let sel = null; // {from:"tab"|"waste", pile:i, idx:j}
 let hist = [], tick = null, lastTs = 0, autoTimer = null;
 
@@ -218,7 +219,7 @@ function deal(seed, draw) {
   const tab = [[], [], [], [], [], [], []];
   for (let i = 0; i < 7; i++) for (let j = i; j < 7; j++) tab[j].push(deck.pop());
   for (const p of tab) p[p.length - 1].u = true;
-  return { stock: deck, waste: [], found: [[], [], [], []], tab, draw, moves: 0, elapsed: 0, seed, done: false };
+  return { stock: deck, waste: [], found: [[], [], [], []], tab, draw, otvoreno: 0, moves: 0, elapsed: 0, seed, done: false };
 }
 
 /* ---------- pravila ---------- */
@@ -247,8 +248,11 @@ function drawStock() {
   if (!S.stock.length) {
     if (!S.waste.length) { hist.pop(); return; }
     S.stock = S.waste.reverse().map(c => (c.u = false, c)); S.waste = [];
+    S.otvoreno = 0;
   } else {
-    for (let k = 0; k < S.draw && S.stock.length; k++) { const c = S.stock.pop(); c.u = true; S.waste.push(c); }
+    let k = 0;
+    for (; k < S.draw && S.stock.length; k++) { const c = S.stock.pop(); c.u = true; S.waste.push(c); }
+    S.otvoreno = k;                      // u „Vuci 1“ je to jedna karta, pa se i vidi samo jedna
   }
   S.moves++; sel = null; window.SFX && SFX.card(); done();
 }
@@ -264,7 +268,8 @@ function tryMove(src, dest) {
   if (dest.t === "f") { if (cards.length !== 1 || !okFound(cards[0], S.found[dest.i])) return false; }
   else { if (!okTab(cards[0], S.tab[dest.i])) return false; if (src.from === "tab" && !seqOk(S.tab[src.pile], src.idx)) return false; }
   snapshot();
-  if (src.from === "waste") S.waste.pop(); else S.tab[src.pile].length = src.idx;
+  if (src.from === "waste") { S.waste.pop(); S.otvoreno = Math.max(0, (S.otvoreno || 0) - 1); }
+  else S.tab[src.pile].length = src.idx;
   moveCards(cards, dest);
   S.moves++; flipUp(); sel = null;
   window.SFX && (dest.t === "f" ? SFX.coin() : SFX.card());
@@ -364,9 +369,9 @@ function paint(el, cards, opts) {
     const scale = sum > avail && sum > 0 ? avail / sum : 1;
     let y = 0;
     for (let k = 0; k < cards.length; k++) { offs.push(y); y += Math.max(9, base[k] * scale); }
-  } else if (opts && opts.spread) {              // otpad: poslednje 3 karte razmaknute
+  } else if (opts && opts.spread) {              // otpad: razmaknuto onoliko karata koliko ih je poslednji put izašlo
     const st = chPx * .16;
-    const shown = Math.min(cards.length, 3);
+    const shown = Math.min(cards.length, Math.max(1, opts.spread));
     for (let k = 0; k < cards.length; k++) offs.push(Math.max(0, k - (cards.length - shown)) * st);
   } else offs = cards.map(() => 0);
 
@@ -387,7 +392,7 @@ function render() {
   const avail = Math.max(150, window.innerHeight - $("#tabRow").getBoundingClientRect().top - 110 - (navEl ? navEl.offsetHeight : 0));
   paint(pileEl("p-stock"), S.stock.map(c => ({ ...c, u: false })), {});
   paint(pileEl("p-waste"), S.waste, {
-    spread: true,
+    spread: Math.min(3, Math.max(1, S.otvoreno === undefined ? S.draw : S.otvoreno)),
     selFrom: (sel && sel.from === "waste") ? S.waste.length - 1 : -1,
     hintIdx: (hintMark && hintMark.from === "waste") ? S.waste.length - 1 : -2
   });
@@ -443,7 +448,8 @@ function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || "null");
     if (!s || !Array.isArray(s.tab) || s.tab.length !== 7) return false;
-    S = s; hist = []; sel = null;
+    S = s; if (typeof S.otvoreno !== "number") S.otvoreno = Math.min(S.draw || 3, S.waste.length);
+    hist = []; sel = null;
     $("#draw").value = String(s.draw || 3);
     render();
     if (S.done) showOverlay("Rešeno ✔", "Vreme " + fmt(S.elapsed) + " · poteza " + S.moves, "Novo deljenje", newGame);
@@ -493,7 +499,12 @@ $("#table").addEventListener("click", e => {
 /* ---------- dugmad ---------- */
 $("#newGame").onclick = () => { if (!S || S.done || S.moves === 0 || confirm("Novo deljenje?")) newGame(); };
 $("#redeal").onclick = () => { if (S && (S.moves === 0 || confirm("Podeliti isti špil ispočetka?"))) newGame(S.seed); };
-$("#draw").onchange = () => { if (S) { S.draw = +$("#draw").value; save(); } };
+$("#draw").onchange = () => {
+  if (!S) return;
+  S.draw = +$("#draw").value;
+  S.otvoreno = Math.min(S.otvoreno || 0, S.draw);   // odmah se vidi po novom pravilu
+  save(); render();
+};
 $("#undo").onclick = () => { undo(); };
 $("#finish").onclick = () => { autoFinish(); };
 $("#hint").onclick = () => {

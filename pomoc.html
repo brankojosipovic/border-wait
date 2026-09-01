@@ -88,6 +88,11 @@
   .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.5; text-align: center; }
   .foot a { color: var(--ink-dim); }
   .nazad { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+  .nazadIgra { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; flex: 0 0 auto;
+    font-size: 14px; color: var(--gold); background: var(--panel); border: 1px solid var(--gold);
+    border-radius: 10px; padding: 6px 10px; text-decoration: none; line-height: 1.2; }
+  .nazadIgra:active { transform: translateY(1px); }
+  .foot .nazadIgra { margin-bottom: 8px; }
 </style>
 </head>
 <body data-theme="dark">
@@ -98,6 +103,7 @@
       <div class="sub">Kako se igra u sobi, kako se vraća na započetu partiju</div>
     </div>
     <div class="spacer"></div>
+    <a class="nazadIgra" id="uIgru" href="#" hidden>← Nazad u igru</a>
     <button id="theme" title="Svetla/tamna tema">☀︎ / ☾</button>
   </header>
 
@@ -164,7 +170,7 @@
       <li><span class="tag">🏠</span> u vrhu svake igre — nazad na spisak igara.</li>
       <li><span class="tag">☀︎ / ☾</span> — svetla ili tamna tema, važi za sve igre.</li>
       <li>Traka na dnu je prečica između igara; ispod 460 px širine se vide samo sličice.</li>
-      <li>Svaka igra ima svoje <span class="tag">❔ Pravila</span> u svom meniju (dugme <span class="tag">☰</span> ili početni ekran igre).</li>
+      <li><span class="tag">❔ Pravila</span> <b>u zaglavlju svake igre</b> — pravila baš te igre, u dva reda, i usred partije. Odatle vodi dugme i ovamo, na opštu pomoć, a sa ove strane se dugmetom <b>← Nazad u igru</b> vraćaš u partiju.</li>
       <li>Ako ti se ekran ipak uveća (slučajno raširiš prste), <b>skupi dva prsta</b> na ekranu da se vrati. Igre same više ne uvećavaju ekran kad tapneš u polje za unos.</li>
     </ul>
   </div>
@@ -181,6 +187,7 @@
   </div>
 
   <div class="foot col">
+    <a class="nazadIgra" id="uIgru2" href="#" hidden>← Nazad u igru</a><br>
     <a class="nazad" href="igre.html">🎮 Nazad na spisak igara</a> · <a href="index.html">← Border Wait</a>
   </div>
 </div>
@@ -194,6 +201,25 @@ document.getElementById("theme").onclick = function () {
   b.dataset.theme = b.dataset.theme === "dark" ? "light" : "dark";
   try { localStorage.setItem("sudoku.theme", b.dataset.theme); } catch (e) { }
 };
+/* kad se pomoć otvori iz igre (pomoc.html?od=solitaire.html), stoji dugme za povratak
+   baš u tu igru — igra se pamti, pa se partija nastavlja tamo gde je stala */
+(function () {
+  var od = "";
+  try { od = new URLSearchParams(location.search).get("od") || ""; } catch (e) { }
+  if (!/^[a-z]+\.html$/.test(od)) return;
+  var igre = (window.PRAVILA_IGRE && window.PRAVILA_IGRE.spisak) || {};
+  var kljuc = od.replace(/\.html$/, "");
+  if (!igre[kljuc]) return;
+  var ime = String(igre[kljuc][0]).replace(/\s*\(.*\)\s*$/, "");
+  for (var id of ["uIgru", "uIgru2"]) {
+    var a = document.getElementById(id);
+    if (!a) continue;
+    a.href = od;
+    a.textContent = "← Nazad u igru: " + ime;
+    a.hidden = false;
+  }
+})();
+
 /* verzija se pročita iz service workera, da uputstvo pokazuje pravu vrednost */
 if (navigator.serviceWorker && navigator.serviceWorker.controller) {
   navigator.serviceWorker.addEventListener("message", function (e) {
