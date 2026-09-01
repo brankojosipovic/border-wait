@@ -103,14 +103,33 @@ sa nivoom da prati rast oružja — borba traje 7–11 s kroz sve nivoe.
 
 ## Teren
 
-`teren.html` — zauzimanje table u stilu paper.io. Tabla je mreža **132×180 ćelija (23 760 polja)**,
-znatno veća od ekrana: ekran je prozor koji meko prati glavu, a cela tabla, svi protivnici i
-trenutni prozor se vide na **mapici** u desnom uglu (poseban canvas, jedan piksel po ćeliji,
-osvežava se tek kad se nešto zauzme). Ceo teren se ne kešira u sloj — na toj veličini bi to bilo
-desetina megabajta — nego se svaki kadar crtaju samo ćelije u prozoru, uz spajanje uzastopnih
-ćelija iste boje u jedan pravougaonik, pa ih ostane par stotina (60 fps i pri `devicePixelRatio` 3).
-Vlasništvo i tragovi stoje u `Uint8Array`-ima, po jedan bajt na ćeliju. Kad se krug zatvori,
-plavljenje sa ivica table nađe šta je ostalo zatvoreno i sve to postaje tvoje.
+`teren.html` — zauzimanje table u stilu paper.io. **Kretanje je slobodno, u bilo kom pravcu:**
+glava ima položaj u realnim brojevima i ugao koji se okreće ograničenom brzinom (`OKRET`), pa se
+ide i ukoso i u luku, bez cik-cak koraka po poljima. Mreža služi samo za teren i za trag: put od
+kadra do kadra se „prevuče“ preko ćelija (uz dodavanje ćoška na dijagonali, da trag ostane
+neprekidan i da plavljenje ne procuri), a trag se **crta kao glatka linija** kroz stvarne tačke
+puta, ne kao niz kvadratića.
+
+Tabla je zato mnogo sitnija i veća: **280×380 ćelija (106 400 polja)**, oko 115 ćelija preko
+ekrana — jedna ćelija je ~3 CSS piksela, pa su ivice terena skoro glatke. Ekran je prozor koji
+meko prati glavu, a cela tabla, svi igrači i trenutni prozor se vide na **mapici** u desnom uglu
+(poseban canvas, jedan piksel po ćeliji, osvežava se tek kad se nešto zauzme). Ceo teren se ne
+kešira u sloj — nego se svaki kadar crtaju samo ćelije u prozoru, uz spajanje uzastopnih ćelija
+iste boje u jedan pravougaonik (60 fps i pri `devicePixelRatio` 3). Vlasništvo i tragovi stoje u
+`Uint8Array`-ima, po jedan bajt na ćeliju.
+
+Kad se krug zatvori, plavljenje nađe šta je ostalo zatvoreno i sve to postaje tvoje — i to samo
+unutar **okvira sopstvenog terena** (`bb`, održava se pri svakom zauzimanju i prebrojavanju), jer
+ništa van tog okvira ionako ne može biti zatvoreno; na 106 000 polja to je razlika između par
+milisekundi i primetnog zastoja.
+
+Upravljanje je palica: ugao od tačke gde je prst spušten do mesta gde je sada (sa mrtvom zonom i
+„povocem“ od 46 px), pa se dobija bilo koji pravac. Četiri tipke ispod daju strane sveta, a dve
+pritisnute zajedno — dijagonalu. Uz ivicu table se klizi (položaj se prosto ograniči), ne gine.
+
+Protivnici idu po tačkama: iz svog terena naprave pravougaoni izlet napolje i vrate se kući. Pred
+sobom **odigraju svoju putanju unapred** (sa istim ograničenjem okretanja) da ne zaseku sopstveni
+trag, a uz ivicu skreću paralelno umesto naglo — bez toga su ginuli sami od sebe.
 
 Trag je jedina slaba tačka: ko ga pregazi, vlasnik gine (i sam sebi). Ivica table ne ubija — na njoj
 se staje dok ne skreneš. Protivnici prvih šest sekundi ostaju kod kuće, ne udaljavaju se previše od
@@ -119,15 +138,15 @@ Kad neko priđe tvom tragu, trag počne da trepće crveno. Poginuli protivnik os
 i vrati se na novo mesto (protivnici za tri minuta stignu do 5–6% table, pa cilj znači da si
 ubedljivo prvi).
 
-**Skriveni dragulji** padaju u okolinu igrača (12–26 polja od nekog), a vide se tek kad im priđeš na
-14 polja — i pokupe se prolaskom pored (3×3). Četiri vrste: 🛡 štit (deset sekundi te ništa ne obara,
+**Skriveni dragulji** padaju u okolinu igrača (38–84 polja od nekog), a vide se tek kad im priđeš na
+46 polja — i pokupe se prolaskom pored (3×3). Četiri vrste: 🛡 štit (deset sekundi te ništa ne obara,
 ni presečen trag ni sudar), ⚡ brzina, ❄ led (protivnici uspore) i 💎 parče terena odmah.
 
-**Cilj se bira** — 25, 40, 50 ili 60% table; izbor i težina se pamte, a najbrže vreme se čuva za svaki
+**Cilj se bira** — 20, 30, 40, 50 ili 60% table; izbor i težina se pamte, a najbrže vreme se čuva za svaki
 par (težina, cilj).
 
 **🌐 Igra u sobi — do četiri igrača na istoj tabli.** Domaćin je jedini sudija: on vodi ceo svet
-(i preostale protivnike iz igre) i na svakih 110 ms šalje kratak snimak — gde je čija glava, ko ima
+(i preostale protivnike iz igre) i na svakih 110 ms šalje kratak snimak — položaj i ugao svake glave, ko ima
 štit, gde su dragulji. Gosti crtaju taj snimak, ali **svoju glavu vode i sami** (tipke rade odmah,
 bez čekanja na mrežu) i poravnaju se sa domaćinom tek ako odlutaju više od tri polja. Zauzimanje,
 smrt, oživljavanje i pokupljen dragulj stižu kao poruke od domaćina i primenjuju se kod svih isto,
