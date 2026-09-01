@@ -165,9 +165,6 @@ const KEY = "teren.v1", THEME_KEY = "sudoku.theme";
 const KOL = 280, RED = 380, POLJA = KOL * RED;
 const VID_KOL = 112;                           // koliko ćelija stane preko ekrana
 const cv = $("#cv"), ctx = cv.getContext("2d");
-const mapaCv = document.createElement("canvas");    // cela tabla, jedan piksel po ćeliji
-const mctx = mapaCv.getContext("2d");
-mapaCv.width = KOL; mapaCv.height = RED;
 let PPC = 10;                                  // pravih piksela po ćeliji
 let vidW = VID_KOL, vidH = 50;                 // koliko ćelija se vidi
 const kam = { x: 0, y: 0 };                    // gornji levi ugao prozora, u ćelijama
@@ -694,51 +691,127 @@ function botOdluka(e) {
 }
 
 /* ---------- crtanje ----------
-   Tabla je prevelika da bi stala u jedan keširani sloj (bilo bi desetine megabajta),
-   pa se svaki kadar crtaju samo ćelije u prozoru — i to spajanjem uzastopnih ćelija
-   iste boje u jedan pravougaonik, tako da ih ostane par stotina. Cela tabla se drži
-   samo u mapici od jednog piksela po ćeliji, koja se osvežava kad se nešto zauzme. */
-function crtajMapu() {
-  mctx.setTransform(1, 0, 0, 1, 0, 0);
-  mctx.fillStyle = "#0a1120";
-  mctx.fillRect(0, 0, KOL, RED);
-  for (let y = 0; y < RED; y++) {
-    let x = 0;
-    while (x < KOL) {
-      const v = vlas[idx(x, y)];
-      if (!v) { x++; continue; }
-      let k = x + 1;
-      while (k < KOL && vlas[idx(k, y)] === v) k++;
-      mctx.fillStyle = BOJE[v - 1].p;
-      mctx.fillRect(x, y, k - x, 1);
-      x = k;
-    }
-  }
+   Teren se ne crta po ćelijama nego kao glatke mrlje (vidi „obris terena“ niže):
+   obrisi se prave samo kad se nešto zauzme, a po kadru se samo popune — i u
+   prozoru i, umanjeni, na mapici u uglu. */
+/* ---------- obris terena ----------
+   Teren se ne crta više kvadratić po kvadratić — od mreže se prvo izvuče granica
+   (potezi između svog i tuđeg polja), potezi se spoje u zatvorene petlje, prava
+   stepenasta ivica se izravna (Ramer–Douglas–Peucker), pa se preostali uglovi
+   zaoble krivama. Tako zauzeta oblast ima glatku ivicu, kao i sam trag. */
+const VKLJ = RED + 1;
+let obrisi = [];                               // po igraču: Path2D cele njegove teritorije
+let obrisTacke = [];                           // iste petlje kao tačke — za provere
+
+function dodajPoteg(m, x0, y0, x1, y1) {
+  const k = x0 * VKLJ + y0, v = x1 * VKLJ + y1;
+  const l = m.get(k);
+  if (l) l.push(v); else m.set(k, [v]);
 }
-function crtajTeren(x0, y0, x1, y1) {
-  for (let y = y0; y < y1; y++) {
-    let x = x0;
-    while (x < x1) {
-      const v = vlas[idx(x, y)];
-      if (!v) { x++; continue; }
-      let k = x + 1;
-      while (k < x1 && vlas[idx(k, y)] === v) k++;
-      ctx.fillStyle = BOJE[v - 1].p;
-      ctx.fillRect(x, y, k - x, 1);
-      x = k;
+function petljeIgraca(m) {                     // spoji potege u zatvorene petlje
+  const petlje = [];
+  while (m.size) {
+    const prvi = m.keys().next().value;
+    const tacke = [];
+    let tren = prvi, korak = 0;
+    while (korak++ < 200000) {
+      const l = m.get(tren);
+      if (!l || !l.length) break;
+      const sled = l.pop();
+      if (!l.length) m.delete(tren);
+      tacke.push(tren);
+      tren = sled;
+      if (tren === prvi) break;
+    }
+    if (tacke.length > 3) petlje.push(tacke);
+  }
+  return petlje;
+}
+function bezPravih(t) {                        // izbaci tačke koje leže na istoj pravoj
+  const izlaz = [];
+  const n = t.length;
+  for (let i = 0; i < n; i++) {
+    const a = t[(i - 1 + n) % n], b = t[i], c = t[(i + 1) % n];
+    const ax = (a / VKLJ) | 0, ay = a % VKLJ;
+    const bx = (b / VKLJ) | 0, by = b % VKLJ;
+    const cx = (c / VKLJ) | 0, cy = c % VKLJ;
+    if ((bx - ax) * (cy - by) === (by - ay) * (cx - bx)) continue;
+    izlaz.push(bx, by);
+  }
+  return izlaz;                                // parovi x,y
+}
+function rdp(t, eps) {                          // izravnavanje stepenica u prave linije
+  const n = t.length / 2;
+  if (n < 4) return t;
+  const drzi = new Uint8Array(n);
+  drzi[0] = drzi[n - 1] = 1;
+  const stek = [[0, n - 1]];
+  while (stek.length) {
+    const [a, b] = stek.pop();
+    if (b - a < 2) continue;
+    const ax = t[a * 2], ay = t[a * 2 + 1], bx = t[b * 2], by = t[b * 2 + 1];
+    const dx = bx - ax, dy = by - ay, duz = Math.hypot(dx, dy) || 1;
+    let naj = -1, najI = -1;
+    for (let i = a + 1; i < b; i++) {
+      const d = Math.abs((t[i * 2] - ax) * dy - (t[i * 2 + 1] - ay) * dx) / duz;
+      if (d > naj) { naj = d; najI = i; }
+    }
+    if (naj > eps) { drzi[najI] = 1; stek.push([a, najI], [najI, b]); }
+  }
+  const izlaz = [];
+  for (let i = 0; i < n; i++) if (drzi[i]) izlaz.push(t[i * 2], t[i * 2 + 1]);
+  return izlaz;
+}
+function upisiPetlju(put, t) {                  // zaobli uglove krivama kroz sredine stranica
+  const n = t.length / 2;
+  if (n < 3) return;
+  const sx = (t[(n - 1) * 2] + t[0]) / 2, sy = (t[(n - 1) * 2 + 1] + t[1]) / 2;
+  put.moveTo(sx, sy);
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    put.quadraticCurveTo(t[i * 2], t[i * 2 + 1], (t[i * 2] + t[j * 2]) / 2, (t[i * 2 + 1] + t[j * 2 + 1]) / 2);
+  }
+  put.closePath();
+}
+function napraviObrise() {
+  const karte = igraci.map(() => new Map());
+  for (let y = 0; y < RED; y++) {
+    const red = y * KOL;
+    for (let x = 0; x < KOL; x++) {
+      const v = vlas[red + x];
+      if (!v) continue;
+      const m = karte[v - 1];
+      if (!m) continue;
+      /* smer je takav da je moj teren uvek s iste strane — tako se petlje same sklope */
+      if (x === 0 || vlas[red + x - 1] !== v) dodajPoteg(m, x, y + 1, x, y);
+      if (x === KOL - 1 || vlas[red + x + 1] !== v) dodajPoteg(m, x + 1, y, x + 1, y + 1);
+      if (y === 0 || vlas[red - KOL + x] !== v) dodajPoteg(m, x, y, x + 1, y);
+      if (y === RED - 1 || vlas[red + KOL + x] !== v) dodajPoteg(m, x + 1, y + 1, x, y + 1);
     }
   }
-  ctx.fillStyle = "rgba(255,255,255,.28)";     // svetla ivica na vrhu svake mrlje
-  for (let y = y0; y < y1; y++) {
-    let x = x0;
-    while (x < x1) {
-      const v = vlas[idx(x, y)];
-      if (!v || (y > 0 && vlas[idx(x, y - 1)] === v)) { x++; continue; }
-      let k = x + 1;
-      while (k < x1 && vlas[idx(k, y)] === v && !(y > 0 && vlas[idx(k, y - 1)] === v)) k++;
-      ctx.fillRect(x, y, k - x, .5);
-      x = k;
+  obrisTacke = [];
+  obrisi = karte.map(m => {
+    const put = new Path2D();
+    const petlje = [];
+    for (const petlja of petljeIgraca(m)) {
+      const izravnata = rdp(bezPravih(petlja), 1.15);
+      if (izravnata.length < 8) continue;       // sasvim sitne mrlje se preskaču
+      upisiPetlju(put, izravnata);
+      petlje.push(izravnata);
     }
+    obrisTacke.push(petlje);
+    return petlje.length ? put : null;
+  });
+}
+function crtajTeren() {
+  for (let i = 0; i < igraci.length; i++) {
+    const put = obrisi[i];
+    if (!put) continue;
+    ctx.fillStyle = igraci[i].boja.p;
+    ctx.fill(put, "evenodd");
+    ctx.lineWidth = .7;                         // svetla ivica po obodu, da mrlja ima rub
+    ctx.strokeStyle = "rgba(255,255,255,.22)";
+    ctx.stroke(put);
   }
 }
 function ciljKamere() {
@@ -763,10 +836,18 @@ function mapa() {                              // cela tabla u uglu, sa prozorom
   ctx.save();
   ctx.fillStyle = "rgba(4,7,13,.82)";
   ctx.fillRect(mx - 3, my - 3, sirina + 6, visina + 6);
-  ctx.imageSmoothingEnabled = true;
-  ctx.globalAlpha = .95;
-  ctx.drawImage(mapaCv, 0, 0, KOL, RED, mx, my, sirina, visina);
-  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#0a1120";
+  ctx.fillRect(mx, my, sirina, visina);
+  ctx.save();                                  // ista glatka slika, samo umanjena
+  ctx.translate(mx, my);
+  ctx.scale(sirina / KOL, visina / RED);
+  for (let i = 0; i < igraci.length; i++) {
+    const put = obrisi[i];
+    if (!put) continue;
+    ctx.fillStyle = igraci[i].boja.p;
+    ctx.fill(put, "evenodd");
+  }
+  ctx.restore();
   ctx.strokeStyle = "rgba(238,242,249,.45)"; ctx.lineWidth = 1;
   ctx.strokeRect(mx - 2.5, my - 2.5, sirina + 5, visina + 5);
   const sx = sirina / KOL, sy = visina / RED;
@@ -781,7 +862,7 @@ function mapa() {                              // cela tabla u uglu, sa prozorom
   ctx.restore();
 }
 function crtaj() {
-  if (prljav) { crtajMapu(); prljav = false; }
+  if (prljav) { napraviObrise(); prljav = false; }
   const ox = Math.round(clamp(kam.x, 0, Math.max(0, KOL - vidW)) * PPC);
   const oy = Math.round(clamp(kam.y, 0, Math.max(0, RED - vidH)) * PPC);
 
@@ -802,7 +883,7 @@ function crtaj() {
   for (let y = Math.ceil(y0 / 20) * 20; y < y1; y += 20) { ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
   ctx.stroke();
 
-  crtajTeren(x0, y0, x1, y1);
+  crtajTeren();
 
   const opasno = ja && ja.ziv && ja.trag.length ? blizuMomTragu() : false;
   ctx.lineJoin = "round"; ctx.lineCap = "round";
@@ -1421,6 +1502,7 @@ window.T = {
   get rezim() { return rezim; }, get postava() { return postava; }, get bonusi() { return bonusi; },
   get mojIndex() { return mojIndex; }, BONUS, CILJEVI, set cilj(v) { cilj = v; },
   spustiBonus, uzmiBonus, sobaMeni, sobaKraj, kreniUSobi, korakGost, izborCilja,
+  napraviObrise, get obrisi() { return obrisi; }, get obrisTacke() { return obrisTacke; },
   idx, nova, korak, zauzmi, zauzmiPolja, pogini, ozivi, prebroj, botOdluka, vozi,
   zauzmiPreko: (e, c) => { sobaSalji({ t: "Z", i: igraci.indexOf(e), c }); zauzmiPolja(e, c); },
   get priprema() { return priprema; }, set priprema(v) { priprema = v; },
