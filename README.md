@@ -182,6 +182,23 @@ imaju iste podatke). Svako odgovara svojim tempom; čim potvrdiš, ostalima sti�
 blizu i gde si dodirnuo, pa se tuđa pribadanja vide na karti posle odgovora, a u traci stoji ko
 koliko ima.
 
+## Čoveče, ne ljuti se
+
+`covece.html` — klasična tabla 11×11: staza od 40 polja u krug, četiri kuće po uglovima i po četiri
+ciljna polja ka sredini. Svaki igrač ima svoj put: 40 polja staze počev od svog starta, pa svoja
+četiri u cilju, tako da je cela logika jedan indeks 0–43 po figuri (`-1` = u kući). Odatle su
+pravila kratka: šestica izvodi iz kuće i donosi novo bacanje, u cilj se ulazi tačnim brojem, svoje
+polje blokira a tuđa figura se vraća kući; kad su sve četiri u kući, ide se tri puta.
+
+Kad ima više različitih poteza, igrač dodirne figuru; kad su svi izbori isti (npr. četiri figure u
+kući na šesticu) igra odigra sama. Računar bira po jednostavnoj oceni: jelo protivnika, izlazak iz
+kuće, ulazak u cilj, pa bežanje sa polja na kojem ga neko može pojesti (`ugrozenost` gleda ko je u
+dometu od šest polja iza).
+
+Igra se protiv računara (1–3), na jednom telefonu (2–4) ili **🌐 u sobi** do četiri igrača — tada
+prazna mesta vodi domaćin kao računarske igrače. Mrežom ide malo: bacanje (da se vidi kockica) i
+celo stanje posle poteza — šesnaest brojeva, pa nema šanse da se telefoni raziđu.
+
 ## Pravila u samoj igri
 
 `igre.js` nosi kratka pravila za svaku igru (`PRAVILA`) i ubacuje **❔** u zaglavlje svake igre — otvara
