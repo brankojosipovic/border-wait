@@ -602,7 +602,8 @@ var PRAVILA = {
     "Dok si napolju, za tobom stoji <b>trag</b>: ko ga pregazi, gotov si. Tako i ti obaraš protivnika — preseci njegov trag.",
     "Smer se menja <b>prevlačenjem prsta</b> po tabli ili tipkama ispod; unazad se ne može.",
     "Na ivici table se <b>staje</b>, ne gine — ali <b>sopstveni trag ubija</b>. Ko izgubi sav teren, ispada; protivnici se posle nekog vremena vrate na novo mesto.",
-    "Cilj je zauzeti zadati deo table (45–55%, po težini). <b>🏁 Trka u dvoje</b> daje obojici istu tablu i iste protivnike, pa se trka ko će prvi."
+    "Tabla je <b>mnogo veća od ekrana</b> — ekran prati tvoju glavu, a cela tabla i svi protivnici se vide na <b>mapici u desnom uglu</b>.",
+    "Cilj je zauzeti zadati deo table (10–15%, po težini). <b>🏁 Trka u dvoje</b> daje obojici istu tablu i iste protivnike, pa se trka ko će prvi."
   ]],
   kuca: ["🛋 Kuća", [
     "Nameštaj se <b>prevlači</b> u sobu koja mu odgovara — kuhinja, spavaća, dnevna, kupatilo.",
