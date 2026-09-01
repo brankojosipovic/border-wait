@@ -111,12 +111,16 @@ neprekidan i da plavljenje ne procuri), a trag se **crta kao glatka linija** kro
 puta, ne kao niz kvadratića.
 
 Tabla je zato mnogo sitnija i veća: **280×380 ćelija (106 400 polja)**, oko 115 ćelija preko
-ekrana — jedna ćelija je ~3 CSS piksela, pa su ivice terena skoro glatke. Ekran je prozor koji
-meko prati glavu, a cela tabla, svi igrači i trenutni prozor se vide na **mapici** u desnom uglu
-(poseban canvas, jedan piksel po ćeliji, osvežava se tek kad se nešto zauzme). Ceo teren se ne
-kešira u sloj — nego se svaki kadar crtaju samo ćelije u prozoru, uz spajanje uzastopnih ćelija
-iste boje u jedan pravougaonik (60 fps i pri `devicePixelRatio` 3). Vlasništvo i tragovi stoje u
-`Uint8Array`-ima, po jedan bajt na ćeliju.
+ekrana. Ekran je prozor koji meko prati glavu, a cela tabla, svi igrači i trenutni prozor se vide
+na **mapici** u desnom uglu. Vlasništvo i tragovi stoje u `Uint8Array`-ima, po jedan bajt na ćeliju.
+
+**Zauzeta oblast se ne crta po ćelijama** — inače bi joj ivica bila stepenasta. Kad se nešto
+zauzme, iz mreže se izvuče granica (potezi između svog i tuđeg polja, usmereni tako da je svoj
+teren uvek s iste strane), potezi se spoje u zatvorene petlje, tačke na istoj pravoj se izbace,
+stepenasta kosa ivica se izravna u prave (Ramer–Douglas–Peucker, prag 1,15 polja), a preostali
+uglovi se zaoble kvadratnim krivama kroz sredine stranica. Dobije se `Path2D` po igraču koji se
+onda samo popunjava — u prozoru i, umanjen, na mapici; rupe u terenu rešava `evenodd`. Zato je i
+crtanje jeftinije nego po ćelijama: 60 fps i pri `devicePixelRatio` 3.
 
 Kad se krug zatvori, plavljenje nađe šta je ostalo zatvoreno i sve to postaje tvoje — i to samo
 unutar **okvira sopstvenog terena** (`bb`, održava se pri svakom zauzimanju i prebrojavanju), jer
