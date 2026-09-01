@@ -18,7 +18,8 @@ var GAMES = [
   { id: "pikado",    href: "pikado.html",    em: "🎯", nm: "Pikado" },
   { id: "bilijar",   href: "bilijar.html",   em: "🎱", nm: "Bilijar" },
   { id: "kuca",      href: "kuca.html",      em: "🛋", nm: "Kuća" },
-  { id: "teren",     href: "teren.html",     em: "🟩", nm: "Teren" }
+  { id: "teren",     href: "teren.html",     em: "🟩", nm: "Teren" },
+  { id: "mapa",      href: "mapa.html",      em: "🗺", nm: "Mapa" }
 ];
 var SKEY = "igre.sound";
 var IKEY = "igre.ime";
@@ -596,6 +597,14 @@ var PRAVILA = {
     "Felš menja belu posle udara: donji je vraća nazad, gornji je gura napred, bočni je skreće.",
     "U osmici prvo svoje kugle (pune ili polupune), pa <b>osmica na kraju</b>.",
     "U snukeru ide crvena pa boja; posle poslednje crvene boje idu <b>redom</b>. Faul poklanja poene protivniku. U meniju pod <b>🔈</b> se pali najava šta je palo."
+  ]],
+  mapa: ["🗺 Mapa", [
+    "Pitanje kaže koju <b>državu ili grad</b> tražimo — ti dodirneš mesto na karti i potvrdiš.",
+    "Poeni idu <b>po udaljenosti</b>: najviše 1000 po pitanju. Kod država je pun pogodak ako dodirneš bilo gde unutar zemlje.",
+    "Karta se <b>pomera prevlačenjem</b>, a zumira sa <b>dva prsta</b> ili dugmićima ＋ − ; 🌍 vraća ceo svet.",
+    "Bira se oblast (ceo svet, Evropa ili naš kraj), šta se pita (države, gradovi ili mešano) i težina.",
+    "Posle odgovora vidiš tačno mesto, crtu do svog pribadanja i koliko si kilometara promašio.",
+    "<b>🌐 Igra u sobi</b> — do četiri igrača dobiju ista pitanja i vide ko je bio bliži."
   ]],
   teren: ["🟩 Teren", [
     "Izađi iz svoje boje, napravi krug i vrati se na svoje — <b>sve unutar kruga postaje tvoje</b>.",
