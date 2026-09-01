@@ -128,6 +128,7 @@
 
 <script src="igre.js"></script>
 <script src="mreza.js"></script>
+<script src="cet.js"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -607,6 +608,7 @@ function trkaStatus(st, detalj) {
   }
   if (st === "ucesnici") { if (state === "play") updHud(); return; }
   if (st === "povezan") {
+    window.CET && CET.ukljuci({ mreza: Mreza, ime: () => Mreza.tudjeIme("protivnik") });
     if (jaDomacin()) izborTrke();
     else showOverlay('<h2>Povezani ste!</h2><p>' + Mreza.tudjeIme("Domaćin") + ' bira nivo za trku…</p>');
   }

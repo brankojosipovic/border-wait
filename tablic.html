@@ -150,6 +150,7 @@
 
 <script src="igre.js"></script>
 <script src="mreza.js"></script>
+<script src="cet.js"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -160,6 +161,8 @@ const ime = c => (IME[c.r] || c.r) + ZNAK[c.s];
 const vred = c => c.r === 12 ? 13 : c.r === 13 ? 14 : c.r === 11 ? 12 : c.r;
                                                          // A=1 … 10=10, J=12 (kupi sve), Q=13, K=14
 const zbirljiva = c => c.r <= 10;                        // u zbir ulaze samo A–10, ne i figure
+/* Kec vredi 1 ili 11 — i kad se igra iz ruke, i kad leži na stolu u zbiru. */
+const vrednosti = c => c.r === 1 ? [1, 11] : [vred(c)];
 
 /* ---------- špil ---------- */
 function spil() {
@@ -177,15 +180,26 @@ function ulovi(karta, sto, sve) {
     if (sto.length) out.push({ karte: sto.slice(), opis: "sve sa stola", zandar: true });
     return out;
   }
-  const v = vred(karta);
-  for (let i = 0; i < sto.length; i++) if (vred(sto[i]) === v) out.push({ karte: [sto[i]], opis: ime(sto[i]) });
+  const ciljevi = vrednosti(karta);                       // kec gađa i 1 i 11
+  for (let i = 0; i < sto.length; i++)
+    if (vrednosti(sto[i]).some(v => ciljevi.indexOf(v) >= 0))
+      out.push({ karte: [sto[i]], opis: ime(sto[i]) });
   {                                                      // zbir važi i za damu (13) i kralja (14)
     const kand = sto.map((c, i) => ({ c, i })).filter(x => zbirljiva(x.c));
     const n = kand.length;
     for (let mask = 1; mask < (1 << n); mask++) {
-      let s = 0, izbor = [];
-      for (let b = 0; b < n; b++) if (mask & (1 << b)) { s += vred(kand[b].c); izbor.push(kand[b].c); }
-      if (izbor.length >= 2 && s === v) out.push({ karte: izbor, opis: izbor.map(ime).join(" + ") });
+      let osnov = 0, asova = 0, izbor = [];
+      for (let b = 0; b < n; b++) if (mask & (1 << b)) {
+        const c = kand[b].c;
+        izbor.push(c);
+        if (c.r === 1) { asova++; osnov += 1; } else osnov += vred(c);
+      }
+      if (izbor.length < 2) continue;
+      for (let k = 0; k <= asova; k++) {                 // svaki kec sa stola sme da bude i 11
+        if (ciljevi.indexOf(osnov + 10 * k) < 0) continue;
+        out.push({ karte: izbor, opis: izbor.map(ime).join(" + ") });
+        break;
+      }
     }
   }
   const vidjeno = new Set();
@@ -353,7 +367,8 @@ function posaljiStanje() {
   if (G && G.rezim === "mreza" && window.Mreza && Mreza.povezan() && Mreza.uloga() === "domacin")
     Mreza.posalji({ t: "stanje", g: G });
 }
-function primi(m) {
+function primi(m, od) {
+  if (window.CET && CET.primi(m, od)) return;
   if (!m) return;
   if (m.t === "stanje") {
     G = m.g; G.rezim = "mreza"; izabrana = -1;
@@ -376,6 +391,7 @@ function statusMreze(st, detalj) {
     '<div class="btns"><button id="odBtn">Odustani</button></div>'), $("#odBtn").onclick = () => { Mreza.zatvori(); meni(); };
   if (st === "cekam") pokaziKod(detalj);
   if (st === "povezan") {
+    window.CET && CET.ukljuci({ mreza: Mreza, ime: () => Mreza.tudjeIme() });
     if (Mreza.uloga() === "domacin") {
       mojIndex = 0;
       if (nastavljam && G && !G.gotovo) { G.rezim = "mreza"; izabrana = -1; render(); posaljiStanje(); save(); }
@@ -511,7 +527,8 @@ function meni() {
     showOverlay('<h2>Pravila ukratko</h2>' +
       '<ul><li>Svako dobija 6 karata, na stolu su 4. Bacaš kartu i kupiš njome sa stola.</li>' +
       '<li>Kupi se <b>ista vrednost</b> (7 kupi 7) ili <b>zbir</b> (7 kupi 3+4).</li>' +
-      '<li>Vrednosti: as = 1, <b>dama = 13</b>, <b>kralj = 14</b> — i one kupe zbir (dama 7+4+2). ' +
+      '<li>Vrednosti: <b>as = 1 ili 11</b> (as kupi i 8+3), <b>dama = 13</b>, <b>kralj = 14</b> — ' +
+      'i one kupe zbir (dama 7+4+2). ' +
       'U zbir ulaze samo karte A–10; figure sa stola se ne sabiraju.</li>' +
       '<li><b>Žandar (J)</b> — po podrazumevanom pravilu vredi <b>12</b> i kupi kao svaka druga karta. ' +
       'U meniju se može uključiti staro pravilo „žandar kupi sve sa stola" (tada njime nema table).</li>' +
@@ -570,7 +587,7 @@ if (load()) { render(); if (sacuvanaMreza) meni(); else mozdaRacunar(); }
 else { novaIgra("sam", ["Ti", "Računar"]); meni(); }
 
 window.T = {
-  get G() { return G; }, ulovi, poeni, vred, ime, spil, odigraj, novaIgra, potezRacunara, render, zavrsi,
+  get G() { return G; }, ulovi, poeni, vred, vrednosti, ime, spil, odigraj, novaIgra, potezRacunara, render, zavrsi,
   get zandarSve() { return zandarSve; }, postaviZandara,
   primi, statusMreze, posaljiStanje,
   poveziLokalno: u => { mojIndex = u === "gost" ? 1 : 0; return Mreza.lokalno("tablic-test", { uloga: u, poruka: primi, status: statusMreze }); },
