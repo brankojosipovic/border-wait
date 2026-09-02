@@ -48,7 +48,7 @@
   header { display: flex; align-items: center; gap: 10px;
            border-left: 4px solid var(--gold); padding: 3px 0 3px 10px; }
   header h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
-  header .sub { color: var(--ink-dim); font-size: 12px; }
+  header .sub { color: var(--ink-dim); font-size: 13px; }
   .spacer { flex: 1; }
   .hud { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-dim);
          white-space: nowrap; overflow: hidden; }
@@ -68,7 +68,7 @@
   .overlay > :first-child { margin-top: auto; }
   .overlay > :last-child { margin-bottom: auto; }
   .overlay h2 { margin: 0; font-size: 20px; }
-  .overlay p { margin: 0; font-size: 13px; color: #9fb0cc; max-width: 300px; }
+  .overlay p { margin: 0; font-size: 13.5px; color: #9fb0cc; max-width: 300px; }
   .overlay ul { margin: 0; padding-left: 18px; text-align: left; font-size: 13px; color: #9fb0cc; max-width: 300px; }
   .overlay ul li { margin-bottom: 5px; }
   .overlay .res { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: 14px; color: #9fb0cc; }
@@ -83,7 +83,7 @@
   .lvCard .mini i { display: block; height: 4px; border-radius: 1px; }
   .lvCard .nm { font-size: 9px; color: #9fb0cc; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .lvCard .rec { font-size: 8.5px; color: #2e9e6b; font-weight: 700; }
-  .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
+  .foot { color: var(--ink-dim); font-size: 12.5px; line-height: 1.4; text-align: center; }
   .foot a { color: var(--ink-dim); }
   @media (max-height: 780px) { .foot { display: none; } }
   @media (max-height: 680px) { header .sub { display: none; } }
@@ -839,10 +839,12 @@ function fit() {
   const availH = limit - wrap.getBoundingClientRect().top - others - gaps - (parseFloat(cs.paddingBottom) || 0) - 12;
   const availW = Math.min(window.innerWidth - 20, 460);
   let w = Math.max(160, Math.floor(Math.min(availW, availH * LW / LH)));
-  cv.style.width = w + "px"; cv.style.height = Math.round(w * LH / LW) + "px";
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  cv.width = Math.round(LW * dpr); cv.height = Math.round(LH * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const h = Math.round(w * LH / LW);
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const k = cv.width / LW;                      // crtamo u logičkim jedinicama, oštro koliko ekran ume
+  ctx.setTransform(k, 0, 0, k, 0, 0);
 }
 window.addEventListener("resize", fit);
 window.addEventListener("DOMContentLoaded", fit);

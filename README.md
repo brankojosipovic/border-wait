@@ -306,6 +306,25 @@ Igra se protiv računara, **na jednom telefonu** (između poteza stoji „predaj
 pločice ne vide) ili **🌐 u sobi** do četiri igrača — domaćin deli i vodi partiju, a gost šalje samo
 kako je ostavio sto. Bodovi se sabiraju kroz runde.
 
+## Čitljivost i oštrina
+
+Igara je postalo previše da bi spisak stao na jedan ekran a da pločice ostanu krupne, pa se
+**radije skroluje**: tri u redu na svakom telefonu, pločica nikad manja od 84 px, ikonica oko 50 px
+i ime igre uvek ispisano (ranije se sve stiskalo dok ikonice ne padnu na 29 px, a imena se sakriju).
+
+Slova su prošla kroz merenje na svim stranama: najsitniji tekst u celoj aplikaciji je sada **11 px**
+i to samo za natpise ispod velikih dugmadi (strane sveta u Terenu, tasteri u Tetrisu), dok su
+podnožja, podnaslovi i tabele podignuti na 12—13 px. Tabela čekanja na naslovnoj je sa 9 na 12 px.
+
+Platna se crtaju u punoj rezoluciji ekrana. Avioni, Cigle i Pikado su crtali u logičkim jedinicama a
+bafer su računali kao `logicka_sirina × dpr`, pa je slika na telefonu bila oštra tek **1,3—2,3×**
+umesto 2,5×; sada bafer ide po CSS veličini (`css × dpr`), a razmera crtanja se namesti
+transformacijom, tako da kod igre ostaje u logičkim jedinicama a slika je oštra. Kuća je dignuta sa
+2× na 2,5×.
+
+Sve to čuva `citljivost.test.js`: prođe kroz svaku stranu, izmeri svaki vidljivi tekst i svako
+platno, i pukne ako se pojavi slovo ispod 11 px ili platno ispod 2× rezolucije.
+
 ## Pravila u samoj igri
 
 `igre.js` nosi kratka pravila za svaku igru (`PRAVILA`) i ubacuje **❔** u zaglavlje svake igre — otvara
