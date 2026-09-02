@@ -240,9 +240,10 @@ i prečnika **45 cm**, lopta 24 cm, gravitacija 9,81, a lopta polazi sa **1,98 m
 
 Igra ima **dva pogleda**. **Sa strane** se vidi ceo luk i povlačenjem se biraju i ugao i jačina.
 **Iz prvog lica** kamera stoji iza linije i gleda pravo u koš: luk je stalan (1,05 rad), a
-povlačenjem se biraju **jačina i pravac**, pa se sad promašuje i levo i desno. Tu je jačina
-namerno finija — ceo hod prsta pokriva samo raspon 4,5–12 m/s, pa se prava mera lakše pogodi;
-izmereno, oko 40 px hoda prsta i ±32 px u stranu pogađa koš.
+povlačenjem se biraju **jačina i pravac**, pa se sad promašuje i levo i desno. Jačina tu ne ide
+linearno do 15 m/s kao sa strane, nego ceo hod prsta pokriva samo raspon koji ima smisla
+(5,5–10 m/s): izmereno, koš pada na oko **150 px hoda prsta** (platno je ~495 px), sa pojasom od
+~27 px i sa ±30 px tolerancije u stranu — kratak potez, a ipak se ima šta pogoditi.
 
 Sve u prvom licu se crta perspektivom iz jedne tačke: pod, obojena reket-zona, linija slobodnog
 bacanja i luk za tri poena idu ka horizontu, obruč je krug projektovan u elipsu, a mreža visi sa
@@ -258,6 +259,11 @@ Pogodak nosi 2 poena, **čist koš** (bez table i obruča) 3, a od trećeg uzast
 poen više. Serija je 10 ili 20 lopti; rekord se pamti po seriji i težini, a započeta serija se
 nastavlja. Težine: *lako* pokazuje ceo luk unapred, *srednje* samo početak, *teško* dodaje **vetar**
 (do 2,6 m/s²) i **koš koji se pomera** — sa strane bliže-dalje, iz prvog lica levo-desno.
+
+Zvuci su pravljeni da liče na salu, a ne na pištaljku: lopta o parket je nizak udar (132→62 Hz uz
+kratak šum), obruč zvoni neharmonijskim delovima (430, 688 i 1150 Hz) uz tup bas, tabla je drveni
+„tok" oko 260 Hz, mreža je meko šuštanje naniže, a serija se zatvara **halskim rogom** (117/175/233
+Hz) umesto zvonjave.
 
 Dvorana je nacrtana da bude tiha koliko treba da lopta ostane vidljiva: publika u sitnim tačkicama
 niskog kontrasta, reklamna traka iza osnovne linije, krovna rešetka sa reflektorima i **semafor koji
