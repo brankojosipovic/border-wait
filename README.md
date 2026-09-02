@@ -233,21 +233,31 @@ promene pošalje celu tablu, a gost šalje samo šta hoće da uradi; prazne stol
 
 ## Basket
 
-`basket.html` — slobodna bacanja iz bočnog pogleda, po pravim merama: linija je **4,6 m** od table,
-obruč na **3,05 m** i prečnika **45 cm**, lopta 24 cm, gravitacija 9,81. Povlačenje prsta daje pravac
-i jačinu (dužina povlačenja prema visini platna, do 15 m/s, ugao stegnut da se ne šutira nadole);
-fizika ide fiksnim koracima od 1/300 s, pa je let isti na svakom telefonu.
+`basket.html` — slobodna bacanja po pravim merama: linija je **4,6 m** od table, obruč na **3,05 m**
+i prečnika **45 cm**, lopta 24 cm, gravitacija 9,81, a lopta polazi sa **1,98 m** — visine sa koje je
+čovek ispušta (u bočnom pogledu stoji i silueta šutera koja je drži). Fizika ide fiksnim koracima od
+1/300 s, pa je let isti na svakom telefonu, a lopta se vodi u tri ose (napred, uvis, u stranu).
 
-Sudari su tri komada: **krajevi obruča** su dve male kugle (odbojnost .55, sa trenjem i prenosom na
-rotaciju), **tabla** je prednja ravan sa zaobljenim ivicama kao tačkastim sudaračima, a **parket**
-odbija sa .68. Koš se broji kad središte lopte pređe visinu obruča **nadole** između dva kraja
-obruča — sve ostalo je promašaj, pa se i odbijanje o tablu unutra pošteno broji. Zazor je 10,4 cm sa
+Igra ima **dva pogleda**. **Sa strane** se vidi ceo luk i povlačenjem se biraju i ugao i jačina.
+**Iz prvog lica** kamera stoji iza linije i gleda pravo u koš: luk je stalan (1,05 rad), a
+povlačenjem se biraju **jačina i pravac**, pa se sad promašuje i levo i desno. Tu je jačina
+namerno finija — ceo hod prsta pokriva samo raspon 4,5–12 m/s, pa se prava mera lakše pogodi;
+izmereno, oko 40 px hoda prsta i ±32 px u stranu pogađa koš.
+
+Sve u prvom licu se crta perspektivom iz jedne tačke: pod, obojena reket-zona, linija slobodnog
+bacanja i luk za tri poena idu ka horizontu, obruč je krug projektovan u elipsu, a mreža visi sa
+njega. Parket je u pravim bojama (javorova daska, crvena reket-zona, bele linije).
+
+Sudari su tri komada: **obruč** je krug pa se za sudar traži najbliža tačka na njemu (odbojnost .55, sa
+trenjem i prenosom na rotaciju), **tabla** je prednja ravan sa zaobljenim ivicama kao tačkastim
+sudaračima, a **parket** odbija sa .68. Koš se broji kad središte lopte pređe visinu obruča
+**nadole** unutar kruga obruča — sve ostalo je promašaj, pa se i odbijanje o tablu unutra pošteno broji. Zazor je 10,4 cm sa
 svake strane, taman kao u stvarnosti: ravan šut zakači obruč, a čist prolaz traži viši luk.
 
 Pogodak nosi 2 poena, **čist koš** (bez table i obruča) 3, a od trećeg uzastopnog ide 🔥 i svaki nosi
 poen više. Serija je 10 ili 20 lopti; rekord se pamti po seriji i težini, a započeta serija se
 nastavlja. Težine: *lako* pokazuje ceo luk unapred, *srednje* samo početak, *teško* dodaje **vetar**
-(bočno ubrzanje do 2,6 m/s²) i **koš koji klizi** levo-desno.
+(do 2,6 m/s²) i **koš koji se pomera** — sa strane bliže-dalje, iz prvog lica levo-desno.
 
 Dvorana je nacrtana da bude tiha koliko treba da lopta ostane vidljiva: publika u sitnim tačkicama
 niskog kontrasta, reklamna traka iza osnovne linije, krovna rešetka sa reflektorima i **semafor koji
