@@ -617,6 +617,8 @@ function kraj(pobednik) {
   G.poredak = rez.slice().sort((a, b) => b.bodovi - a.bodovi).map(r => r.i);
   G.pobednik = pobednik;
   G.rezultat = rez;
+  if (window.TOP && G.rezim === "racunar" && G.igraci[0])
+    window.TOP.upisi("rumi", "bodovi", G.igraci[0].ukupno, G.igraci.length + " igrača");
   obrisiTok();
   window.SFX && SFX.win();
   crtaj(); posalji();

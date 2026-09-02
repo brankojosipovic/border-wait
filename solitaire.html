@@ -416,6 +416,10 @@ function done() {
   if (S.found.every(f => f.length === 13)) {
     S.done = true; stopAuto(); stopTimer(); save(); render();
     window.SFX && SFX.win();
+    if (window.TOP) {
+      window.TOP.upisi("solitaire", "vreme", S.elapsed, S.moves + " poteza");
+      window.TOP.upisi("solitaire", "poteza", S.moves, fmt(S.elapsed));
+    }
     showOverlay("Rešeno! 🎉", "Vreme " + fmt(S.elapsed) + " · poteza " + S.moves, "Novo deljenje", newGame);
   }
 }

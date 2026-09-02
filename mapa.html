@@ -372,6 +372,7 @@ function kraj() {
   const k = kljucRek();
   const stari = rekordi[k] || 0;
   if (P.poeni > stari) { rekordi[k] = P.poeni; upisi(); }
+  window.TOP && window.TOP.upisi("mapa", "poeni", P.poeni, P.pitanja.length + " × " + P.vrsta);
   window.SFX && SFX.jackpot();
   if (soba) return soba.kraj();
   const red = P.rezultati.map(r =>

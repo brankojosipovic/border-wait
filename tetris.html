@@ -410,6 +410,7 @@ function gameOver() {
   window.SFX && SFX.siren();
   const rekord = score > best;
   if (rekord) best = score;
+  window.TOP && window.TOP.upisi("tetris", "bodovi", score, "nivo " + level + " · " + lines + " lin.");
   sacuvana = null; sacuvaj();                 // partija je gotova; rekord ostaje
   showOverlay('<h2>Kraj igre</h2>' +
     '<div class="res"><span>Bodovi</span><b>' + score + '</b>' +

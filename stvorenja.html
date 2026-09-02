@@ -419,6 +419,7 @@ function foeDown() {
     B = null; save(); render();
     window.SFX && SFX.jackpot();
     const sve = S.badges >= 3;
+    if (sve) window.TOP && window.TOP.upisi("stvorenja", "koraci", S.steps, "uhvaćeno " + S.caught);
     showOverlay('<h2>' + (sve ? "🏆 Sve tri arene!" : "🏅 Značka osvojena") + '</h2>' +
       '<p>' + ARENAS[idx].em + " " + ARENAS[idx].nm + " je pala. Dobio si 5 🔮 i 2 💊." +
       (sve ? " Ti si šampion kolone!" : " Ostalo arena: " + (3 - S.badges)) + '</p>' +

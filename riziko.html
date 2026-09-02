@@ -919,6 +919,8 @@ function kraj() {
     '<span><i style="background:' + BOJE[i % BOJE.length] + '"></i>' + (k + 1) + '. ' + imeIgraca(i) +
     (mod !== "telefon" && i === jaSam ? " (ti)" : "") + '</span><b>' + mojih(i) + " obl. · " + procenat(i) + '%</b>').join("");
   obrisiPartiju();
+  if (window.TOP && mod === "racunar" && pobednik === jaSam)
+    window.TOP.upisi("riziko", "potezi", G.potez, G.igraci.length + " igrača · cilj " + G.cilj + "%");
   showOverlay('<h2>' + (mojaPobeda ? "🏆 " + imeIgraca(pobednik) + " je osvojio svet!" : "🏁 Kraj — pobedio je " + imeIgraca(pobednik)) + '</h2>' +
     '<p>Cilj je bio ' + (G.cilj >= 100 ? "cela karta" : G.cilj + "% sveta") + '.</p>' +
     '<div class="res">' + spisak + '</div>' +

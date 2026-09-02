@@ -1027,6 +1027,8 @@ function kraj(pobeda, razlog, pobednik) {
   if (rezim !== "sam") return krajUSobi(pobeda, razlog, pobednik);
   {
     zapamtiRezultat(pr, vreme, pobeda);
+    window.TOP && window.TOP.upisi("teren", "procenat", Math.round(pr * 10) / 10,
+      TEZINE[tez].nm + " · " + mmss(vreme));
     window.SFX && (pobeda ? SFX.jackpot() : SFX.siren());
     const r = rekordi[tez] || {};
     const najb = najboljeVreme(tez, cilj);

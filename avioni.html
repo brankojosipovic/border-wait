@@ -364,6 +364,7 @@ function gameOver() {
   state = "over"; nukeDugme();
   const rek = score > best;
   if (rek) best = score;
+  window.TOP && window.TOP.upisi("avioni", "bodovi", score, "nivo " + level);
   sacuvana = null; sacuvaj();                   // let je gotov; rekord ostaje
   showOverlay('<h2>Oboren si</h2>' +
     '<div class="res"><span>Poeni</span><b>' + score + '</b><span>Nivo</span><b>' + level + '</b>' +

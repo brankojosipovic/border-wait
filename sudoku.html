@@ -403,6 +403,8 @@ function win() {
   S.done = true; stopTimer(); render(); save();
   window.SFX && SFX.win();
   const label = $("#diff").selectedOptions[0].textContent;
+  window.TOP && window.TOP.upisi("sudoku", $("#diff").value, S.elapsed,
+    S.mistakes + " gr · " + S.hints + " sav");
   showOverlay("Bravo! 🎉",
     label + " · vreme " + fmt(S.elapsed) + " · greške " + S.mistakes + " · saveti " + S.hints,
     "Nova igra", () => newGame());

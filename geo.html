@@ -429,6 +429,7 @@ function kraj() {
   const moji = G.poeni[mojIndex];
   const nov = moji > rekord;
   if (nov) { try { localStorage.setItem("geo.rekord", JSON.stringify(moji)); } catch (e) { } }
+  window.TOP && window.TOP.upisi("geo", "poeni", moji, (G.red ? G.red.length : 10) + " pitanja");
   window.SFX && SFX.win();
   const vise = brojIgraca() > 1;
   const naj = Math.max.apply(null, G.poeni);
