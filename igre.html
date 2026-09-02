@@ -46,7 +46,7 @@
   header { display: flex; align-items: center; gap: 10px;
            border-left: 4px solid var(--gold); padding: 6px 0 6px 10px; }
   header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.2px; }
-  header .sub { color: var(--ink-dim); font-size: 12px; }
+  header .sub { color: var(--ink-dim); font-size: 13px; }
   .spacer { flex: 1; }
 
   .grid { display: grid; grid-template-columns: repeat(var(--kol, 3), 1fr); gap: 10px; }
@@ -63,17 +63,17 @@
   .grid.samoIkone .card .nm { display: none; }
   .card .nm { font-size: 12px; font-weight: 700; text-align: center; line-height: 1.15;
               max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .card .tok { position: absolute; top: 7px; right: 9px; font-size: 11px; color: var(--gold); }
+  .card .tok { position: absolute; top: 7px; right: 9px; font-size: 12px; color: var(--gold); }
 
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
            padding: 12px 14px; box-shadow: var(--shadow); }
   .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .row + .row { margin-top: 10px; }
   .row .lbl { font-size: 13px; }
-  .row .hint { font-size: 11px; color: var(--ink-dim); }
+  .row .hint { font-size: 12.5px; color: var(--ink-dim); }
   .alatke { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center; }
   .alatke button, .alatke .pomocBtn { font-size: 14px; padding: 8px 12px; }
-  .stanje { text-align: center; font-size: 11px; color: var(--ink-dim); line-height: 1.5; }
+  .stanje { text-align: center; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
   .imeMali { font-size: 12px; padding: 4px 10px; margin-bottom: 2px; }
   .stanje b { color: var(--ink); font-weight: 700; }
   .pomocBtn { display: inline-flex; align-items: center; justify-content: center;
@@ -87,11 +87,11 @@
     .wrap { gap: 8px; padding-top: 6px; }
     .grid { gap: 8px; }
     .card { border-radius: 16px; }
-    .card .nm { font-size: 11px; }
+    .card .nm { font-size: 11.5px; }
     .alatke button, .alatke .pomocBtn { font-size: 13px; padding: 6px 10px; }
-    .stanje { font-size: 10px; line-height: 1.45; }
+    .stanje { font-size: 12px; line-height: 1.45; }
   }
-  .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.5; text-align: center; }
+  .foot { color: var(--ink-dim); font-size: 12.5px; line-height: 1.5; text-align: center; }
   .foot a { color: var(--ink-dim); }
 </style>
 </head>
@@ -198,18 +198,17 @@ function slozi() {
             - (parseFloat(cs.paddingBottom) || 0) - 2;
   var proreda = parseFloat(getComputedStyle(g).rowGap) || 8;
   var n = g.children.length, sirina = g.getBoundingClientRect().width;
-  for (var kol = 3; kol <= 5; kol++) {
-    var redova = Math.ceil(n / kol);
-    var w = (sirina - proreda * (kol - 1)) / kol;
-    var h = Math.min(w, (mesto - proreda * (redova - 1)) / redova);
-    if (h >= 56 || kol === 5) {
-      var kh = Math.max(46, Math.floor(h));
-      document.documentElement.style.setProperty("--kol", kol);
-      document.documentElement.style.setProperty("--kh", kh + "px");
-      g.classList.toggle("samoIkone", kh < 78);     // kad je tesno, ostaju same ikonice
-      return;
-    }
-  }
+  /* Igara je previše da bi sve stale na jedan ekran a da ostanu čitljive, pa se
+     radije skroluje: tri u redu na telefonu, četiri na širem, a pločica nikad
+     manja od 84 px — toliko treba da se ikonica i ime lepo vide. */
+  var kol = sirina >= 520 ? 4 : 3;
+  var redova = Math.ceil(n / kol);
+  var w = (sirina - proreda * (kol - 1)) / kol;
+  var staje = (mesto - proreda * (redova - 1)) / redova;
+  var kh = Math.max(84, Math.floor(staje >= 84 ? Math.min(w, staje, 116) : Math.min(w, 96)));
+  document.documentElement.style.setProperty("--kol", kol);
+  document.documentElement.style.setProperty("--kh", kh + "px");
+  g.classList.toggle("samoIkone", kh < 70);       // praktično nikad, samo za vrlo uzak ekran
 }
 window.addEventListener("resize", slozi);
 window.addEventListener("load", function () { slozi(); setTimeout(slozi, 300); setTimeout(slozi, 900); });

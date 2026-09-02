@@ -53,7 +53,7 @@
   header { display: flex; align-items: center; gap: 10px;
            border-left: 4px solid var(--gold); padding: 4px 0 4px 10px; }
   header h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.2px; }
-  header .sub { color: var(--ink-dim); font-size: 12px; }
+  header .sub { color: var(--ink-dim); font-size: 13px; }
   .spacer { flex: 1; }
 
   .bar { display: flex; align-items: center; gap: 8px; }
@@ -67,7 +67,7 @@
   .lanes { display: grid; grid-template-columns: repeat(5, 1fr); }
   .lane { position: relative; cursor: pointer; padding: 0 2px; }
   .lane + .lane { border-left: 2px dashed var(--lane-line); }
-  .lane .est { text-align: center; font-size: 11px; font-weight: 700; padding: 2px 0;
+  .lane .est { text-align: center; font-size: 12px; font-weight: 700; padding: 2px 0;
                color: var(--ink-dim); font-variant-numeric: tabular-nums; }
   .lane .est.better { color: var(--good); }
   .lane .est.worse { color: var(--bad); }
@@ -84,7 +84,7 @@
   .cellrow.player { border-radius: 8px; box-shadow: inset 0 0 0 2px var(--gold);
                     background: color-mix(in srgb, var(--gold) 14%, transparent); }
   .cellrow.ghost { border-radius: 8px; border: 1.5px dashed var(--ink-dim); opacity: .5;
-                   font-size: 11px; color: var(--ink-dim); }
+                   font-size: 12.5px; color: var(--ink-dim); }
   .cellrow .more { font-size: 10px; color: var(--ink-dim); font-weight: 700; }
   .lane.you .est { color: var(--gold); }
   .lane.dim { opacity: .55; }
@@ -115,7 +115,7 @@
   .overlay ul { margin: 0; padding-left: 18px; text-align: left; color: var(--ink-dim); font-size: 13px; max-width: 330px; }
   .overlay ul li { margin-bottom: 6px; }
 
-  .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
+  .foot { color: var(--ink-dim); font-size: 12.5px; line-height: 1.4; text-align: center; }
   .foot a { color: var(--ink-dim); }
 
   @media (max-height: 700px) { header .sub { display: none; } }

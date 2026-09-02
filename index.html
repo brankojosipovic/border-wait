@@ -62,10 +62,10 @@
   /* Heatmap */
   #heatWrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table.heat { border-collapse: collapse; width: 100%; }
-  table.heat th { font-weight: 600; font-size: 11px; color: var(--ink-dim); padding: 4px; text-align: center; }
+  table.heat th { font-weight: 600; font-size: 12px; color: var(--ink-dim); padding: 4px; text-align: center; }
   table.heat td.day { font-size: 12px; color: var(--ink-dim); text-align: right; padding-right: 10px; white-space: nowrap; position: sticky; left: 0; background: var(--panel); z-index: 2; }
   table.heat th:first-child { position: sticky; left: 0; background: var(--panel); z-index: 2; }
-  table.heat td.cell { width: 3.6%; height: 26px; border-radius: 4px; text-align: center; font-size: 10px; color: rgba(255,255,255,.92); position: relative; }
+  table.heat td.cell { width: 3.6%; height: 26px; border-radius: 4px; text-align: center; font-size: 12px; color: rgba(255,255,255,.95); position: relative; }
   [data-theme="light"] table.heat td.cell { color: rgba(255,255,255,.95); }
   table.heat td.empty { background: var(--panel-2); color: var(--ink-dim); opacity: .4; }
   .legend { display: flex; gap: 6px; align-items: center; margin-top: 14px; font-size: 12px; color: var(--ink-dim); }
@@ -76,11 +76,11 @@
   .barrow .track { background: var(--panel-2); border-radius: 5px; height: 16px; overflow: hidden; }
   .barrow .fill { height: 100%; border-radius: 5px; }
   .empty-state { color: var(--ink-dim); padding: 28px; text-align: center; border: 1px dashed var(--line); border-radius: 12px; }
-  footer { color: var(--ink-dim); font-size: 11px; padding: 18px 28px; border-top: 1px solid var(--line); text-align: center; }
+  footer { color: var(--ink-dim); font-size: 12.5px; padding: 18px 28px; border-top: 1px solid var(--line); text-align: center; }
   footer a { color: var(--gold); text-decoration: none; }
   footer a:hover { text-decoration: underline; }
   .err { color: var(--bad); }
-  #status { font-size: 11px; margin-top: 6px; opacity: .85; }
+  #status { font-size: 12.5px; margin-top: 6px; opacity: .85; }
   #refresh { font-size: 16px; line-height: 1; }
   #refresh.spin { animation: spin .6s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -89,7 +89,7 @@
   @media (max-width: 640px) {
     header { padding: 16px 16px; gap: 10px; }
     header h1 { font-size: 20px; }
-    header .sub { font-size: 12px; }
+    header .sub { font-size: 12.5px; }
     .spacer { display: none; }
     .ctrl { width: 100%; display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
     #crossing { grid-column: 1 / -1; width: 100%; }
@@ -101,7 +101,7 @@
     .kpi .value { font-size: 22px; }
     section.card { padding: 16px 14px; margin-bottom: 16px; }
     table.heat { min-width: 560px; }
-    table.heat td.cell { font-size: 9px; }
+    table.heat td.cell { font-size: 12px; }
     .barrow { grid-template-columns: 52px 1fr 50px; gap: 8px; }
     .barrow.month { grid-template-columns: 92px 1fr 50px; }
   }

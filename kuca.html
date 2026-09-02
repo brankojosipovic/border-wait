@@ -51,7 +51,7 @@
            border-left: 4px solid var(--gold); padding: 1px 0 1px 9px; }
   header > div:first-child { min-width: 0; }
   header h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -.2px; }
-  header .sub { color: var(--ink-dim); font-size: 11px;
+  header .sub { color: var(--ink-dim); font-size: 13px;
                 overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   header button { padding: 6px 9px; }
   .spacer { flex: 1; }
@@ -76,7 +76,7 @@
   .savetnik b { color: var(--ink); }
   .savetnik .los { color: var(--bad); font-weight: 700; }
 
-  .foot { color: var(--ink-dim); font-size: 11px; line-height: 1.4; text-align: center; }
+  .foot { color: var(--ink-dim); font-size: 12.5px; line-height: 1.4; text-align: center; }
   .foot a { color: var(--ink-dim); }
   @media (max-height: 760px) { .foot { display: none; } }
   @media (max-height: 680px) { header .sub { display: none; } }
@@ -855,7 +855,7 @@ function fit() {
 
   const ukupnaV = Math.min(visina, R.policaY + policaH);
   cv.style.width = sirina + "px"; cv.style.height = ukupnaV + "px";
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = Math.min(2.5, window.devicePixelRatio || 1);
   cv.width = Math.round(sirina * dpr); cv.height = Math.round(ukupnaV * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   crtaj();
