@@ -689,8 +689,9 @@ var PRAVILA = {
   ]],
   cigle: ["🕹️ Cigle", [
     "<b>Prevlači prstom</b> ispod palice da je pomeriš, tapni da ispališ lopticu.",
-    "Cigle: <b>zelena</b> puca iz prve, <b>žuta</b> traži dva, <b>crvena</b> tri udarca; <b>siva čelična</b> se ne razbija.",
+    "Cigle: <b>zelena</b> puca iz prve, <b>žuta</b> traži dva, <b>crvena</b> tri udarca; <b>siva čelična</b> obično stoji kao zid.",
     "Bonusi padaju: 🟦 šira palica, ⬤ tri loptice, 🐢 sporije, 🔫 pištolj, ❤️ život.",
+    "<b>🔩 Čelična lopta</b> — sedam sekundi lopta ruši sve iz prve i <b>probija i beton</b>, ne odbija se od cigala. Pada češće kad iza betona ostane samo nekoliko cigala.",
     "Ugao odbijanja zavisi od toga <b>gde loptica pogodi palicu</b> — tako biraš smer.",
     "<b>🏁 Trka u dvoje</b> — isti nivo na dva telefona preko sobe, gleda se ko brže odmakne."
   ]],
@@ -805,7 +806,7 @@ var PRAVILA = {
    strane i u prozorčiću 🏆. Uz njega ide i verzija celog kompleta (sw.js). */
 var VERZIJE = {
   sudoku: "1.0", solitaire: "1.0", kolona: "1.0", aparat: "1.0", svercer: "1.0",
-  tetris: "1.0", avioni: "1.0", cigle: "1.0", stvorenja: "1.0", tablic: "1.0",
+  tetris: "1.0", avioni: "1.0", cigle: "1.1", stvorenja: "1.0", tablic: "1.0",
   jamb: "1.0", geo: "1.0", pikado: "1.0", bilijar: "1.0", kuca: "1.0",
   teren: "1.0", mapa: "1.0", covece: "1.1", riziko: "1.0", basket: "1.0", rumi: "1.0"
 };
