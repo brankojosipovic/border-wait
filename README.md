@@ -322,6 +322,16 @@ umesto 2,5×; sada bafer ide po CSS veličini (`css × dpr`), a razmera crtanja 
 transformacijom, tako da kod igre ostaje u logičkim jedinicama a slika je oštra. Kuća je dignuta sa
 2× na 2,5×.
 
+**Zumiranje prstima je otključano.** Sve strane su nosile `maximum-scale=1`, što je isključivalo
+uvećavanje sa dva prsta — dobro dok su ekrani bili prazniji, loše kad nekome zatreba krupnije. Sad
+je to skinuto, a umesto toga na `body` stoji `touch-action: manipulation`: prstima sme da se zumira,
+ali dvostruki tap ne uvećava, pa se ne dešava slučajno usred igre. Platna igara koja imaju svoje
+pokrete sa dva prsta (Mapa, Riziko, Bilijar, Kuća, Pikado, Teren…) i dalje nose `touch-action: none`,
+pa pinč nad njima ostaje igri, a ne pregledaču.
+
+Pločice u Rumiju su podignute sa 34×46 na **42×56** u ruci (broj 20 → 25 px) i sa 28×38 na 34×46 na
+stolu — četrnaest pločica i dalje staje u dva reda bez skrolovanja.
+
 Sve to čuva `citljivost.test.js`: prođe kroz svaku stranu, izmeri svaki vidljivi tekst i svako
 platno, i pukne ako se pojavi slovo ispod 11 px ili platno ispod 2× rezolucije.
 
