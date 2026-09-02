@@ -2,7 +2,7 @@
 <html lang="sr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e1626">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -37,6 +37,7 @@
     font: 15px/1.5 Calibri, "Segoe UI", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none; user-select: none; -webkit-user-select: none;
+    touch-action: manipulation;                  /* prstima sme da se zumira, ali bez dvostrukog tapa */
     padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   }
   button { font: inherit; color: var(--ink); background: var(--panel);
@@ -85,23 +86,23 @@
               padding: 5px; box-shadow: var(--shadow); }
   .rukaWrap.meta { border-color: var(--gold); }
   .ruka { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center;
-          max-height: 122px; overflow-y: auto; }
+          max-height: 152px; overflow-y: auto; }
 
-  .pl { position: relative; width: 34px; height: 46px; flex: 0 0 auto; padding: 0;
+  .pl { position: relative; width: 42px; height: 56px; flex: 0 0 auto; padding: 0;
         border-radius: 6px; border: 1px solid var(--plocica-ivica);
         background: linear-gradient(170deg, var(--plocica) 62%, var(--plocica-2));
         box-shadow: 0 1px 2px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.7);
-        font: 700 20px/1 Calibri, system-ui, sans-serif; color: #2b2f38;
+        font: 700 25px/1 Calibri, system-ui, sans-serif; color: #2b2f38;
         display: flex; align-items: center; justify-content: center; cursor: pointer; }
   .pl[data-b="0"] { color: #24282f; }
   .pl[data-b="1"] { color: #cf2f24; }
   .pl[data-b="2"] { color: #1c63c4; }
   .pl[data-b="3"] { color: #d9820f; }
-  .pl.dz { color: #157a4e; font-size: 22px; }
-  .pl::after { content: ""; position: absolute; left: 50%; bottom: 3px; width: 7px; height: 7px;
-               margin-left: -3.5px; border-radius: 50%; background: currentColor; opacity: .28; }
-  .pl.mala { width: 28px; height: 38px; font-size: 17px; }
-  .pl.mala::after { width: 5px; height: 5px; margin-left: -2.5px; bottom: 2px; }
+  .pl.dz { color: #157a4e; font-size: 27px; }
+  .pl::after { content: ""; position: absolute; left: 50%; bottom: 4px; width: 8px; height: 8px;
+               margin-left: -4px; border-radius: 50%; background: currentColor; opacity: .28; }
+  .pl.mala { width: 34px; height: 46px; font-size: 21px; }
+  .pl.mala::after { width: 6px; height: 6px; margin-left: -3px; bottom: 3px; }
   .pl.izabrana { outline: 2px solid var(--gold); outline-offset: 1px; transform: translateY(-4px); }
   .pl.nova { box-shadow: 0 0 0 2px rgba(46,158,107,.85), 0 1px 2px rgba(0,0,0,.4); }
   .pl:active { transform: translateY(1px); }
@@ -143,7 +144,8 @@
   @media (max-height: 800px) { .foot { display: none; } }
   @media (max-height: 700px) { header .sub { display: none; } .ruka { max-height: 100px; } }
   @media (max-height: 620px) { header h1 { font-size: 15px; } .wrap { gap: 4px; }
-    .pl { width: 30px; height: 40px; font-size: 18px; } .pl.mala { width: 25px; height: 34px; font-size: 15px; } }
+    .ruka { max-height: 118px; }
+    .pl { width: 36px; height: 48px; font-size: 21px; } .pl.mala { width: 30px; height: 40px; font-size: 18px; } }
 </style>
 </head>
 <body data-theme="dark">
