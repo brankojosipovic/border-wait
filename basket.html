@@ -234,7 +234,7 @@ function suti(vx, vy, vz) {
   lopta.t = 0;
   faza = "leti";
   P.sut++;
-  window.SFX && SFX.card();
+  window.SFX && SFX.izbacaj();
   osveziTraku();
   return true;
 }
@@ -249,8 +249,8 @@ function pogodak() {
   P.poeni += poeni;
   P.istorija.push(cist ? "c" : "k");
   mrezaFaza = 1;
-  window.SFX && (cist ? SFX.mrezica() : SFX.coin());
-  window.SFX && setTimeout(() => SFX.good(), 90);
+  window.SFX && SFX.mrezica();
+  window.SFX && setTimeout(() => SFX.kos(cist), 70);
   javi((cist ? "🎯 Čist koš! +" : "🏀 Koš! +") + poeni + (vatra ? " 🔥" : ""), 1400);
   osveziTraku();
   upisiTok();
@@ -258,7 +258,7 @@ function pogodak() {
 function promasaj() {
   P.niz = 0;
   P.istorija.push("p");
-  window.SFX && SFX.bad();
+  window.SFX && SFX.promasaj();
   javi("Promašaj", 900);
   osveziTraku();
   upisiTok();
@@ -278,7 +278,7 @@ function krajSerije() {
   const stari = rekordi[k] || { poeni: 0, pogoci: 0 };
   const noviRek = P.poeni > stari.poeni;
   if (noviRek) { rekordi[k] = { poeni: P.poeni, pogoci: P.pogoci }; upisi(); }
-  window.SFX && SFX.jackpot();
+  window.SFX && SFX.truba();
   if (soba) return soba.kraj();
   const proc = Math.round(P.pogoci * 100 / P.ukupno);
   showOverlay('<h2>' + (noviRek ? "🏆 Novi rekord!" : "🏁 Kraj serije") + '</h2>' +
@@ -340,7 +340,7 @@ function korak(dt) {
       l.y > TABLA_D && l.y < TABLA_G && l.vx > 0) {
     l.x = tx - R_LOPTE;
     l.vx = -l.vx * .58; l.vy *= .9; l.vz *= .9; l.vug *= .7;
-    if (!l.dodirTabla) { l.dodirTabla = true; window.SFX && SFX.odskok(Math.min(.4, Math.abs(l.vx) * .09)); }
+    if (!l.dodirTabla) { l.dodirTabla = true; window.SFX && SFX.tabla(Math.min(.4, Math.abs(l.vx) * .09)); }
   }
   for (const ty of [TABLA_D, TABLA_G]) {        // donja i gornja ivica table
     const pz = Math.max(tz - TABLA_POLA, Math.min(tz + TABLA_POLA, l.z));
@@ -353,7 +353,7 @@ function korak(dt) {
       if (vn < 0) {
         l.vx -= 1.5 * vn * nx; l.vy -= 1.5 * vn * ny; l.vz -= 1.5 * vn * nz;
         l.vx *= .9; l.vy *= .9; l.vz *= .9;
-        if (!l.dodirTabla) { l.dodirTabla = true; window.SFX && SFX.odskok(Math.min(.4, Math.abs(vn) * .09)); }
+        if (!l.dodirTabla) { l.dodirTabla = true; window.SFX && SFX.tabla(Math.min(.4, Math.abs(vn) * .09)); }
       }
     }
   }
@@ -397,8 +397,8 @@ function izVuceSpreda(v) {                      // iz prvog lica: luk je stalan,
   /* pošto se ugao ne bira, jačina ide finije: ceo hod prsta pokriva samo
      raspon koji ima smisla, pa se lakše pogodi prava mera */
   const deo = duz / cv.height;
-  const brzina = Math.max(4.5, Math.min(12, 6.3 + (deo - .12) * 4.8));
-  const bok = Math.max(-.26, Math.min(.26, (dx / -dy) * .18));
+  const brzina = Math.max(5.5, Math.min(10, 6.4 + (deo - .05) * 6.5));
+  const bok = Math.max(-.20, Math.min(.20, (dx / -dy) * .11));
   const vodoravno = Math.cos(UGAO_SPREDA) * brzina;
   return { vx: vodoravno * Math.cos(bok), vy: Math.sin(UGAO_SPREDA) * brzina,
     vz: vodoravno * Math.sin(bok), brzina, ug: UGAO_SPREDA, bok };

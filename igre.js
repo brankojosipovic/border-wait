@@ -190,15 +190,37 @@ var SFX = {
             tone({ f: 280, to: 90, d: .24, type: "sine", v: .32, at: .03 }); },
   stap:   function () { noise({ d: .04, f: 2400, to: 1300, v: .34, q: 1.6 });
             tone({ f: 540, to: 260, d: .07, type: "triangle", v: .28 }); },
-  /* basket */
+  /* basket — sve niže i toplije, da liči na loptu, obruč i mrežu */
   odskok: function (j) { var v = Math.max(.06, Math.min(.5, j == null ? .3 : j));
-            noise({ d: .09, f: 300, to: 110, v: v, q: .8 });
-            tone({ f: 155, to: 70, d: .12, type: "sine", v: v * .8 }); },
+            noise({ d: .05, f: 900, to: 220, v: v * .5, q: .7, filter: "lowpass" });
+            tone({ f: 132, to: 62, d: .17, type: "sine", v: v * .9, atk: .004 });
+            tone({ f: 205, to: 95, d: .09, type: "triangle", v: v * .32, atk: .003 }); },
   obruc:  function (j) { var v = Math.max(.08, Math.min(.45, j == null ? .3 : j));
-            tone({ f: 1180, to: 880, d: .18, type: "square", v: v * .5 });
-            tone({ f: 1760, d: .12, type: "triangle", v: v * .3, at: .01 });
-            noise({ d: .05, f: 3200, v: v * .4, q: 2 }); },
-  mrezica: function () { noise({ d: .16, f: 900, to: 3000, v: .2, q: .5 }); },
+            tone({ f: 430, to: 402, d: .27, type: "triangle", v: v * .5, atk: .003 });
+            tone({ f: 688, d: .17, type: "sine", v: v * .26, atk: .003 });
+            tone({ f: 1150, d: .09, type: "sine", v: v * .11, atk: .002 });
+            tone({ f: 148, to: 88, d: .13, type: "sine", v: v * .5, atk: .004 });
+            noise({ d: .04, f: 1600, to: 520, v: v * .18, q: 1.2 }); },
+  tabla:  function (j) { var v = Math.max(.08, Math.min(.45, j == null ? .3 : j));
+            tone({ f: 258, to: 190, d: .19, type: "triangle", v: v * .7, atk: .003 });
+            tone({ f: 515, d: .08, type: "sine", v: v * .22, atk: .002 });
+            noise({ d: .05, f: 1100, to: 380, v: v * .26, q: .8, filter: "lowpass" }); },
+  mrezica: function () { noise({ d: .18, f: 1500, to: 520, v: .15, q: .6 });
+            noise({ d: .11, f: 700, to: 280, v: .09, q: .5, at: .05 }); },
+  izbacaj: function () { noise({ d: .13, f: 900, to: 300, v: .11, q: .5, filter: "lowpass" }); },
+  kos:    function (cist) {
+            tone({ f: 392, d: .19, type: "triangle", v: .19, atk: .01 });
+            tone({ f: 587, d: .27, type: "triangle", v: .15, at: .09, atk: .012 });
+            if (cist) tone({ f: 784, d: .32, type: "sine", v: .12, at: .19, atk: .015 }); },
+  promasaj: function () {
+            tone({ f: 188, to: 118, d: .23, type: "sine", v: .18, atk: .012 });
+            noise({ d: .1, f: 420, to: 170, v: .09, q: .6, filter: "lowpass" }); },
+  truba:  function () {                          // rog na kraju serije, kao u hali
+            for (var k = 0; k < 2; k++) {
+              tone({ f: 233, d: .45, type: "sawtooth", v: .14, at: k * .55, atk: .025 });
+              tone({ f: 175, d: .45, type: "triangle", v: .18, at: k * .55, atk: .025 });
+              tone({ f: 117, d: .5, type: "sine", v: .16, at: k * .55, atk: .03 });
+            } },
   /* pikado */
   strelica: function () { noise({ d: .06, f: 1600, to: 380, v: .4, q: 1.4 });
             tone({ f: 340, to: 150, d: .11, type: "triangle", v: .24 }); },
@@ -625,7 +647,7 @@ var PRAVILA = {
     "Pogodak nosi <b>2 poena</b>, a <b>čist koš</b> (bez table i bez obruča) <b>3</b>. Od trećeg uzastopnog koša ide 🔥 i svaki nosi poen više.",
     "Serija je <b>10 ili 20 lopti</b>; najbolji rezultat se pamti posebno za svaku seriju i težinu.",
     "Težina: <b>lako</b> — miran koš i duža pomoćna putanja; <b>srednje</b> — kratka pomoć; <b>teško</b> — <b>vetar</b> i koš koji se <b>pomera</b> levo-desno.",
-    "Lopta se odbija o obruč i tablu kao prava — može da se uđe i preko table.",
+    "Lopta se odbija o obruč i tablu kao prava — može da se uđe i preko table. Zvuci su iz sale: tup udar o parket, zvonjava obruča, šuštanje mreže i rog na kraju serije.",
     "<b>🌐 Igra u sobi</b> — do četiri igrača šutiraju istu seriju, svako svojim tempom, i vide ko koliko ima."
   ]],
   riziko: ["⚔️ Riziko", [
