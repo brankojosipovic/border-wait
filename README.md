@@ -231,6 +231,32 @@ kraju prebaci višak iz mirne pozadine na prvu liniju. Igra se protiv računara,
 ili **🌐 u sobi** do četiri igrača — tada je domaćin sudija (kod njega padaju kockice) i posle svake
 promene pošalje celu tablu, a gost šalje samo šta hoće da uradi; prazne stolice vodi računar.
 
+## Basket
+
+`basket.html` — slobodna bacanja iz bočnog pogleda, po pravim merama: linija je **4,6 m** od table,
+obruč na **3,05 m** i prečnika **45 cm**, lopta 24 cm, gravitacija 9,81. Povlačenje prsta daje pravac
+i jačinu (dužina povlačenja prema visini platna, do 15 m/s, ugao stegnut da se ne šutira nadole);
+fizika ide fiksnim koracima od 1/300 s, pa je let isti na svakom telefonu.
+
+Sudari su tri komada: **krajevi obruča** su dve male kugle (odbojnost .55, sa trenjem i prenosom na
+rotaciju), **tabla** je prednja ravan sa zaobljenim ivicama kao tačkastim sudaračima, a **parket**
+odbija sa .68. Koš se broji kad središte lopte pređe visinu obruča **nadole** između dva kraja
+obruča — sve ostalo je promašaj, pa se i odbijanje o tablu unutra pošteno broji. Zazor je 10,4 cm sa
+svake strane, taman kao u stvarnosti: ravan šut zakači obruč, a čist prolaz traži viši luk.
+
+Pogodak nosi 2 poena, **čist koš** (bez table i obruča) 3, a od trećeg uzastopnog ide 🔥 i svaki nosi
+poen više. Serija je 10 ili 20 lopti; rekord se pamti po seriji i težini, a započeta serija se
+nastavlja. Težine: *lako* pokazuje ceo luk unapred, *srednje* samo početak, *teško* dodaje **vetar**
+(bočno ubrzanje do 2,6 m/s²) i **koš koji klizi** levo-desno.
+
+Dvorana je nacrtana da bude tiha koliko treba da lopta ostane vidljiva: publika u sitnim tačkicama
+niskog kontrasta, reklamna traka iza osnovne linije, krovna rešetka sa reflektorima i **semafor koji
+visi sa krova** i pokazuje rezultat serije. Lopta ima pravu senku na parketu, šavove koji se okreću
+sa rotacijom (bekspin iz šuta) i mrežu koja se naduva kad lopta prođe.
+
+**🌐 Igra u sobi** — do četiri igrača šutiraju istu seriju, svako svojim tempom; posle svakog šuta
+rezultat ode ostalima, pa u traci stoji ko koliko ima, a na kraju ide zajednička tabela.
+
 ## Pravila u samoj igri
 
 `igre.js` nosi kratka pravila za svaku igru (`PRAVILA`) i ubacuje **❔** u zaglavlje svake igre — otvara

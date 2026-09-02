@@ -21,7 +21,8 @@ var GAMES = [
   { id: "teren",     href: "teren.html",     em: "🟩", nm: "Teren" },
   { id: "mapa",      href: "mapa.html",      em: "🗺", nm: "Mapa" },
   { id: "covece",    href: "covece.html",    em: "🔴", nm: "Čoveče" },
-  { id: "riziko",    href: "riziko.html",    em: "⚔️", nm: "Riziko" }
+  { id: "riziko",    href: "riziko.html",    em: "⚔️", nm: "Riziko" },
+  { id: "basket",    href: "basket.html",    em: "🏀", nm: "Basket" }
 ];
 var SKEY = "igre.sound";
 var IKEY = "igre.ime";
@@ -189,6 +190,15 @@ var SFX = {
             tone({ f: 280, to: 90, d: .24, type: "sine", v: .32, at: .03 }); },
   stap:   function () { noise({ d: .04, f: 2400, to: 1300, v: .34, q: 1.6 });
             tone({ f: 540, to: 260, d: .07, type: "triangle", v: .28 }); },
+  /* basket */
+  odskok: function (j) { var v = Math.max(.06, Math.min(.5, j == null ? .3 : j));
+            noise({ d: .09, f: 300, to: 110, v: v, q: .8 });
+            tone({ f: 155, to: 70, d: .12, type: "sine", v: v * .8 }); },
+  obruc:  function (j) { var v = Math.max(.08, Math.min(.45, j == null ? .3 : j));
+            tone({ f: 1180, to: 880, d: .18, type: "square", v: v * .5 });
+            tone({ f: 1760, d: .12, type: "triangle", v: v * .3, at: .01 });
+            noise({ d: .05, f: 3200, v: v * .4, q: 2 }); },
+  mrezica: function () { noise({ d: .16, f: 900, to: 3000, v: .2, q: .5 }); },
   /* pikado */
   strelica: function () { noise({ d: .06, f: 1600, to: 380, v: .4, q: 1.4 });
             tone({ f: 340, to: 150, d: .11, type: "triangle", v: .24 }); },
@@ -607,6 +617,15 @@ var PRAVILA = {
     "U cilj se ulazi <b>tačnim brojem</b>; ako je previše, taj potez ne može.",
     "Kad ima više mogućnosti, dodirni figuru koju hoćeš da pomeriš; kad je samo jedna, igra je odigra sama.",
     "Igra se <b>protiv računara</b>, <b>na jednom telefonu</b> u dvoje do četvoro, ili <b>🌐 u sobi</b> — prazna mesta tada vodi računar."
+  ]],
+  basket: ["🏀 Basket", [
+    "Slobodna bacanja sa prave linije: <b>4,6 m</b> do table, obruč na <b>3,05 m</b>, prava lopta i prava gravitacija.",
+    "<b>Povuci prstom</b> od lopte prema košu — pravac povlačenja je pravac šuta, a dužina je jačina. Tanka tačkasta putanja pokazuje početak luka.",
+    "Pogodak nosi <b>2 poena</b>, a <b>čist koš</b> (bez table i bez obruča) <b>3</b>. Od trećeg uzastopnog koša ide 🔥 i svaki nosi poen više.",
+    "Serija je <b>10 ili 20 lopti</b>; najbolji rezultat se pamti posebno za svaku seriju i težinu.",
+    "Težina: <b>lako</b> — miran koš i duža pomoćna putanja; <b>srednje</b> — kratka pomoć; <b>teško</b> — <b>vetar</b> i koš koji se <b>pomera</b> levo-desno.",
+    "Lopta se odbija o obruč i tablu kao prava — može da se uđe i preko table.",
+    "<b>🌐 Igra u sobi</b> — do četiri igrača šutiraju istu seriju, svako svojim tempom, i vide ko koliko ima."
   ]],
   riziko: ["⚔️ Riziko", [
     "Svet je podeljen na <b>41 oblast</b> u šest kontinenata; cilj je držati zadati deo karte — <b>50%, 70% ili sve</b>.",
