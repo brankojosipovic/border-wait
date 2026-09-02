@@ -147,7 +147,8 @@ var DESC = {
   mapa:      "Pogodi gde je država ili grad na karti sveta — poeni po udaljenosti",
   covece:    "Klasik sa kockicom — protiv računara, na jednom telefonu ili do četvoro u sobi",
   riziko:    "Osvajanje sveta kockicama — 41 oblast, kontinenti i borba za kartu",
-  basket:    "Slobodna bacanja — povuci prstom prema košu, serija od 10 ili 20 lopti"
+  basket:    "Slobodna bacanja — povuci prstom prema košu, serija od 10 ili 20 lopti",
+  rumi:      "Nizovi i grupe od 106 pločica — prvi izlazak 30, pa preslagivanje po stolu"
 };
 function ls(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
 function dayNum() { var d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
@@ -169,6 +170,7 @@ function uToku(id) {
   if (id === "covece") { s = ls("covece.v1.tok"); return !!(s && s.figure && !s.gotovo); }
   if (id === "riziko") { s = ls("riziko.v1.tok"); return !!(s && s.g && !s.g.gotovo); }
   if (id === "basket") { s = ls("basket.v1.tok"); return !!(s && s.ukupno && !s.gotovo && s.sut < s.ukupno); }
+  if (id === "rumi") { s = ls("rumi.v1.tok"); return !!(s && s.ruke && !s.gotovo); }
   return false;
 }
 

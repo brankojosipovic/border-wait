@@ -22,7 +22,8 @@ var GAMES = [
   { id: "mapa",      href: "mapa.html",      em: "🗺", nm: "Mapa" },
   { id: "covece",    href: "covece.html",    em: "🔴", nm: "Čoveče" },
   { id: "riziko",    href: "riziko.html",    em: "⚔️", nm: "Riziko" },
-  { id: "basket",    href: "basket.html",    em: "🏀", nm: "Basket" }
+  { id: "basket",    href: "basket.html",    em: "🏀", nm: "Basket" },
+  { id: "rumi",      href: "rumi.html",      em: "🀄", nm: "Rumi" }
 ];
 var SKEY = "igre.sound";
 var IKEY = "igre.ime";
@@ -221,6 +222,9 @@ var SFX = {
               tone({ f: 175, d: .45, type: "triangle", v: .18, at: k * .55, atk: .025 });
               tone({ f: 117, d: .5, type: "sine", v: .16, at: k * .55, atk: .03 });
             } },
+  /* rumi */
+  plocica: function () { noise({ d: .045, f: 1400, to: 520, v: .2, q: .9 });
+            tone({ f: 320, to: 210, d: .07, type: "triangle", v: .16, atk: .003 }); },
   /* pikado */
   strelica: function () { noise({ d: .06, f: 1600, to: 380, v: .4, q: 1.4 });
             tone({ f: 340, to: 150, d: .11, type: "triangle", v: .24 }); },
@@ -639,6 +643,16 @@ var PRAVILA = {
     "U cilj se ulazi <b>tačnim brojem</b>; ako je previše, taj potez ne može.",
     "Kad ima više mogućnosti, dodirni figuru koju hoćeš da pomeriš; kad je samo jedna, igra je odigra sama.",
     "Igra se <b>protiv računara</b>, <b>na jednom telefonu</b> u dvoje do četvoro, ili <b>🌐 u sobi</b> — prazna mesta tada vodi računar."
+  ]],
+  rumi: ["🀄 Rumi", [
+    "Igra sa <b>106 pločica</b>: brojevi 1—13 u četiri boje, svaki po dva puta, i <b>dva džokera</b>. Svako počinje sa 14 pločica.",
+    "Slažu se dve stvari: <b>niz</b> — tri i više uzastopnih brojeva iste boje (jedinica je najmanja, posle 13 se ne nastavlja), i <b>grupa</b> — isti broj u tri ili četiri različite boje.",
+    "<b>Prvi izlazak</b> mora da vredi bar <b>30 poena</b> i to samo iz svoje ruke — tada se ne sme dirati ono što je već na stolu.",
+    "Posle izlaska se sto sme <b>preslagati kako god</b>: razbij niz, uzmi pločicu iz grupe od četiri, spoji i razdvoji — samo na kraju poteza svaki skup mora biti ispravan i moraš spustiti bar jednu svoju pločicu.",
+    "<b>Džoker</b> menja bilo koju pločicu. Skida se sa stola samo onom pločicom koju baš zamenjuje, i mora odmah nazad na sto, u istom potezu.",
+    "Ako ne možeš (ili nećeš) da igraš — <b>vučeš jednu</b> pločicu i potez je gotov; ona se igra tek sledeći put.",
+    "Ko prvi ostane bez pločica viče <b>Rumi!</b> — dobija zbir svih tuđih pločica, a ostali gube svoje (džoker u ruci je 30). Ako se špil isprazni i niko ne može, pobeđuje ko ima najmanje.",
+    "Igra se <b>protiv računara</b>, <b>na jednom telefonu</b> (telefon se predaje) ili <b>🌐 u sobi</b> do četiri igrača."
   ]],
   basket: ["🏀 Basket", [
     "Slobodna bacanja sa prave linije: <b>4,6 m</b> do table, obruč na <b>3,05 m</b>, prava lopta i prava gravitacija. Lopta polazi sa visine sa koje je čovek ispušta, oko 2 m.",
