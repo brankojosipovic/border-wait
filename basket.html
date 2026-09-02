@@ -146,13 +146,20 @@ const cv = $("#cv"), ctx = cv.getContext("2d");
    Prave mere: obruč na 3,05 m, prečnik obruča 45 cm, tabla 15 cm iza obruča,
    linija slobodnog bacanja 4,6 m od table, lopta prečnika 24 cm. */
 const OBRUC_Y = 3.05, R_OBRUCA = .022, R_LOPTE = .121;
-const TABLA_X0 = 5.20, TABLA_D = 2.90, TABLA_G = 3.95;
+const R_KRUG = .225;                            // poluprečnik obruča
+const TABLA_X0 = 5.20, TABLA_D = 2.90, TABLA_G = 3.95, TABLA_POLA = .90;
 const OD_TABLE_1 = .60, OD_TABLE_2 = .15;      // prednji i zadnji kraj obruča
-const START = { x: .60, y: 1.55 };
+const START = { x: .60, y: 1.98 };             // visina iz koje čovek ispusti loptu
 const G_UBR = 9.81;
 const SIRINA_SVETA = 6.4;
+const OSNOVNA = 6.40;                           // osnovna linija, 1,2 m iza table
 const KORAK = 1 / 300;                          // fizika ide sitnim koracima
+const UGAO_SPREDA = 1.05;                       // iz prvog lica luk je stalan, bira se jačina i pravac
 
+const POGLEDI = {
+  strana: { nm: "↔ Sa strane", opis: "vidi se ceo luk, bira se jačina i ugao" },
+  spreda: { nm: "🏀 Iz prvog lica", opis: "gledaš u koš — mora i levo-desno da se pogodi" }
+};
 const SERIJE = { 10: { nm: "10 lopti", opis: "kratka serija" }, 20: { nm: "20 lopti", opis: "prava serija" } };
 const TEZINE = {
   lako:    { nm: "Lako",    opis: "miran koš, ceo luk se vidi unapred", vetar: 0,   pomera: 0,   pregled: 1.35 },
@@ -169,19 +176,25 @@ let vucem = null;          // {x0, y0, x, y}
 let vetar = 0, kosT = 0, mrezaFaza = 0, tresi = 0;
 let poruka = "", porukaDo = 0;
 let rekordi = {};
-let izbor = { serija: 10, tez: "srednje" };
+let izbor = { serija: 10, tez: "srednje", pogled: "strana" };
 let soba = null, cekaonica = false, ponoviVezu = null;
 let raf = null, lastTs = 0, visak = 0;
 let M = 1, POD = 0;        // metar u tačkama i visina poda na ekranu
 
+const pogled = () => (P ? P.pogled : izbor.pogled) || "strana";
+const spreda = () => pogled() === "spreda";
+/* na teškom se koš pomera: sa strane bliže-dalje, iz prvog lica levo-desno */
 const kosPomak = () => TEZINE[P ? P.tez : izbor.tez].pomera * Math.sin(kosT * 1.15);
-const tablaX = () => TABLA_X0 + kosPomak();
+const tablaX = () => TABLA_X0 + (spreda() ? 0 : kosPomak());
+const obrucZ = () => (spreda() ? kosPomak() : 0);
+const obrucX = () => tablaX() - OD_TABLE_1 + R_KRUG;
 const obrucX1 = () => tablaX() - OD_TABLE_1;
 const obrucX2 = () => tablaX() - OD_TABLE_2;
 
 function ucitaj() { try { rekordi = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { rekordi = {}; } }
 function upisi() { try { localStorage.setItem(KEY, JSON.stringify(rekordi)); } catch (e) { } }
-const kljucRek = () => (P ? P.ukupno + "-" + P.tez : izbor.serija + "-" + izbor.tez);
+const kljucRek = () => (P ? kljuc(P.ukupno, P.tez, P.pogled) : kljuc(izbor.serija, izbor.tez, izbor.pogled));
+const kljuc = (u, t, pg) => u + "-" + t + (pg === "spreda" ? "-spreda" : "");
 function upisiTok() {
   if (!P || P.gotovo || soba) return;
   try { localStorage.setItem(KEY + ".tok", JSON.stringify(P)); } catch (e) { }
@@ -196,25 +209,27 @@ function ucitajTok() {
 }
 
 /* ---------- serija ---------- */
-function novaSerija(ukupno, tez) {
-  P = { ukupno, tez, sut: 0, pogoci: 0, poeni: 0, niz: 0, najniz: 0, gotovo: false, istorija: [] };
-  izbor.serija = ukupno; izbor.tez = tez;
-  rekordi.izbor = { serija: ukupno, tez }; upisi();
+function novaSerija(ukupno, tez, pg) {
+  const pgl = POGLEDI[pg || izbor.pogled] ? (pg || izbor.pogled) : "strana";
+  P = { ukupno, tez, pogled: pgl, sut: 0, pogoci: 0, poeni: 0, niz: 0, najniz: 0, gotovo: false, istorija: [] };
+  izbor.serija = ukupno; izbor.tez = tez; izbor.pogled = pgl;
+  rekordi.izbor = { serija: ukupno, tez, pogled: pgl }; upisi();
+  fit();
   hideOverlay();
   novaLopta();
   osveziTraku();
   javi("Povuci prstom prema košu", 1800);
 }
 function novaLopta() {
-  lopta = { x: START.x, y: START.y, vx: 0, vy: 0, ug: 0, vug: 0,
+  lopta = { x: START.x, y: START.y, z: 0, vx: 0, vy: 0, vz: 0, ug: 0, vug: 0,
     t: 0, tlo: 0, dodirObruc: false, dodirTabla: false, ubacena: false, gotova: 0 };
   vetar = TEZINE[P.tez].vetar ? (Math.random() * 2 - 1) * TEZINE[P.tez].vetar : 0;
   faza = "cekam"; vucem = null;
   osveziTraku();
 }
-function suti(vx, vy) {
+function suti(vx, vy, vz) {
   if (faza !== "cekam" || !lopta) return false;
-  lopta.vx = vx; lopta.vy = vy;
+  lopta.vx = vx; lopta.vy = vy; lopta.vz = vz || 0;
   lopta.vug = -vx * .55 - 3.2;                  // bekspin, kao kod pravog šuta
   lopta.t = 0;
   faza = "leti";
@@ -274,7 +289,7 @@ function krajSerije() {
     '<p>' + nizSlika() + '</p>' +
     '<div class="btns"><button id="opetBtn">↺ Još jednom</button>' +
     '<button id="meniBtn">← Meni</button></div>');
-  $("#opetBtn").onclick = () => novaSerija(P.ukupno, P.tez);
+  $("#opetBtn").onclick = () => novaSerija(P.ukupno, P.tez, P.pogled);
   $("#meniBtn").onclick = meni;
 }
 function nizSlika() {
@@ -291,45 +306,53 @@ function korak(dt) {
   l.t += dt;
   const preY = l.y;
   l.vy -= G_UBR * dt;
-  l.vx += vetar * dt;
+  if (spreda()) l.vz += vetar * dt; else l.vx += vetar * dt;
   l.x += l.vx * dt;
   l.y += l.vy * dt;
+  l.z += l.vz * dt;
   l.ug += l.vug * dt;
 
-  const x1 = obrucX1(), x2 = obrucX2();
-  if (!l.ubacena && preY > OBRUC_Y && l.y <= OBRUC_Y && l.vy < 0 && l.x > x1 && l.x < x2) pogodak();
+  const cx = obrucX(), cz = obrucZ();
+  const rx = l.x - cx, rz = l.z - cz;
+  const poluprecnik = Math.hypot(rx, rz);
+  if (!l.ubacena && preY > OBRUC_Y && l.y <= OBRUC_Y && l.vy < 0 && poluprecnik < R_KRUG) pogodak();
 
-  for (const rx of [x1, x2]) {                  // krajevi obruča su dve male kugle
-    const dx = l.x - rx, dy = l.y - OBRUC_Y;
-    const d = Math.hypot(dx, dy), r = R_LOPTE + R_OBRUCA;
+  {                                             // obruč je krug: gleda se najbliža tačka na njemu
+    const k = poluprecnik > 1e-6 ? R_KRUG / poluprecnik : 0;
+    const px = poluprecnik > 1e-6 ? cx + rx * k : cx + R_KRUG;
+    const pz = poluprecnik > 1e-6 ? cz + rz * k : cz;
+    const ax = l.x - px, ay = l.y - OBRUC_Y, az = l.z - pz;
+    const d = Math.hypot(ax, ay, az), r = R_LOPTE + R_OBRUCA;
     if (d < r && d > 1e-6) {
-      const nx = dx / d, ny = dy / d;
-      l.x = rx + nx * r; l.y = OBRUC_Y + ny * r;
-      const vn = l.vx * nx + l.vy * ny;
+      const nx = ax / d, ny = ay / d, nz = az / d;
+      l.x = px + nx * r; l.y = OBRUC_Y + ny * r; l.z = pz + nz * r;
+      const vn = l.vx * nx + l.vy * ny + l.vz * nz;
       if (vn < 0) {
-        l.vx -= 1.55 * vn * nx; l.vy -= 1.55 * vn * ny;
-        l.vx *= .93; l.vy *= .93;
+        l.vx -= 1.55 * vn * nx; l.vy -= 1.55 * vn * ny; l.vz -= 1.55 * vn * nz;
+        l.vx *= .93; l.vy *= .93; l.vz *= .93;
         l.vug += (l.vx * ny - l.vy * nx) * .5;
         if (!l.dodirObruc) { l.dodirObruc = true; tresi = 1; window.SFX && SFX.obruc(Math.min(.45, Math.abs(vn) * .1)); }
       }
     }
   }
-  const tx = tablaX();                          // prednja strana table
-  if (l.x + R_LOPTE > tx && l.x < tx && l.y > TABLA_D && l.y < TABLA_G && l.vx > 0) {
+  const tx = tablaX(), tz = obrucZ();           // prednja strana table
+  if (l.x + R_LOPTE > tx && l.x < tx && Math.abs(l.z - tz) < TABLA_POLA &&
+      l.y > TABLA_D && l.y < TABLA_G && l.vx > 0) {
     l.x = tx - R_LOPTE;
-    l.vx = -l.vx * .58; l.vy *= .9; l.vug *= .7;
+    l.vx = -l.vx * .58; l.vy *= .9; l.vz *= .9; l.vug *= .7;
     if (!l.dodirTabla) { l.dodirTabla = true; window.SFX && SFX.odskok(Math.min(.4, Math.abs(l.vx) * .09)); }
   }
   for (const ty of [TABLA_D, TABLA_G]) {        // donja i gornja ivica table
-    const dx = l.x - tx, dy = l.y - ty;
-    const d = Math.hypot(dx, dy), r = R_LOPTE + .012;
+    const pz = Math.max(tz - TABLA_POLA, Math.min(tz + TABLA_POLA, l.z));
+    const ax = l.x - tx, ay = l.y - ty, az = l.z - pz;
+    const d = Math.hypot(ax, ay, az), r = R_LOPTE + .012;
     if (d < r && d > 1e-6) {
-      const nx = dx / d, ny = dy / d;
-      l.x = tx + nx * r; l.y = ty + ny * r;
-      const vn = l.vx * nx + l.vy * ny;
+      const nx = ax / d, ny = ay / d, nz = az / d;
+      l.x = tx + nx * r; l.y = ty + ny * r; l.z = pz + nz * r;
+      const vn = l.vx * nx + l.vy * ny + l.vz * nz;
       if (vn < 0) {
-        l.vx -= 1.5 * vn * nx; l.vy -= 1.5 * vn * ny;
-        l.vx *= .9; l.vy *= .9;
+        l.vx -= 1.5 * vn * nx; l.vy -= 1.5 * vn * ny; l.vz -= 1.5 * vn * nz;
+        l.vx *= .9; l.vy *= .9; l.vz *= .9;
         if (!l.dodirTabla) { l.dodirTabla = true; window.SFX && SFX.odskok(Math.min(.4, Math.abs(vn) * .09)); }
       }
     }
@@ -337,35 +360,50 @@ function korak(dt) {
   if (l.y - R_LOPTE < 0 && l.vy < 0) {          // parket
     l.y = R_LOPTE;
     if (Math.abs(l.vy) > .35) window.SFX && SFX.odskok(Math.min(.5, Math.abs(l.vy) * .07));
-    l.vy = -l.vy * .68; l.vx *= .84; l.vug = -l.vx / R_LOPTE * .6;
+    l.vy = -l.vy * .68; l.vx *= .84; l.vz *= .84; l.vug = -l.vx / R_LOPTE * .6;
     l.tlo++;
   }
-  if (l.x < -.5 || l.x > SIRINA_SVETA + .6) l.gotova = l.gotova || l.t;
+  if (l.x < -.5 || l.x > SIRINA_SVETA + 1.4 || Math.abs(l.z) > 7) l.gotova = l.gotova || l.t;
   if (l.tlo >= 1) l.gotova = l.gotova || l.t + (l.ubacena ? .35 : .45);
   if (l.t > 6) l.gotova = l.gotova || l.t;
   if (l.gotova && l.t >= l.gotova) { faza = "stao"; krajLopte(); }
 }
-function putanja(vx, vy, koliko) {              // pomoćni luk dok se cilja
+function putanja(vx, vy, vz, koliko) {          // pomoćni luk dok se cilja
   const t = [];
-  let x = START.x, y = START.y, sx = vx, sy = vy;
-  const dt = 1 / 60;
+  let x = START.x, y = START.y, z = 0, sx = vx, sy = vy, sz = vz || 0;
+  const dt = 1 / 60, uBok = spreda();
   for (let i = 0; i * dt < koliko; i++) {
-    sy -= G_UBR * dt; sx += vetar * dt;
-    x += sx * dt; y += sy * dt;
+    sy -= G_UBR * dt;
+    if (uBok) sz += vetar * dt; else sx += vetar * dt;
+    x += sx * dt; y += sy * dt; z += sz * dt;
     if (y < 0) break;
-    t.push([x, y]);
+    t.push([x, y, z]);
   }
   return t;
 }
-function izVuce(v) {                            // povlačenje prsta u brzinu lopte
+function izVuce(v) {                            // sa strane: pravac i jačina iz povlačenja
   const dx = v.x - v.x0, dy = v.y - v.y0;
   const duz = Math.hypot(dx, dy);
   if (duz < cv.height * .04 || dy > 0) return null;
   const brzina = Math.min(15, duz / cv.height * 17);
   let ug = Math.atan2(-dy, dx);
   ug = Math.max(.09, Math.min(1.53, ug));       // ne šutira se nadole ni pravo uvis
-  return { vx: Math.cos(ug) * brzina, vy: Math.sin(ug) * brzina, brzina, ug };
+  return { vx: Math.cos(ug) * brzina, vy: Math.sin(ug) * brzina, vz: 0, brzina, ug, bok: 0 };
 }
+function izVuceSpreda(v) {                      // iz prvog lica: luk je stalan, biraš jačinu i pravac
+  const dx = v.x - v.x0, dy = v.y - v.y0;
+  const duz = Math.hypot(dx, dy);
+  if (duz < cv.height * .04 || dy > -1) return null;
+  /* pošto se ugao ne bira, jačina ide finije: ceo hod prsta pokriva samo
+     raspon koji ima smisla, pa se lakše pogodi prava mera */
+  const deo = duz / cv.height;
+  const brzina = Math.max(4.5, Math.min(12, 6.3 + (deo - .12) * 4.8));
+  const bok = Math.max(-.26, Math.min(.26, (dx / -dy) * .18));
+  const vodoravno = Math.cos(UGAO_SPREDA) * brzina;
+  return { vx: vodoravno * Math.cos(bok), vy: Math.sin(UGAO_SPREDA) * brzina,
+    vz: vodoravno * Math.sin(bok), brzina, ug: UGAO_SPREDA, bok };
+}
+const gadjanje = v => (spreda() ? izVuceSpreda(v) : izVuce(v));
 
 /* ---------- crtanje ---------- */
 const sx = x => x * M;
@@ -374,9 +412,17 @@ const sy = y => POD - y * M;
 function crtaj() {
   const w = cv.width, h = cv.height;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  if (tresi > 0) { ctx.translate((Math.random() - .5) * tresi * M * .05, (Math.random() - .5) * tresi * M * .05); }
+  if (tresi > 0) {
+    const j = tresi * w * .006;
+    ctx.translate((Math.random() - .5) * j, (Math.random() - .5) * j);
+  }
+  if (spreda()) crtajSpreda(w, h); else crtajSaStrane(w, h);
+  natpis(w, h);
+}
+function crtajSaStrane(w, h) {
   dvorana(w, h);
   parket(w, h);
+  suter();
   konstrukcija();
   tabla();
   obruc(true);
@@ -385,7 +431,6 @@ function crtaj() {
   mreza();
   obruc(false);
   nisan();
-  natpis(w);
 }
 function dvorana(w, h) {
   const g = ctx.createLinearGradient(0, 0, 0, POD);
@@ -490,22 +535,45 @@ function zaobljen(x, y, w, h, r) {
 function parket(w, h) {
   const y0 = sy(0);
   const g = ctx.createLinearGradient(0, y0, 0, h);
-  g.addColorStop(0, "#c08841"); g.addColorStop(.35, "#a9702f"); g.addColorStop(1, "#7d4f20");
+  g.addColorStop(0, "#d8a05c"); g.addColorStop(.4, "#c68a45"); g.addColorStop(1, "#a06a2e");
   ctx.fillStyle = g; ctx.fillRect(0, y0, w, h - y0);
-  ctx.strokeStyle = "rgba(60,34,12,.22)";       // daske
+  ctx.fillStyle = "rgba(176,74,47,.55)";        // obojena reket-zona, od linije do osnovne
+  ctx.fillRect(sx(START.x), y0 + (h - y0) * .18, sx(OSNOVNA) - sx(START.x), (h - y0) * .82);
+  ctx.strokeStyle = "rgba(70,40,14,.18)";       // daske
   ctx.lineWidth = Math.max(1, .012 * M);
   for (let i = 1; i < 7; i++) {
     const y = y0 + (h - y0) * i / 7;
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
   }
-  ctx.fillStyle = "rgba(255,255,255,.9)";       // linija slobodnog bacanja i osnovna linija
-  ctx.fillRect(sx(START.x) - .03 * M, y0 + (h - y0) * .30, .06 * M, (h - y0) * .70);
-  ctx.fillRect(sx(tablaX() + .05) - .03 * M, y0, .06 * M, (h - y0) * .22);
-  ctx.fillStyle = "rgba(255,255,255,.35)";
-  ctx.fillRect(0, y0 - .02 * M, w, .045 * M);
+  ctx.fillStyle = "rgba(255,255,255,.92)";      // linija slobodnog bacanja i osnovna linija
+  ctx.fillRect(sx(START.x) - .03 * M, y0 + (h - y0) * .18, .06 * M, (h - y0) * .82);
+  ctx.fillRect(sx(OSNOVNA) - .03 * M, y0 + (h - y0) * .18, .06 * M, (h - y0) * .82);
+  ctx.fillStyle = "rgba(255,255,255,.45)";
+  ctx.fillRect(0, y0 - .02 * M, w, .05 * M);
   const s = ctx.createLinearGradient(0, y0, 0, y0 + (h - y0) * .5);
-  s.addColorStop(0, "rgba(0,0,0,.28)"); s.addColorStop(1, "rgba(0,0,0,0)");
+  s.addColorStop(0, "rgba(0,0,0,.24)"); s.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = s; ctx.fillRect(0, y0, w, (h - y0) * .5);
+}
+/* silueta šutera — da se vidi odakle lopta polazi */
+function suter() {
+  const bx = START.x - .10, ispalio = faza !== "cekam";
+  const crta = (x1, y1, x2, y2, deb, boja) => {
+    ctx.strokeStyle = boja; ctx.lineWidth = deb * M;
+    ctx.beginPath(); ctx.moveTo(sx(x1), sy(y1)); ctx.lineTo(sx(x2), sy(y2)); ctx.stroke();
+  };
+  const lakat = ispalio ? [bx + .16, 1.44] : [bx + .13, 1.36];
+  const saka = ispalio ? [bx + .30, 1.92] : [bx + .11, 1.82];
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  for (const sloj of [{ b: "#0a1220", d: .05 }, { b: "#26395c", d: 0 }]) {
+    crta(bx - .13, 0, bx - .02, .48, .14 + sloj.d, sloj.b);   // noge
+    crta(bx + .11, 0, bx + .02, .48, .14 + sloj.d, sloj.b);
+    crta(bx + .02, .46, bx + .04, 1.12, .31 + sloj.d, sloj.b); // telo
+    crta(bx + .04, 1.10, lakat[0], lakat[1], .13 + sloj.d, sloj.b);
+    crta(lakat[0], lakat[1], saka[0], saka[1], .12 + sloj.d, sloj.b);
+    ctx.fillStyle = sloj.b;
+    ctx.beginPath(); ctx.arc(sx(bx + .07), sy(1.31), (.155 + sloj.d / 2) * M, 0, 7); ctx.fill();
+  }
+  crta(bx - .09, .1, bx - .07, 1.05, .045, "rgba(150,185,235,.30)");  // odsjaj sa leđa
 }
 function konstrukcija() {
   const tx = tablaX();
@@ -594,10 +662,12 @@ function crtajLoptu() {
     const g = izVuce(vucem);
     if (g) { x -= Math.cos(g.ug) * .11; y -= Math.sin(g.ug) * .11; }
   }
-  const cx = sx(x), cy = sy(y), r = R_LOPTE * M * 1.1;
+  loptaKrug(sx(x), sy(y), R_LOPTE * M * 1.1);
+}
+function loptaKrug(cx, cy, r) {
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.rotate(-lopta.ug);
+  ctx.rotate(-(lopta ? lopta.ug : 0));
   const g = ctx.createRadialGradient(-r * .35, -r * .38, r * .1, 0, 0, r * 1.12);
   g.addColorStop(0, "#f7b163"); g.addColorStop(.45, "#e2762b"); g.addColorStop(1, "#a8450f");
   ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fillStyle = g; ctx.fill();
@@ -618,7 +688,7 @@ function nisan() {
   if (faza !== "cekam" || !vucem || !P) return;
   const g = izVuce(vucem);
   if (!g) return;
-  const tacke = putanja(g.vx, g.vy, TEZINE[P.tez].pregled);
+  const tacke = putanja(g.vx, g.vy, 0, TEZINE[P.tez].pregled);
   ctx.fillStyle = "#eef2f9";
   for (let i = 3; i < tacke.length; i += 3) {
     const t = 1 - i / tacke.length * .55;
@@ -626,31 +696,232 @@ function nisan() {
     ctx.beginPath(); ctx.arc(sx(tacke[i][0]), sy(tacke[i][1]), .05 * M, 0, 7); ctx.fill();
   }
   ctx.globalAlpha = 1;
-  const jac = g.brzina / 15;                     // traka jačine uz loptu
-  const bx = sx(START.x), by = sy(START.y);
-  ctx.strokeStyle = "rgba(11,18,32,.55)"; ctx.lineWidth = .075 * M; ctx.lineCap = "round";
-  ctx.beginPath(); ctx.moveTo(bx, by + .42 * M); ctx.lineTo(bx + .9 * M, by + .42 * M); ctx.stroke();
-  ctx.strokeStyle = jac > .92 ? "#d65a4e" : "#c9a227";
-  ctx.beginPath(); ctx.moveTo(bx, by + .42 * M); ctx.lineTo(bx + .9 * M * jac, by + .42 * M); ctx.stroke();
+  trakaJacine(sx(START.x), sy(START.y) + .5 * M, .9 * M, g.brzina / 15);
+}
+function trakaJacine(x, y, duz, deo) {
+  ctx.strokeStyle = "rgba(11,18,32,.55)"; ctx.lineWidth = duz * .085; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + duz, y); ctx.stroke();
+  ctx.strokeStyle = deo > .92 ? "#d65a4e" : "#c9a227";
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + duz * Math.max(.02, deo), y); ctx.stroke();
   ctx.lineCap = "butt";
 }
-function natpis(w) {
+function natpis(w, h) {
   if (vetar) {
-    const jak = Math.abs(vetar);
-    ctx.fillStyle = "rgba(238,242,249,.75)";
-    ctx.font = "bold " + (.20 * M) + "px system-ui, sans-serif";
+    ctx.fillStyle = "rgba(238,242,249,.8)";
+    ctx.font = "bold " + (w * .033) + "px system-ui, sans-serif";
     ctx.textAlign = "left"; ctx.textBaseline = "top";
-    ctx.fillText((vetar > 0 ? "💨 ▶ " : "◀ 💨 ") + jak.toFixed(1), .14 * M, .16 * M);
+    ctx.fillText((vetar > 0 ? "💨 ▶ " : "◀ 💨 ") + Math.abs(vetar).toFixed(1), w * .024, w * .026);
   }
   if (performance.now() > porukaDo || !poruka) return;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.font = "bold " + (.30 * M) + "px system-ui, sans-serif";
+  ctx.font = "bold " + (w * .047) + "px system-ui, sans-serif";
   const sir = ctx.measureText(poruka).width;
-  const y = sy(4.95);
-  ctx.fillStyle = "rgba(8,14,26,.75)";
-  zaobljen(w / 2 - sir / 2 - .18 * M, y - .26 * M, sir + .36 * M, .52 * M, .12 * M); ctx.fill();
+  const y = spreda() ? h * .50 : sy(4.75), vis = w * .082;
+  ctx.fillStyle = "rgba(8,14,26,.78)";
+  zaobljen(w / 2 - sir / 2 - w * .028, y - vis / 2, sir + w * .056, vis, w * .019);
+  ctx.fill();
   ctx.fillStyle = "#eef2f9";
   ctx.fillText(poruka, w / 2, y);
+}
+
+/* ---------- pogled iz prvog lica ----------
+   Kamera stoji iza linije i gleda pravo u koš, pa se sad promašuje i levo-desno.
+   Sve se crta perspektivom: dublje je manje, a linije terena idu ka horizontu. */
+const KAM = { x: START.x - 3.0, y: 3.6, z: 0 };
+let PR = null;
+function projekcija() {
+  const f = cv.width * 1.525;
+  const dub = obrucX() - KAM.x;
+  return { f, cx: cv.width / 2, cy: cv.height * .24 + (OBRUC_Y - KAM.y) * f / dub };
+}
+function tacka3(x, y, z) {
+  const d = x - KAM.x;
+  if (d < .3) return null;
+  return [PR.cx + (z - KAM.z) * PR.f / d, PR.cy - (y - KAM.y) * PR.f / d, d];
+}
+function linija3(tacke, boja, debljina) {       // debljina je u metrima, pa se smanjuje sa dubinom
+  ctx.strokeStyle = boja;
+  ctx.beginPath();
+  let bilo = false, dub = 1;
+  for (const [x, y, z] of tacke) {
+    const t = tacka3(x, y, z);
+    if (!t) { bilo = false; continue; }
+    dub = t[2];
+    if (!bilo) { ctx.moveTo(t[0], t[1]); bilo = true; } else ctx.lineTo(t[0], t[1]);
+  }
+  ctx.lineWidth = Math.max(1, debljina * PR.f / dub);
+  ctx.stroke();
+}
+function poligon3(tacke, boja) {
+  ctx.fillStyle = boja;
+  ctx.beginPath();
+  let bilo = false;
+  for (const [x, y, z] of tacke) {
+    const t = tacka3(x, y, z);
+    if (!t) continue;
+    if (!bilo) { ctx.moveTo(t[0], t[1]); bilo = true; } else ctx.lineTo(t[0], t[1]);
+  }
+  ctx.closePath(); ctx.fill();
+}
+function crtajSpreda(w, h) {
+  PR = projekcija();
+  const zid = tacka3(OSNOVNA + 2.2, 0, 0)[1];   // gde se pod završava na ekranu
+  dvoranaSpreda(w, h, zid);
+  terenSpreda(w, h, zid);
+  konstrukcijaSpreda();
+  tablaSpreda();
+  obrucSpreda(true);
+  mrezaSpreda();
+  senkaSpreda();
+  loptaSpreda();
+  obrucSpreda(false);
+  nisanSpreda();
+}
+function dvoranaSpreda(w, h, zid) {
+  const g = ctx.createLinearGradient(0, 0, 0, zid);
+  g.addColorStop(0, "#080e1a"); g.addColorStop(.55, "#101d33"); g.addColorStop(1, "#16263f");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, zid);
+  const gore = zid - h * .40, kor = (zid - gore) / 8;
+  for (let r = 0; r < 8; r++) {                 // tribine iza koša, tiho da lopta ostane vidljiva
+    const y = gore + kor * (r + .5);
+    ctx.fillStyle = r % 2 ? "rgba(20,60,72,.30)" : "rgba(120,40,40,.22)";
+    ctx.fillRect(0, y - kor * .48, w, kor * .9);
+    for (let i = 0; i < 26; i++) {
+      const h1 = Math.sin(i * 12.9898 + r * 78.233) * 43758.5453;
+      const t = h1 - Math.floor(h1);
+      ctx.fillStyle = t < .35 ? "rgba(198,214,240,.10)" : t < .7 ? "rgba(201,162,39,.08)" : "rgba(214,90,78,.08)";
+      ctx.beginPath(); ctx.arc(((i + t) / 26) * w, y, kor * .19, 0, 7); ctx.fill();
+    }
+  }
+  ctx.fillStyle = "rgba(201,162,39,.28)"; ctx.fillRect(0, zid - h * .055, w, h * .006);
+  const r2 = ctx.createLinearGradient(0, zid - h * .05, 0, zid);
+  r2.addColorStop(0, "#17263f"); r2.addColorStop(1, "#0c1526");
+  ctx.fillStyle = r2; ctx.fillRect(0, zid - h * .05, w, h * .05);
+  ctx.fillStyle = "rgba(201,162,39,.16)";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = "bold " + (w * .036) + "px system-ui, sans-serif";
+  for (let i = 0; i < 3; i++) ctx.fillText("BORDER WAIT", w * (.18 + i * .32), zid - h * .025);
+}
+function terenSpreda(w, h, zid) {
+  const g = ctx.createLinearGradient(0, zid, 0, h);
+  g.addColorStop(0, "#b87c3c"); g.addColorStop(.45, "#cd9350"); g.addColorStop(1, "#dfa960");
+  ctx.fillStyle = g; ctx.fillRect(0, zid, w, h - zid);
+  const izvan = OSNOVNA, kraj = OSNOVNA + 2.2;
+  poligon3([[izvan, 0, -9], [kraj, 0, -9], [kraj, 0, 9], [izvan, 0, 9]], "rgba(60,34,14,.35)");
+  const pola = 2.45;                            // reket je širok 4,9 m
+  const blizu = KAM.x + .5;                     // reket ide i ispred kamere, do ivice slike
+  poligon3([[blizu, 0, -pola], [izvan, 0, -pola], [izvan, 0, pola], [blizu, 0, pola]], "rgba(176,74,47,.5)");
+  linija3([[blizu, 0, -pola], [izvan, 0, -pola]], "rgba(255,255,255,.92)", .05);
+  linija3([[blizu, 0, pola], [izvan, 0, pola]], "rgba(255,255,255,.92)", .05);
+  for (let x = 1; x < izvan; x += .8)           // daske, da se oseti dubina
+    linija3([[x, 0, -9], [x, 0, 9]], "rgba(70,40,14,.13)", .03);
+  const bela = "rgba(255,255,255,.92)";
+  linija3([[START.x, 0, -pola], [START.x, 0, pola]], bela, .05);
+  linija3([[izvan, 0, -9], [izvan, 0, 9]], bela, .05);
+  const krug = [];                              // krug slobodnog bacanja (dalja polovina)
+  for (let i = 0; i <= 32; i++) {
+    const a = -Math.PI / 2 + Math.PI * i / 32;
+    krug.push([START.x + Math.cos(a) * 1.8, 0, Math.sin(a) * 1.8]);
+  }
+  linija3(krug, "rgba(255,255,255,.75)", .045);
+  for (const strana of [-1, 1]) {                // linija za tri poena, 6,75 m od koša
+    const luk = [];
+    for (let i = 0; i <= 40; i++) {
+      const a = strana * (Math.PI / 2) * (1 - i / 40 * .72);
+      const x = obrucX() - Math.cos(a) * 6.75, z = Math.sin(a) * 6.75;
+      if (x > KAM.x + 1.2 && x < OSNOVNA) luk.push([x, 0, z]);
+    }
+    if (luk.length > 1) linija3(luk, "rgba(255,255,255,.6)", .05);
+  }
+  const s = ctx.createLinearGradient(0, zid, 0, zid + (h - zid) * .45);
+  s.addColorStop(0, "rgba(0,0,0,.25)"); s.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = s; ctx.fillRect(0, zid, w, (h - zid) * .45);
+}
+function konstrukcijaSpreda() {
+  const tx = tablaX(), tz = obrucZ();
+  ctx.strokeStyle = "#2b3d5e"; ctx.lineCap = "round";
+  linija3([[OSNOVNA + 1.5, 0, 0], [OSNOVNA + 1.5, 4.3, 0]], "#16233a", .09);
+  linija3([[OSNOVNA + 1.5, 4.0, 0], [tx + .12, 3.75, tz]], "#16233a", .075);
+  ctx.lineCap = "butt";
+}
+function tablaSpreda() {
+  const tx = tablaX(), tz = obrucZ(), p = TABLA_POLA;
+  poligon3([[tx, TABLA_G, tz - p], [tx, TABLA_G, tz + p], [tx, TABLA_D, tz + p], [tx, TABLA_D, tz - p]],
+    "rgba(226,236,250,.17)");
+  const okvir = [[tx, TABLA_G, tz - p], [tx, TABLA_G, tz + p], [tx, TABLA_D, tz + p], [tx, TABLA_D, tz - p], [tx, TABLA_G, tz - p]];
+  linija3(okvir, "rgba(238,242,249,.95)", .05);
+  const k = [[tx, OBRUC_Y + .50, tz - .295], [tx, OBRUC_Y + .50, tz + .295],
+             [tx, OBRUC_Y + .04, tz + .295], [tx, OBRUC_Y + .04, tz - .295], [tx, OBRUC_Y + .50, tz - .295]];
+  linija3(k, "rgba(238,242,249,.85)", .04);
+}
+function obrucSpreda(pozadi) {
+  const cx = obrucX(), cz = obrucZ();
+  const t = [];
+  const od = pozadi ? 0 : 24, do_ = pozadi ? 25 : 49;
+  for (let i = od; i <= do_; i++) {
+    const a = Math.PI * 2 * i / 48 + Math.PI / 2;  // 0 = najbliži deo obruča
+    t.push([cx - Math.cos(a) * R_KRUG, OBRUC_Y, cz + Math.sin(a) * R_KRUG]);
+  }
+  linija3(t, pozadi ? "#9b3a18" : "#f0742f", .05);
+}
+function mrezaSpreda() {
+  const cx = obrucX(), cz = obrucZ(), dole = OBRUC_Y - .42;
+  const naduv = 1 + mrezaFaza * .35;
+  ctx.strokeStyle = "rgba(240,245,252,.7)";
+  const tacka = (i, k) => {
+    const a = Math.PI * 2 * i / 12;
+    const r = R_KRUG * (1 - .42 * k) * (1 + (naduv - 1) * Math.sin(Math.PI * k));
+    return [cx + Math.cos(a) * r, OBRUC_Y + (dole - OBRUC_Y) * k, cz + Math.sin(a) * r];
+  };
+  for (let i = 0; i < 12; i++) {
+    const niz = [];
+    for (let k = 0; k <= 4; k++) niz.push(tacka(i, k / 4));
+    linija3(niz, "rgba(240,245,252,.7)", .016);
+  }
+  for (let k = 1; k <= 2; k++) {
+    const prsten = [];
+    for (let i = 0; i <= 12; i++) prsten.push(tacka(i % 12, k / 3));
+    linija3(prsten, "rgba(240,245,252,.55)", .014);
+  }
+}
+function senkaSpreda() {
+  if (!lopta) return;
+  const t = tacka3(lopta.x, .01, lopta.z);
+  if (!t) return;
+  const visina = Math.max(0, lopta.y - R_LOPTE);
+  const a = Math.max(0, .32 - visina * .045);
+  if (a <= 0) return;
+  const r = R_LOPTE * PR.f / t[2];
+  ctx.fillStyle = "rgba(0,0,0," + a + ")";
+  ctx.beginPath(); ctx.ellipse(t[0], t[1], r * (1 + visina * .12), r * .34, 0, 0, 7); ctx.fill();
+}
+function loptaSpreda() {
+  if (!lopta) return;
+  let x = lopta.x, z = lopta.z, y = lopta.y;
+  if (faza === "cekam" && vucem) {
+    const g = izVuceSpreda(vucem);
+    if (g) { x -= Math.cos(UGAO_SPREDA) * .12; y -= Math.sin(UGAO_SPREDA) * .12; }
+  }
+  const t = tacka3(x, y, z);
+  if (!t) return;
+  loptaKrug(t[0], t[1], R_LOPTE * PR.f / t[2]);
+}
+function nisanSpreda() {
+  if (faza !== "cekam" || !vucem || !P) return;
+  const g = izVuceSpreda(vucem);
+  if (!g) return;
+  linija3([[START.x, .02, 0], [obrucX(), .02, obrucZ()]], "rgba(238,242,249,.18)", .04);
+  const tacke = putanja(g.vx, g.vy, g.vz, TEZINE[P.tez].pregled);
+  ctx.fillStyle = "#eef2f9";
+  for (let i = 3; i < tacke.length; i += 3) {
+    const t = tacka3(tacke[i][0], tacke[i][1], tacke[i][2]);
+    if (!t) continue;
+    ctx.globalAlpha = .8 * (1 - i / tacke.length * .55);
+    ctx.beginPath(); ctx.arc(t[0], t[1], Math.max(1.2, Math.min(cv.width * .014, .05 * PR.f / t[2])), 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const b = tacka3(START.x, START.y, 0);
+  if (b) trakaJacine(b[0] - cv.width * .12, b[1] + cv.width * .17, cv.width * .24, g.brzina / 15);
 }
 
 /* ---------- ulaz ---------- */
@@ -674,9 +945,9 @@ for (const ev of ["pointerup", "pointercancel", "pointerleave"]) cv.addEventList
   if (!vucem || e.pointerId !== vucem.id) return;
   const v = vucem; vucem = null;
   if (ev !== "pointerup") return;
-  const g = izVuce(v);
+  const g = gadjanje(v);
   if (!g) { javi("Povuci malo duže, prema košu", 900); return; }
-  suti(g.vx, g.vy);
+  suti(g.vx, g.vy, g.vz);
 });
 
 /* ---------- petlja i veličina ---------- */
@@ -735,25 +1006,29 @@ function meni() {
   faza = "meni";
   soba && sobaKraj();
   const tok = ucitajTok();
-  const r = rekordi[izbor.serija + "-" + izbor.tez];
+  const r = rekordi[kljuc(izbor.serija, izbor.tez, izbor.pogled)];
   showOverlay('<h2>🏀 Basket</h2>' +
     '<p>Slobodna bacanja sa prave linije — 4,6 m do table, obruč na 3,05 m. ' +
     'Povuci prstom od lopte prema košu: pravac je pravac šuta, dužina je jačina.</p>' +
-    '<p>' + SERIJE[izbor.serija].nm + ' · ' + TEZINE[izbor.tez].nm +
+    '<p>' + POGLEDI[izbor.pogled].nm + ' · ' + SERIJE[izbor.serija].nm + ' · ' + TEZINE[izbor.tez].nm +
     (r ? ' · rekord <b style="color:#eef2f9">' + r.poeni + '</b> poena (' + r.pogoci + ' koševa)' : '') + '</p>' +
     '<div class="btns"><button id="igrajBtn">▶ Igraj</button>' +
     (tok ? '<button id="nastaviBtn">↩ Nastavi seriju</button>' : '') + '</div>' +
-    '<div class="btns"><button id="serijaBtn">🔢 Serija</button>' +
+    '<div class="btns"><button id="pogledBtn">👁 Pogled</button>' +
+    '<button id="serijaBtn">🔢 Serija</button>' +
     '<button id="tezBtn">⚙︎ Težina</button></div>' +
     '<div class="btns"><button id="sobaBtn2">🌐 Igra u sobi</button>' +
     '<button id="pravBtn">❔ Pravila</button></div>');
-  $("#igrajBtn").onclick = () => novaSerija(izbor.serija, izbor.tez);
+  $("#igrajBtn").onclick = () => novaSerija(izbor.serija, izbor.tez, izbor.pogled);
   const nb = $("#nastaviBtn");
   if (nb) nb.onclick = () => {
     P = tok; izbor.serija = P.ukupno; izbor.tez = P.tez;
-    hideOverlay(); novaLopta(); osveziTraku();
+    if (!POGLEDI[P.pogled]) P.pogled = "strana";
+    izbor.pogled = P.pogled;
+    hideOverlay(); fit(); novaLopta(); osveziTraku();
     javi("Nastavljamo — šut " + (P.sut + 1) + "/" + P.ukupno, 1600);
   };
+  $("#pogledBtn").onclick = () => biraj("pogled", POGLEDI, "👁 Odakle se gleda");
   $("#serijaBtn").onclick = () => biraj("serija", SERIJE, "🔢 Koliko lopti", true);
   $("#tezBtn").onclick = () => biraj("tez", TEZINE, "⚙︎ Težina");
   $("#sobaBtn2").onclick = sobaMeni;
@@ -771,7 +1046,7 @@ function biraj(sta, spisak, naslov, broj) {
   for (const b of document.querySelectorAll(".izbor button"))
     b.onclick = () => {
       izbor[sta] = broj ? +b.dataset.k : b.dataset.k;
-      rekordi.izbor = { serija: izbor.serija, tez: izbor.tez }; upisi();
+      rekordi.izbor = { serija: izbor.serija, tez: izbor.tez, pogled: izbor.pogled }; upisi();
       window.SFX && SFX.tap(); meni();
     };
   $("#nazadBtn").onclick = meni;
@@ -780,7 +1055,7 @@ $("#meniBtn2").onclick = meni;
 $("#opetBtn2").onclick = () => {
   if (soba) return;
   obrisiTok();
-  novaSerija(izbor.serija, izbor.tez);
+  novaSerija(izbor.serija, izbor.tez, izbor.pogled);
 };
 
 /* ---------- igra u sobi ----------
@@ -902,9 +1177,11 @@ function pokaziKod(kod) {
     '<div style="font-size:30px;font-weight:700;letter-spacing:8px;color:#c9a227;background:#16223a;' +
     'border:1px solid #283a5e;border-radius:12px;padding:10px 16px">' + kod + '</div>' +
     '<div class="mesta">' + red + (svi.length < 4 ? '<div class="mesto prazno">+ ima mesta do četiri igrača</div>' : '') + '</div>' +
-    (jeDomacin ? '<p>' + SERIJE[izbor.serija].nm + ' · ' + TEZINE[izbor.tez].nm + '</p>' : '<p>Čekamo da domaćin krene…</p>') +
+    (jeDomacin ? '<p>' + POGLEDI[izbor.pogled].nm + ' · ' + SERIJE[izbor.serija].nm + ' · ' + TEZINE[izbor.tez].nm + '</p>'
+      : '<p>Čekamo da domaćin krene…</p>') +
     '<div class="btns">' +
-    (jeDomacin ? '<button id="serijaSoba">🔢 Serija</button><button id="tezSoba">⚙︎ Težina</button>' : '') +
+    (jeDomacin ? '<button id="pogledSoba">👁 Pogled</button><button id="serijaSoba">🔢 Serija</button>' +
+      '<button id="tezSoba">⚙︎ Težina</button>' : '') +
     (jeDomacin && svi.length >= 2 ? '<button id="kreniBtn">▶ Kreni (' + svi.length + ')</button>' : '') +
     '<button id="odustBtn">Odustani</button></div>' +
     ((window.IGRAC && !IGRAC.ime()) ? '<p><button id="imeBtn2">👤 Upiši svoje ime</button></p>' : ''));
@@ -915,23 +1192,27 @@ function pokaziKod(kod) {
     izbor.tez = red2[(red2.indexOf(izbor.tez) + 1) % red2.length];
     pokaziKod(kod);
   };
+  const pb = $("#pogledSoba"); if (pb) pb.onclick = () => {
+    izbor.pogled = izbor.pogled === "strana" ? "spreda" : "strana";
+    pokaziKod(kod);
+  };
   const ib = $("#imeBtn2"); if (ib) ib.onclick = () => IGRAC.pitaj(() => pokaziKod(kod));
   $("#odustBtn").onclick = () => { sobaKraj(); meni(); };
 }
 function kreniUSobi() {
   const svi = (Mreza.drustvo() || []).slice(0, 4).map((x, i) => ({ id: x.id, ime: x.ime || ("Igrač " + (i + 1)) }));
   if (svi.length < 2) return;
-  Mreza.posalji({ t: "P", ig: svi, u: izbor.serija, z: izbor.tez });
-  pocniUSobi(svi, izbor.serija, izbor.tez);
+  Mreza.posalji({ t: "P", ig: svi, u: izbor.serija, z: izbor.tez, g: izbor.pogled });
+  pocniUSobi(svi, izbor.serija, izbor.tez, izbor.pogled);
 }
-function pocniUSobi(svi, ukupno, tez) {
+function pocniUSobi(svi, ukupno, tez, pg) {
   soba.postava = svi;
   soba.moj = Math.max(0, svi.findIndex(x => x.id === Mreza.jaSam()));
   soba.stanja = {};
   for (const x of svi) soba.stanja[x.id] = { poeni: 0, pogoci: 0, sut: 0, gotovo: 0 };
   cekaonica = false;
   obrisiTok();
-  novaSerija(ukupno, tez);
+  novaSerija(ukupno, tez, pg);
 }
 function sobaPrimi(m, od) {
   if (window.CET && CET.primi(m, od)) return;
@@ -942,7 +1223,7 @@ function sobaPrimi(m, od) {
       $("#punaBtn").onclick = () => { sobaKraj(); meni(); };
       return;
     }
-    return pocniUSobi(m.ig, m.u, m.z);
+    return pocniUSobi(m.ig, m.u, m.z, m.g);
   }
   if (m.t === "R") {
     soba.stanja[od] = { poeni: m.poeni, pogoci: m.pogoci, sut: m.sut, gotovo: m.gotovo };
@@ -963,6 +1244,7 @@ ucitaj();
 if (rekordi.izbor) izbor = Object.assign(izbor, rekordi.izbor);
 if (!SERIJE[izbor.serija]) izbor.serija = 10;
 if (!TEZINE[izbor.tez]) izbor.tez = "srednje";
+if (!POGLEDI[izbor.pogled]) izbor.pogled = "strana";
 fit(); crtaj(); meni();
 raf = requestAnimationFrame(loop);
 
@@ -971,39 +1253,49 @@ window.B = {
   get P() { return P; }, get lopta() { return lopta; }, get faza() { return faza; },
   get rekordi() { return rekordi; }, get izbor() { return izbor; }, get soba() { return soba; },
   get vetar() { return vetar; }, set vetar(v) { vetar = v; },
-  tablaX, obrucX1, obrucX2, novaSerija, novaLopta, suti, korak, putanja, izVuce,
+  POGLEDI, OSNOVNA, R_KRUG, TABLA_POLA, UGAO_SPREDA, KAM,
+  tablaX, obrucX, obrucZ, obrucX1, obrucX2, spreda, pogled,
+  novaSerija, novaLopta, suti, korak, putanja, izVuce, izVuceSpreda, gadjanje, tacka3, kljuc,
   meni, biraj, krajSerije, ucitajTok, obrisiTok, sobaMeni, sobaKraj, kreniUSobi, osveziTraku, fit, crtaj,
   sx, get M() { return M; }, get POD() { return POD; },
   /* za probe: odigraj šut do kraja bez čekanja na animaciju */
-  odsutiraj: (vx, vy) => {
-    if (!suti(vx, vy)) return null;
+  odsutiraj: (vx, vy, vz) => {
+    if (!suti(vx, vy, vz)) return null;
     for (let i = 0; i < 40000 && faza === "leti"; i++) korak(KORAK);
     if (lopta && lopta.gotova) lopta.gotova = 1;
     if (faza === "leti") { faza = "stao"; krajLopte(); }
     return P.istorija[P.istorija.length - 1];
   },
-  savrsenSut: () => {                            // aim koji najviše zaobilazi obruč
-    const x1 = obrucX1(), x2 = obrucX2();
+  savrsenSut: () => {                            // nišan koji najviše zaobilazi obruč
+    const cx = obrucX(), cz = obrucZ();
+    const uPrvomLicu = spreda();
+    const dx0 = cx - START.x, dz0 = cz;
+    const osnovni = Math.hypot(dx0, dz0);
+    const smerX = dx0 / osnovni, smerZ = dz0 / osnovni;
+    const dy = OBRUC_Y - START.y;
+    const uglovi = uPrvomLicu ? [UGAO_SPREDA] : [];
+    if (!uPrvomLicu) for (let a = 0; a <= 16; a++) uglovi.push(.92 + a * .022);
     let naj = null;
-    for (let a = 0; a <= 16; a++) {
-    const ug = .92 + a * .022;
-    for (let k = 0; k <= 24; k++) {
-      const xc = x1 + .09 + (x2 - x1 - .18) * k / 24;
-      const dx = xc - START.x, dy = OBRUC_Y - START.y;
-      const c = Math.cos(ug), imenilac = 2 * c * c * (dx * Math.tan(ug) - dy);
-      if (imenilac <= 0) continue;
-      const v = Math.sqrt(G_UBR * dx * dx / imenilac);
-      const vx = c * v, vy = Math.sin(ug) * v;
-      let zazor = 9, bilo = false;
-      for (let n = 0; n <= 800; n++) {
-        const t = n * .004;
-        const x = START.x + vx * t, y = START.y + vy * t - .5 * G_UBR * t * t;
-        if (y > OBRUC_Y) bilo = true;
-        if (bilo && y < OBRUC_Y - .35) break;
-        zazor = Math.min(zazor, Math.hypot(x - x1, y - OBRUC_Y), Math.hypot(x - x2, y - OBRUC_Y));
+    for (const ug of uglovi) {
+      const c = Math.cos(ug), s = Math.sin(ug);
+      for (let k = 0; k <= 24; k++) {
+        const domet = osnovni - (R_KRUG - .09) + 2 * (R_KRUG - .09) * k / 24;
+        const imenilac = 2 * c * c * (domet * Math.tan(ug) - dy);
+        if (imenilac <= 0) continue;
+        const v = Math.sqrt(G_UBR * domet * domet / imenilac);
+        const vodoravno = v * c;
+        const vx = vodoravno * smerX, vz = vodoravno * smerZ, vy = s * v;
+        let zazor = 9, bilo = false;
+        for (let n = 0; n <= 800; n++) {
+          const t = n * .004;
+          const x = START.x + vx * t, y = START.y + vy * t - .5 * G_UBR * t * t, z = vz * t;
+          if (y > OBRUC_Y) bilo = true;
+          if (bilo && y < OBRUC_Y - .35) break;
+          const rad = Math.hypot(x - cx, z - cz);
+          zazor = Math.min(zazor, Math.hypot(rad - R_KRUG, y - OBRUC_Y));
+        }
+        if (!naj || zazor > naj.zazor) naj = { vx, vy, vz, zazor, domet, ug };
       }
-      if (!naj || zazor > naj.zazor) naj = { vx, vy, zazor, xc, ug };
-    }
     }
     return naj;
   }

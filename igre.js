@@ -619,8 +619,9 @@ var PRAVILA = {
     "Igra se <b>protiv računara</b>, <b>na jednom telefonu</b> u dvoje do četvoro, ili <b>🌐 u sobi</b> — prazna mesta tada vodi računar."
   ]],
   basket: ["🏀 Basket", [
-    "Slobodna bacanja sa prave linije: <b>4,6 m</b> do table, obruč na <b>3,05 m</b>, prava lopta i prava gravitacija.",
-    "<b>Povuci prstom</b> od lopte prema košu — pravac povlačenja je pravac šuta, a dužina je jačina. Tanka tačkasta putanja pokazuje početak luka.",
+    "Slobodna bacanja sa prave linije: <b>4,6 m</b> do table, obruč na <b>3,05 m</b>, prava lopta i prava gravitacija. Lopta polazi sa visine sa koje je čovek ispušta, oko 2 m.",
+    "Bira se <b>👁 pogled</b>. <b>Sa strane</b> — vidi se ceo luk, povlačenjem se biraju i ugao i jačina. <b>Iz prvog lica</b> — gledaš pravo u koš, luk je stalan, a povlačenjem biraš <b>jačinu i pravac</b>, pa se promašuje i levo i desno.",
+    "<b>Povuci prstom</b> od lopte prema košu. Tanka tačkasta putanja pokazuje kuda kreće luk, a iz prvog lica i koliko ide u stranu.",
     "Pogodak nosi <b>2 poena</b>, a <b>čist koš</b> (bez table i bez obruča) <b>3</b>. Od trećeg uzastopnog koša ide 🔥 i svaki nosi poen više.",
     "Serija je <b>10 ili 20 lopti</b>; najbolji rezultat se pamti posebno za svaku seriju i težinu.",
     "Težina: <b>lako</b> — miran koš i duža pomoćna putanja; <b>srednje</b> — kratka pomoć; <b>teško</b> — <b>vetar</b> i koš koji se <b>pomera</b> levo-desno.",
