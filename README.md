@@ -273,6 +273,39 @@ sa rotacijom (bekspin iz šuta) i mrežu koja se naduva kad lopta prođe.
 **🌐 Igra u sobi** — do četiri igrača šutiraju istu seriju, svako svojim tempom; posle svakog šuta
 rezultat ode ostalima, pa u traci stoji ko koliko ima, a na kraju ide zajednička tabela.
 
+## Rumi
+
+`rumi.html` — igra sa **106 pločica** (brojevi 1—13 u četiri boje, svaki po dva puta, i dva džokera),
+po pravilima kakva stoje u uputstvu: 14 pločica svakome, **niz** je tri i više uzastopnih iste boje
+(jedinica je najmanja, posle 13 se ne nastavlja), **grupa** je isti broj u tri ili četiri različite
+boje, **prvi izlazak** mora da vredi bar **30** i to samo iz svoje ruke, posle njega se sto sme
+preslagati kako god — samo na kraju poteza svaki skup mora biti ispravan i mora se spustiti bar
+jedna svoja pločica. **Džoker** se skida sa stola samo pločicom koju baš zamenjuje i mora nazad na
+sto u istom potezu; u ruci na kraju vredi **30 minus**. Ko ne može (ili neće) — vuče jednu i potez
+je gotov.
+
+Pločica je broj: `id` nosi i boju i vrednost (`id = kopija·52 + boja·13 + broj−1`), pa gost u sobi
+sklopi istu pločicu iz golog broja i mrežom ide samo spisak brojeva.
+
+Najzanimljiviji deo je **rešavač**, jer bez njega računar ne bi umeo da preslaže sto. Pitanje „kako
+da sve sa stola (obavezno) i što više iz ruke stane u ispravne skupove" rešava se dinamičkim
+programiranjem po vrednostima 1—13: stanje je samo *koliko je nizova svake boje otvoreno* — dužine
+1, 2 i 3+ — plus koliko je džokera potrošeno. Takvih stanja ima malo (deset po boji), pa se prolaz
+kroz svih trinaest brojeva završi za nekoliko desetina milisekundi i na punom stolu. Grupe se hvataju
+uz put: za svaki broj se gleda samo koliko je pločica koje boje odvojeno za grupe, a to se uklapa u
+jednu ili dve grupe po jednostavnom pravilu (ukupno 3—4 uz najviše jednu po boji, ili 6—8 uz najviše
+dve po boji i bar tri boje). Iz zapamćenih odluka se zatim unazad sklope pravi skupovi. Zato računar
+ume ono što igru i čini igrom: da razbije grupu od četiri devetke da bi napravio niz 8-9-10.
+
+Sto i ruka su obični elementi stranice, ne platno — pločica je `<button>` boje slonovače sa tačkom
+ispod broja. Bira se dodirom (može i više njih odjednom), pa se dodirne skup na stolu, „＋ novi skup"
+ili sopstvena ruka za povratak. **↩ Vrati** poništi ceo potez, a dok se ne izađe u traci stoji
+koliko je poena skupljeno od trideset.
+
+Igra se protiv računara, **na jednom telefonu** (između poteza stoji „predaj telefon", pa se tuđe
+pločice ne vide) ili **🌐 u sobi** do četiri igrača — domaćin deli i vodi partiju, a gost šalje samo
+kako je ostavio sto. Bodovi se sabiraju kroz runde.
+
 ## Pravila u samoj igri
 
 `igre.js` nosi kratka pravila za svaku igru (`PRAVILA`) i ubacuje **❔** u zaglavlje svake igre — otvara
