@@ -49,25 +49,34 @@
   .col { width: min(100vw - 20px, 520px); }
   header { display: flex; align-items: center; gap: 10px;
            border-left: 4px solid var(--gold); padding: 3px 0 3px 10px; }
-  header h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.2px; }
+  body header h1 { margin: 0; font-size: 16.5px; font-weight: 700; letter-spacing: -.2px;
+                   white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.2; }
+  @media (max-width: 440px) { header .sub { display: none; } }
   header .sub { color: var(--ink-dim); font-size: 13px; }
   .spacer { flex: 1; }
 
-  .igraci { display: flex; gap: 6px; }
-  .igrac { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0;
-           background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-           padding: 5px 8px; font-size: 12.5px; color: var(--ink-dim); }
-  .igrac i { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+  .igraci { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  @media (min-width: 440px) { .igraci { grid-template-columns: repeat(4, 1fr); } }
+  .igrac { position: relative; display: flex; align-items: center; gap: 7px; min-width: 0;
+           background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+           padding: 6px 10px; font-size: 13.5px; color: var(--ink-dim); overflow: hidden; }
+  .igrac::before { content: ""; position: absolute; inset: 0; background: var(--boja); opacity: .10; }
+  .igrac > * { position: relative; }
+  .igrac i { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; background: var(--boja);
+             box-shadow: 0 0 0 2px rgba(255,255,255,.14), 0 1px 2px rgba(0,0,0,.35); }
   .igrac span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .igrac b { margin-left: auto; color: var(--ink); font-variant-numeric: tabular-nums; }
-  .igrac.naRedu { border-color: var(--gold); color: var(--ink); }
+  .igrac b { margin-left: auto; color: var(--ink); font-variant-numeric: tabular-nums; font-size: 13px; }
+  .igrac.naRedu { color: var(--ink); border-color: var(--boja); box-shadow: 0 0 0 1px var(--boja); }
+  .igrac.naRedu::before { opacity: .20; }
+  .igrac.gotov b::after { content: " ★"; color: var(--gold); }
 
-  .stage { position: relative; }
-  canvas { display: block; border: 1px solid var(--line); border-radius: 12px;
-           background: #101d33; box-shadow: var(--shadow); touch-action: manipulation; }
+  .stage { position: relative; display: flex; align-items: center; flex: 1 1 auto; }
+  canvas { display: block; border: 1px solid var(--line); border-radius: 16px;
+           background: var(--panel); box-shadow: var(--shadow), 0 0 0 4px rgba(0,0,0,.12);
+           touch-action: manipulation; }
   .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px;
              align-items: center; justify-content: center; text-align: center; padding: 16px;
-             background: rgba(8,14,26,.93); backdrop-filter: blur(3px); border-radius: 12px; z-index: 5;
+             background: rgba(8,14,26,.93); backdrop-filter: blur(3px); border-radius: 16px; z-index: 5;
              color: #eef2f9; overflow-y: auto; }
   .overlay[hidden] { display: none; }
   .overlay > * { flex-shrink: 0; }
@@ -93,7 +102,10 @@
   .akcije { display: flex; gap: 8px; align-items: center; }
   .akcije .poruka { flex: 1; font-size: 13px; color: var(--ink-dim); min-width: 0;
                     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .akcije .baci { font-size: 16px; font-weight: 700; padding: 10px 18px; border-color: var(--gold); color: var(--gold); }
+  .akcije .baci { font-size: 16.5px; font-weight: 700; padding: 10px 20px; border-color: var(--gold);
+                  color: var(--gold); border-radius: 12px;
+                  background: linear-gradient(180deg, var(--panel-2), var(--panel)); }
+  .akcije .baci:not(:disabled) { box-shadow: 0 0 0 1px rgba(201,162,39,.35), 0 4px 12px rgba(0,0,0,.20); }
 
   .foot { color: var(--ink-dim); font-size: 12.5px; line-height: 1.4; text-align: center; }
   .foot a { color: var(--ink-dim); }
@@ -421,26 +433,51 @@ function ugrozenost(igrac, mesto) {              // koliko protivnika može da m
 
 /* ---------- crtanje ---------- */
 let P = 10;                                      // veličina polja u pikselima
+let PAL = null;                                  // boje table, prate temu stranice
+
+function paleta() {
+  return document.body.dataset.theme === "light" ? {
+    pod1: "#f7eeda", pod2: "#e3d2ae", vinjeta: "rgba(96,70,28,.28)",
+    traka: "#efe3c8", trakaIvica: "rgba(96,70,28,.20)",
+    polje1: "#fffdf7", polje2: "#e7dcc3", ivica: "rgba(96,70,28,.40)",
+    senka: "rgba(96,70,28,.30)", udubljenje: "rgba(96,70,28,.12)",
+    kocka1: "#fffdf7", kocka2: "#e2d6b9", tacka: "#2b2214",
+    istice: "#2f4670", smer: "rgba(255,255,255,.92)"
+  } : {
+    pod1: "#1b3557", pod2: "#0c1a2e", vinjeta: "rgba(0,0,0,.42)",
+    traka: "#1f3a5f", trakaIvica: "rgba(255,255,255,.10)",
+    polje1: "#2a4a75", polje2: "#152a4a", ivica: "rgba(255,255,255,.28)",
+    senka: "rgba(0,0,0,.45)", udubljenje: "rgba(0,0,0,.28)",
+    kocka1: "#f6f9fe", kocka2: "#c6d3e8", tacka: "#16223a",
+    istice: "rgba(255,255,255,.94)", smer: "rgba(255,255,255,.9)"
+  };
+}
+function tamnije(boja, k) {                      // hex -> tamnija nijansa iste boje
+  const n = parseInt(boja.slice(1), 16), f = k === undefined ? .62 : k;
+  return "rgb(" + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => Math.round(v * f)).join(",") + ")";
+}
+
 function crtaj() {
   const w = cv.width;
   P = w / 11;
+  PAL = paleta();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, w, cv.height);
-  ctx.fillStyle = "#101d33"; ctx.fillRect(0, 0, w, cv.height);
 
-  for (let i = 0; i < 4; i++) {                 // kuće i ciljna polja
-    ctx.fillStyle = "rgba(255,255,255,.045)";
-    const k = KUCA[i];
-    const x0 = Math.min(...k.map(c => c[0])), y0 = Math.min(...k.map(c => c[1]));
-    zaobljen(x0 * P + P * .1, y0 * P + P * .1, P * 1.8, P * 1.8, P * .3);
-    ctx.fill();
-    for (const c of k) polje(c[0], c[1], BOJE[i].p, .3);
-    for (const c of CILJ[i]) polje(c[0], c[1], BOJE[i].p, .55);
+  podloga(w);                                   // drvena podloga sa vinjetom
+  for (let i = 0; i < 4; i++) kucaOkvir(i);     // četiri kuće po uglovima
+  rozeta();                                     // četvorobojna zvezda u sredini
+  traka();                                      // staza kao jedna traka u krug
+  for (let i = 0; i < 4; i++) ciljnaTraka(i);   // krak ka cilju, u boji igrača
+
+  for (let i = 0; i < 4; i++) {                 // polja u kući i u cilju
+    for (const c of KUCA[i]) polje(c[0], c[1], BOJE[i].p, .30);
+    CILJ[i].forEach((c, n) => polje(c[0], c[1], BOJE[i].p, .42 + n * .09));
   }
   for (let i = 0; i < 40; i++) {                // staza
-    const s = STAZA[i];
-    const start = START.indexOf(i);
-    polje(s[0], s[1], start >= 0 ? BOJE[start].p : "#9fb0cc", start >= 0 ? .85 : .22);
+    const s = STAZA[i], start = START.indexOf(i);
+    polje(s[0], s[1], start >= 0 ? BOJE[start].p : null, .82);
+    if (start >= 0) smerStarta(i);
   }
   kockaNaSredini();
 
@@ -461,8 +498,31 @@ function crtaj() {
     const c1 = poljeZa(a.igrac, Math.min(43, celi));
     const c2 = poljeZa(a.igrac, Math.min(43, celi + 1));
     const x = c1[0] + (c2[0] - c1[0]) * delic, y = c1[1] + (c2[1] - c1[1]) * delic;
-    figura(x, y, a.igrac, false, true);
+    const skok = Math.sin(t * Math.PI) * (a.izKuce ? .18 : .12);
+    figura(x, y - skok, a.igrac, false, true);
   }
+  ciljeviPoteza();                              // gde figura sme da stane
+}
+function ciljeviPoteza() {
+  if (!G || G.gotovo || !cekamPotez || !naPotezuJa()) return;
+  const puls = .55 + Math.sin(performance.now() / 300) * .22;
+  ctx.save();
+  ctx.globalAlpha = puls;
+  ctx.setLineDash([P * .14, P * .11]);
+  ctx.lineWidth = P * .075; ctx.strokeStyle = BOJE[G.naRedu].p;
+  for (const p of potezi(G.naRedu, G.kocka)) {
+    const c = poljeZa(G.naRedu, p.cilj);
+    ctx.beginPath(); ctx.arc((c[0] + .5) * P, (c[1] + .5) * P, P * .35, 0, 7); ctx.stroke();
+  }
+  ctx.restore();
+}
+function podloga(w) {
+  const g = ctx.createLinearGradient(0, 0, w * .35, cv.height);
+  g.addColorStop(0, PAL.pod1); g.addColorStop(1, PAL.pod2);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, cv.height);
+  const v = ctx.createRadialGradient(w * .5, w * .5, w * .26, w * .5, w * .5, w * .74);
+  v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, PAL.vinjeta);
+  ctx.fillStyle = v; ctx.fillRect(0, 0, w, cv.height);
 }
 function zaobljen(x, y, w, h, r) {
   ctx.beginPath();
@@ -473,28 +533,116 @@ function zaobljen(x, y, w, h, r) {
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
-function polje(cx, cy, boja, jacina) {
+function kucaOkvir(i) {                          // udubljenje u koje figure čekaju
+  const k = KUCA[i];
+  const x0 = Math.min(...k.map(c => c[0])) * P + P * .05;
+  const y0 = Math.min(...k.map(c => c[1])) * P + P * .05;
+  const s = P * 1.9;
+  ctx.save();
+  zaobljen(x0, y0, s, s, P * .40);
+  ctx.fillStyle = PAL.udubljenje; ctx.fill();
+  ctx.globalAlpha = .24; ctx.fillStyle = BOJE[i].p; ctx.fill();
+  ctx.globalAlpha = G && !G.gotovo && G.naRedu === i ? 1 : .55;
+  ctx.lineWidth = P * .08; ctx.strokeStyle = BOJE[i].p; ctx.stroke();
+  ctx.restore();
+}
+function traka() {                               // staza od 40 polja, jedna zatvorena traka
+  ctx.save();
   ctx.beginPath();
-  ctx.arc((cx + .5) * P, (cy + .5) * P, P * .38, 0, 7);
-  ctx.fillStyle = "rgba(16,29,51,.9)"; ctx.fill();
-  ctx.globalAlpha = jacina;
-  ctx.fillStyle = boja; ctx.fill();
-  ctx.globalAlpha = 1;
-  ctx.lineWidth = 1.2; ctx.strokeStyle = "rgba(255,255,255,.16)"; ctx.stroke();
+  STAZA.forEach((s, i) => {
+    const x = (s[0] + .5) * P, y = (s[1] + .5) * P;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  });
+  ctx.closePath();
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.lineWidth = P * .96; ctx.strokeStyle = PAL.trakaIvica; ctx.stroke();
+  ctx.lineWidth = P * .86; ctx.strokeStyle = PAL.traka; ctx.stroke();
+  ctx.restore();
+}
+function ciljnaTraka(i) {                        // krak od ulaza u cilj do sredine
+  const a = CILJ[i][0];
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo((a[0] + .5) * P, (a[1] + .5) * P);
+  ctx.lineTo(5.5 * P, 5.5 * P);
+  ctx.lineCap = "round"; ctx.lineWidth = P * .70;
+  ctx.globalAlpha = .46; ctx.strokeStyle = BOJE[i].p; ctx.stroke();
+  ctx.restore();
+}
+function rozeta() {                              // četiri trougla u sredini, po jedan za igrača
+  const cx = 5.5 * P, cy = 5.5 * P, r = P * 1.02;
+  const uglovi = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  const strane = [[3, 0], [0, 1], [1, 2], [2, 3]];   // levo, gore, desno, dole
+  ctx.save();
+  for (let i = 0; i < 4; i++) {
+    const [a, b] = strane[i];
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + uglovi[a][0] * r, cy + uglovi[a][1] * r);
+    ctx.lineTo(cx + uglovi[b][0] * r, cy + uglovi[b][1] * r);
+    ctx.closePath();
+    ctx.globalAlpha = G && !G.gotovo && G.naRedu === i ? .8 : .42;
+    ctx.fillStyle = BOJE[i].p; ctx.fill();
+  }
+  ctx.restore();
+}
+function polje(cx, cy, boja, jacina) {
+  const x = (cx + .5) * P, y = (cy + .5) * P, r = P * .38;
+  ctx.beginPath(); ctx.arc(x, y + P * .04, r, 0, 7);
+  ctx.fillStyle = PAL.senka; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
+  const g = ctx.createLinearGradient(x, y - r, x, y + r);
+  g.addColorStop(0, PAL.polje1); g.addColorStop(1, PAL.polje2);
+  ctx.fillStyle = g; ctx.fill();
+  if (boja) { ctx.globalAlpha = jacina; ctx.fillStyle = boja; ctx.fill(); ctx.globalAlpha = 1; }
+  ctx.lineWidth = P * .04; ctx.strokeStyle = PAL.ivica; ctx.stroke();
+}
+function smerStarta(i) {                         // strelica na polju izlaska, ka smeru kretanja
+  const s = STAZA[i], n = STAZA[(i + 1) % 40];
+  const x = (s[0] + .5) * P, y = (s[1] + .5) * P;
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(Math.atan2(n[1] - s[1], n[0] - s[0]));
+  ctx.beginPath();
+  ctx.moveTo(-P * .10, -P * .14); ctx.lineTo(P * .10, 0); ctx.lineTo(-P * .10, P * .14);
+  ctx.lineWidth = P * .075; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.strokeStyle = PAL.smer; ctx.stroke();
+  ctx.restore();
 }
 function figura(cx, cy, igrac, moze, ukretanju) {
-  const x = (cx + .5) * P, y = (cy + .5) * P, r = P * .32;
-  ctx.beginPath(); ctx.ellipse(x, y + r * .55, r * .9, r * .38, 0, 0, 7);
-  ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.fill();
-  ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
-  ctx.fillStyle = BOJE[igrac].p; ctx.fill();
-  ctx.lineWidth = ukretanju ? 3 : 2;
-  ctx.strokeStyle = ukretanju ? "#fff" : "rgba(255,255,255,.75)"; ctx.stroke();
-  ctx.beginPath(); ctx.arc(x - r * .3, y - r * .3, r * .3, 0, 7);
-  ctx.fillStyle = BOJE[igrac].s; ctx.fill();
-  if (moze) {
-    ctx.beginPath(); ctx.arc(x, y, r * 1.45 + Math.sin(performance.now() / 220) * P * .04, 0, 7);
-    ctx.lineWidth = 2.5; ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.stroke();
+  const x = (cx + .5) * P, y = (cy + .5) * P, R = P * .31, b = BOJE[igrac];
+  ctx.save();
+  ctx.beginPath();                              // senka na polju
+  ctx.ellipse(x, y + R * .90, R * (ukretanju ? 1.15 : .98), R * .30, 0, 0, 7);
+  ctx.fillStyle = "rgba(0,0,0,.32)"; ctx.fill();
+  ctx.beginPath();                              // telo
+  ctx.moveTo(x - R * .90, y + R * .80);
+  ctx.quadraticCurveTo(x - R * .56, y + R * .26, x - R * .33, y - R * .20);
+  ctx.lineTo(x + R * .33, y - R * .20);
+  ctx.quadraticCurveTo(x + R * .56, y + R * .26, x + R * .90, y + R * .80);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(x - R, y - R, x + R, y + R);
+  g.addColorStop(0, b.s); g.addColorStop(.45, b.p); g.addColorStop(1, tamnije(b.p, .55));
+  ctx.fillStyle = g; ctx.fill();
+  ctx.lineWidth = P * .035; ctx.strokeStyle = "rgba(0,0,0,.30)"; ctx.stroke();
+  ctx.beginPath();                              // podnožje
+  ctx.ellipse(x, y + R * .80, R * .90, R * .24, 0, 0, 7);
+  ctx.fillStyle = tamnije(b.p, .72); ctx.fill();
+  ctx.lineWidth = P * .03; ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.stroke();
+  ctx.beginPath();                              // glava
+  ctx.arc(x, y - R * .48, R * .50, 0, 7);
+  const g2 = ctx.createRadialGradient(x - R * .20, y - R * .68, R * .04, x, y - R * .48, R * .62);
+  g2.addColorStop(0, b.s); g2.addColorStop(1, b.p);
+  ctx.fillStyle = g2; ctx.fill();
+  ctx.lineWidth = P * .035; ctx.strokeStyle = "rgba(0,0,0,.30)"; ctx.stroke();
+  ctx.beginPath();                              // odsjaj
+  ctx.ellipse(x - R * .17, y - R * .64, R * .17, R * .10, -.6, 0, 7);
+  ctx.fillStyle = "rgba(255,255,255,.72)"; ctx.fill();
+  ctx.restore();
+  if (moze || ukretanju) {                      // prsten oko figure koja se može/hoće pomeriti
+    const t = moze ? 1 + Math.sin(performance.now() / 250) * .06 : 1.04;
+    ctx.beginPath(); ctx.arc(x, y, P * .40 * t, 0, 7);
+    ctx.lineWidth = P * .06; ctx.strokeStyle = moze ? PAL.istice : "rgba(255,255,255,.9)";
+    ctx.stroke();
   }
 }
 function mozeDaSePomeri(igrac, f) {
@@ -502,24 +650,34 @@ function mozeDaSePomeri(igrac, f) {
   return potezi(igrac, G.kocka).some(p => p.figura === f);
 }
 function kockaNaSredini() {
-  const x = 5 * P, y = 5 * P, s = P * .92, r = P * .16;
+  const kotrlja = performance.now() < kockaVrti;
+  const s = P * 1.04, r = P * .21;
   ctx.save();
-  ctx.translate(x + P * .04, y + P * .04);
+  ctx.translate(5.5 * P, 5.5 * P);
+  if (kotrlja) { ctx.rotate(Math.sin(performance.now() / 60) * .24); ctx.scale(1.07, 1.07); }
+  ctx.translate(-s / 2, -s / 2);
+  ctx.shadowColor = "rgba(0,0,0,.5)"; ctx.shadowBlur = P * .3; ctx.shadowOffsetY = P * .1;
   zaobljen(0, 0, s, s, r);
-  ctx.fillStyle = G && !G.gotovo ? BOJE[G.naRedu].p : "#1b2a4a";
-  ctx.fill();
-  ctx.lineWidth = 2; ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.stroke();
+  const g = ctx.createLinearGradient(0, 0, s * .7, s);
+  g.addColorStop(0, PAL.kocka1); g.addColorStop(1, PAL.kocka2);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  ctx.lineWidth = P * .07;
+  ctx.strokeStyle = G && !G.gotovo ? BOJE[G.naRedu].p : PAL.ivica;
+  ctx.stroke();
   let broj = G ? G.kocka : 0;
-  if (performance.now() < kockaVrti) broj = 1 + ((performance.now() / 70) | 0) % 6;
+  if (kotrlja) broj = 1 + ((performance.now() / 70) | 0) % 6;
   if (broj) {
     const t = [[.5, .5]], d = [[.28, .28], [.72, .72]], tri = [[.28, .28], [.5, .5], [.72, .72]],
       cet = [[.28, .28], [.72, .28], [.28, .72], [.72, .72]],
       pet = [[.28, .28], [.72, .28], [.5, .5], [.28, .72], [.72, .72]],
       sest = [[.28, .28], [.72, .28], [.28, .5], [.72, .5], [.28, .72], [.72, .72]];
     const tacke = [t, d, tri, cet, pet, sest][broj - 1];
-    ctx.fillStyle = "#0e1626";
     for (const [a, b] of tacke) {
-      ctx.beginPath(); ctx.arc(a * s, b * s, s * .085, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(a * s, b * s + s * .012, s * .088, 0, 7);
+      ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fill();
+      ctx.beginPath(); ctx.arc(a * s, b * s, s * .088, 0, 7);
+      ctx.fillStyle = PAL.tacka; ctx.fill();
     }
   }
   ctx.restore();
@@ -531,8 +689,10 @@ function osveziIgrace() {
   if (!G) { el.innerHTML = ""; return; }
   el.innerHTML = [0, 1, 2, 3].map(i => {
     const uCilju = G.figure[i].filter(m => m >= 40).length;
-    return '<div class="igrac' + (G.naRedu === i && !G.gotovo ? " naRedu" : "") + '">' +
-      '<i style="background:' + BOJE[i].p + '"></i><span>' + imeIgraca(i) + '</span><b>' + uCilju + '/4</b></div>';
+    const gotov = uCilju === 4;
+    return '<div class="igrac' + (G.naRedu === i && !G.gotovo ? " naRedu" : "") + (gotov ? " gotov" : "") +
+      '" style="--boja:' + BOJE[i].p + '">' +
+      '<i></i><span>' + imeIgraca(i) + '</span><b>' + uCilju + '/4</b></div>';
   }).join("");
 }
 function javi(t) { G && (G.poruka = t); $("#poruka").textContent = t; }
