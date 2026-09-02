@@ -317,6 +317,8 @@ function zavrsi() {
   G.rezultat = { p, vise };
   render(); save(); posaljiStanje();
   const pob = p[0].ukupno === p[1].ukupno ? -1 : (p[0].ukupno > p[1].ukupno ? 0 : 1);
+  if (window.TOP && G.rezim !== "dvoje" && p[mojIndex])
+    window.TOP.upisi("tablic", "poeni", p[mojIndex].ukupno, p[mojIndex].karte + " karata");
   window.SFX && SFX.win();
   showOverlay('<h2>' + (pob < 0 ? "Nerešeno" : "🏆 " + p[pob].ime + " pobeđuje") + '</h2>' +
     '<div class="rez"><span></span><b>' + p[0].ime + '</b><b>' + p[1].ime + '</b>' +

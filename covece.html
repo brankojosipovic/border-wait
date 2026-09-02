@@ -220,7 +220,8 @@ function novaIgra(rezim, ljudi, imena) {
     rezim, ljudi,                               // ljudi: niz true/false — ko je čovek
     imena: imena || ljudi.map((c, i) => c ? "Igrač " + (i + 1) : "Računar " + (i + 1)),
     figure: [0, 1, 2, 3].map(() => [KUCI, KUCI, KUCI, KUCI]),
-    naRedu: 0, kocka: 0, bacanja: 0, iskoriscena: false, gotovo: false, poredak: [], poruka: ""
+    naRedu: 0, kocka: 0, bacanja: 0, iskoriscena: false, gotovo: false, poredak: [], poruka: "",
+    ukupnoBacanja: [0, 0, 0, 0]                 // koliko je ko bacio u celoj partiji — za top listu
   };
   animacija = null; cekamPotez = false;
   hideOverlay(); osveziIgrace(); osveziDugme();
@@ -262,6 +263,7 @@ function baci(broj, odmah) {
   if (!G || G.gotovo || animacija || cekamPotez) return;
   const k = broj || (1 + ((Math.random() * 6) | 0));
   G.kocka = k; G.bacanja++; G.iskoriscena = false;
+  if (G.ukupnoBacanja) G.ukupnoBacanja[G.naRedu]++;
   if (soba && G.rezim === "mreza" && !primam) Mreza.posalji({ t: "K", k });
   if (!odmah) { window.SFX && SFX.drum(); kockaVrti = performance.now() + 420; }
   const posle = (ms, f) => odmah ? f() : setTimeout(f, ms);
@@ -368,6 +370,9 @@ function kraj() {
     const k = "protiv" + G.ljudi.filter(x => !x).length;
     if (mesto === 1) rekordi[k] = (rekordi[k] || 0) + 1;
     upisi();
+    if (mesto === 1 && window.TOP && G.ukupnoBacanja)
+      window.TOP.upisi("covece", "bacanja", G.ukupnoBacanja[jaSam],
+        G.ljudi.filter(x => !x).length + " protivnika");
   }
   window.SFX && (mesto === 1 ? SFX.jackpot() : SFX.siren());
   const red = poredak.map((i, k) =>

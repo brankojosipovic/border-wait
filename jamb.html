@@ -383,6 +383,7 @@ function kraj() {
   const moji = ukupnoListic(G.igraci[mojIndex] ? G.igraci[mojIndex].listic : G.igraci[0].listic);
   const nov = moji > rekord;
   if (nov) { try { localStorage.setItem("jamb.rekord", JSON.stringify(moji)); } catch (e) { } }
+  window.TOP && window.TOP.upisi("jamb", "listic", moji);
   window.SFX && SFX.jackpot();
   render(); posaljiStanje();
   try { localStorage.removeItem(KEY); } catch (e) { }

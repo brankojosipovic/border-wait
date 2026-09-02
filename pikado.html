@@ -785,6 +785,8 @@ function zavrsiLeg() {
   const ja = G.rezim === "mreza" || G.rezim === "sam" ? mojIndex : G.pobednik;
   const jaPobedio = G.rezim === "vise" ? false : G.pobednik === mojIndex;
   const legovi = G.igraci.map(x => x.ime + " " + x.legovi).join(" : ");
+  if (window.TOP && G.igra === "501" && G.rezim !== "vise" && G.pobednik === mojIndex)
+    window.TOP.upisi("pikado", "strele", stat(ig).strele, "leg " + G.leg);
   showOverlay('<h2>🎯 ' + (G.rezim === "vise" ? ig.ime + " pobeđuje!" : jaPobedio ? "Pobedio si!" : ig.ime + " pobeđuje.") + '</h2>' +
     '<p>' + (G.igra === "krug" ? "Obišao je celu tablu." : "Zatvorio je leg " + G.leg + " iz " +
       stat(ig).strele + " strelica.") + '<br>Legovi: <b>' + legovi + '</b></p>' +

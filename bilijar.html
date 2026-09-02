@@ -793,6 +793,8 @@ function zavrsi() {
   setTimeout(() => window.GLAS && GLAS.reci(G.igra === "snuker" ? "Frame!" : "Game!", { rate: .95, pitch: 1.1 }), 500);
   const im = G.pobednik == null ? "Nerešeno" : G.igraci[G.pobednik].ime;
   const jaPobedio = G.rezim === "vise" ? false : G.pobednik === mojIndex;
+  if (window.TOP && G.igra === "snuker" && G.rezim !== "vise" && G.igraci[mojIndex])
+    window.TOP.upisi("bilijar", "snuker", G.igraci[mojIndex].poeni, jaPobedio ? "frejm dobijen" : "");
   showOverlay('<h2>🎱 ' + (G.pobednik == null ? "Nerešeno!" : (jaPobedio ? "Pobedio si!" : im + " pobeđuje.")) + '</h2>' +
     '<p>' + (G.poruka || "") + '</p>' +
     '<div class="mesta">' + G.igraci.map(x =>

@@ -111,6 +111,7 @@
 
   <div class="alatke col">
     <button id="sndToggle">…</button>
+    <button id="stilToggle" title="Moderan ili retro zvuk u svim igrama">…</button>
     <button id="glasToggle">…</button>
     <a class="pomocBtn" href="pomoc.html">❔ Pomoć</a>
     <button id="updBtn">🔄 Nova verzija</button>
@@ -222,6 +223,21 @@ function paintSnd() {
   b.textContent = on ? "🔊 Zvuk" : "🔇 Nemo";
 }
 document.getElementById("sndToggle").onclick = function () { SFX.prekidac(); paintSnd(); };
+
+function paintStil() {                            // isti izbor važi u svim igrama
+  var b = document.getElementById("stilToggle");
+  b.textContent = (window.SFX && SFX.stil() === "retro") ? "👾 Retro zvuk" : "🎧 Moderan zvuk";
+}
+document.getElementById("stilToggle").onclick = function () {
+  if (!window.SFX) return;
+  SFX.stil(SFX.stil() === "retro" ? "moderno" : "retro");
+  paintStil();
+  if (!SFX.isOn()) SFX.set(true); else SFX.good();
+  SFX.poruka(SFX.stil() === "retro"
+    ? "👾 <b>Retro zvuk</b> — čip iz osamdesetih, u svim igrama."
+    : "🎧 <b>Moderan zvuk</b> — mekši tonovi, u svim igrama.");
+};
+paintStil();
 document.getElementById("glasToggle").onclick = function () { window.GLAS && GLAS.toggle(); };
 if (window.GLAS) GLAS.paint();
 document.getElementById("imeBtn").onclick = function () { window.IGRAC && IGRAC.pitaj(); };

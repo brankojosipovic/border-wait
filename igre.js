@@ -118,8 +118,59 @@ document.addEventListener("visibilitychange", function () {
   try { if (ctx && ctx.state === "suspended" && ctx.resume) ctx.resume(); } catch (e) { }
 });
 
+/* ---------- stil zvuka: moderno ili retro ----------
+   Retro je čip iz osamdesetih: pravougaoni talas po polustepenima, stepenasto
+   klizanje i jednobitni šum. Prelaz važi za sve igre odjednom. */
+var STILKEY = "igre.zvukStil";
+var stil = "moderno";
+try { var sv = localStorage.getItem(STILKEY); if (sv === "retro" || sv === "moderno") stil = sv; } catch (e) { }
+function naPolustepen(f) {
+  var n = Math.round(12 * Math.log(Math.max(20, f) / 440) / Math.LN2);
+  return 440 * Math.pow(2, n / 12);
+}
+function tonRetro(c, o) {
+  try {
+    var t = c.currentTime + (o.at || 0), d = Math.max(.03, (o.d || .12) * .8);
+    var vol = (o.v == null ? .4 : o.v) * .6;
+    var osc = c.createOscillator(), g = c.createGain();
+    osc.type = "square";
+    var f0 = naPolustepen(o.f);
+    osc.frequency.setValueAtTime(f0, t);
+    if (o.to) {                                  // klizanje ide u koracima, kao na čipu
+      var f1 = naPolustepen(o.to), k = 6;
+      for (var i = 1; i <= k; i++)
+        osc.frequency.setValueAtTime(naPolustepen(f0 * Math.pow(f1 / f0, i / k)), t + d * i / k);
+    }
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + .004);
+    g.gain.setValueAtTime(vol, t + d * .72);     // ravno pa naglo, bez mekog gašenja
+    g.gain.linearRampToValueAtTime(0, t + d);
+    osc.connect(g); g.connect(master);
+    osc.start(t); osc.stop(t + d + .02);
+  } catch (e) { }
+}
+function sumRetro(c, o) {
+  try {
+    var t = c.currentTime + (o.at || 0), d = o.d || .1;
+    var n = Math.max(1, Math.floor(c.sampleRate * d));
+    var korak = Math.max(2, Math.round(c.sampleRate / Math.max(300, Math.min(6000, o.f || 1200))));
+    var buf = c.createBuffer(1, n, c.sampleRate), data = buf.getChannelData(0);
+    var v = 1;
+    for (var i = 0; i < n; i++) {
+      if (i % korak === 0) v = Math.random() < .5 ? -1 : 1;   // jedan bit, kao stari čip
+      data[i] = v * (1 - i / n);
+    }
+    var src = c.createBufferSource(); src.buffer = buf;
+    var f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 5200; f.Q.value = .4;
+    var g = c.createGain(); g.gain.value = (o.v == null ? .4 : o.v) * .5;
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(t); src.stop(t + d + .02);
+  } catch (e) { }
+}
+
 function tone(o) {
   var c = engine(); if (!c) return;
+  if (stil === "retro") return tonRetro(c, o);
   try {
     var t = c.currentTime + (o.at || 0), d = o.d || .12, vol = o.v == null ? .4 : o.v;
     var osc = c.createOscillator(), g = c.createGain();
@@ -135,6 +186,7 @@ function tone(o) {
 }
 function noise(o) {
   var c = engine(); if (!c) return;
+  if (stil === "retro") return sumRetro(c, o);
   try {
     var t = c.currentTime + (o.at || 0), d = o.d || .1;
     var n = Math.max(1, Math.floor(c.sampleRate * d));
@@ -162,6 +214,13 @@ var SFX = {
     return on;
   },
   toggle: function () { return SFX.set(!on); },
+  /* SFX.stil() vraća "moderno" ili "retro"; sa argumentom ga menja i pamti */
+  stil: function (v) {
+    if (v === undefined) return stil;
+    stil = v === "retro" ? "retro" : "moderno";
+    try { localStorage.setItem(STILKEY, stil); } catch (e) { }
+    return stil;
+  },
   _paintGlas: function () { if (window.GLAS) GLAS.paint(); },
 
   tick:    function () { tone({ f: 520, d: .05, type: "square", v: .14 }); },
@@ -441,7 +500,47 @@ var CSS =
 '.pravilaBtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}' +
 '.pravilaBtns button,.pravilaBtns a{padding:8px 14px;border-radius:10px;border:1px solid var(--line,#283a5e);' +
 'background:var(--panel-2,#1b2a4a);color:var(--ink,#eef2f9);font:inherit;font-size:14px;cursor:pointer;text-decoration:none}' +
-'.pravilaBtns #pravZatvori{border-color:var(--gold,#c9a227);color:var(--gold,#c9a227);font-weight:700}';
+'.pravilaBtns #pravZatvori{border-color:var(--gold,#c9a227);color:var(--gold,#c9a227);font-weight:700}' +
+
+'.topBtn{display:inline-flex;align-items:center;justify-content:center;' +
+'font:inherit;font-size:15px;color:var(--ink,#eef2f9);background:var(--panel,#16223a);border:1px solid var(--line,#283a5e);' +
+'border-radius:10px;padding:6px 10px;cursor:pointer;touch-action:manipulation;line-height:1.2;' +
+'position:relative;z-index:60}' +
+'.topBtn:active{transform:translateY(1px)}' +
+'@media (max-width:430px){.zvukBtn,.homeBtn,.uputBtn,.topBtn{padding:5px 7px;font-size:14px}}' +
+/* Sa pet dugmadi u zaglavlju uski telefoni traže tešnji raspored — inače red iscuri sa ekrana. */
+'@media (max-width:390px){header{gap:6px}' +
+'header button,header .homeBtn,header .zvukBtn,header .uputBtn,header .topBtn{padding:5px 6px;font-size:13.5px}}' +
+'@media (max-width:340px){header{gap:4px}' +
+'header button,header .homeBtn,header .zvukBtn,header .uputBtn,header .topBtn{padding:4px 5px;font-size:13px}}' +
+'.verIgre{margin-top:4px;font-size:12px;opacity:.75;font-variant-numeric:tabular-nums}' +
+'.topSloj{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;' +
+'padding:16px;background:rgba(6,10,20,.72);backdrop-filter:blur(3px)}' +
+'.topBox{width:min(100%,420px);max-height:86vh;overflow:auto;background:var(--panel,#16223a);' +
+'color:var(--ink,#eef2f9);border:1px solid var(--line,#283a5e);border-radius:16px;padding:16px 16px 14px;' +
+'box-shadow:0 18px 44px rgba(0,0,0,.5)}' +
+'.topBox h3{margin:0 0 10px;font-size:17px}' +
+'.topBox h4{margin:14px 0 6px;font-size:14px;color:var(--gold,#c9a227);font-weight:700}' +
+'.topBox h4:first-child{margin-top:0}' +
+'.topPrazno{margin:0;font-size:13.5px;color:var(--ink-dim,#9fb0cc)}' +
+'.topLista{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px}' +
+'.topLista li{display:flex;align-items:baseline;gap:8px;font-size:14px;' +
+'background:var(--panel-2,#1b2a4a);border-radius:9px;padding:5px 9px}' +
+'.topLista li .m{flex:0 0 26px;font-size:13px;color:var(--ink-dim,#9fb0cc)}' +
+'.topLista li b{font-variant-numeric:tabular-nums;font-size:15px}' +
+'.topLista li .ko{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-dim,#9fb0cc);font-size:13px}' +
+'.topLista li small{color:var(--ink-dim,#9fb0cc);font-size:12px;white-space:nowrap}' +
+'.topRed{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:12px;' +
+'border-top:1px solid var(--line,#283a5e);font-size:14px}' +
+'.topStil{margin-left:auto;display:flex;gap:6px}' +
+'.topStil button{font:inherit;font-size:13.5px;padding:6px 10px;border-radius:9px;cursor:pointer;' +
+'background:var(--panel-2,#1b2a4a);color:var(--ink-dim,#9fb0cc);border:1px solid var(--line,#283a5e)}' +
+'.topStil button.on{color:var(--gold,#c9a227);border-color:var(--gold,#c9a227);font-weight:700}' +
+'.topVer{margin-top:10px;font-size:12.5px;color:var(--ink-dim,#9fb0cc);text-align:center;font-variant-numeric:tabular-nums}' +
+'.topBtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}' +
+'.topBtns button{padding:8px 14px;border-radius:10px;border:1px solid var(--line,#283a5e);' +
+'background:var(--panel-2,#1b2a4a);color:var(--ink,#eef2f9);font:inherit;font-size:14px;cursor:pointer}' +
+'.topBtns #topZatvori{border-color:var(--gold,#c9a227);color:var(--gold,#c9a227);font-weight:700}';
 
 /* Kratka lestvica koja se ne može promašiti — služi da korisnik čuje da zvuk radi. */
 SFX.proba = function () {
@@ -461,6 +560,7 @@ SFX.stanje = function () {
   return {
     ukljucen: on,
     kanal: ctx ? ctx.state : "nije otvoren",
+    stil: stil,
     webaudio: !!(window.AudioContext || window.webkitAudioContext),
     govor: !!window.speechSynthesis
   };
@@ -700,6 +800,170 @@ var PRAVILA = {
   ]]
 };
 
+/* ---------- verzija svake igre ----------
+   Svaka igra ima svoj broj koji raste kad je doradimo; vidi se u podnožju
+   strane i u prozorčiću 🏆. Uz njega ide i verzija celog kompleta (sw.js). */
+var VERZIJE = {
+  sudoku: "1.0", solitaire: "1.0", kolona: "1.0", aparat: "1.0", svercer: "1.0",
+  tetris: "1.0", avioni: "1.0", cigle: "1.0", stvorenja: "1.0", tablic: "1.0",
+  jamb: "1.0", geo: "1.0", pikado: "1.0", bilijar: "1.0", kuca: "1.0",
+  teren: "1.0", mapa: "1.0", covece: "1.1", riziko: "1.0", basket: "1.0", rumi: "1.0"
+};
+
+/* ---------- top lista deset najboljih ----------
+   s: 1 = veći rezultat je bolji, -1 = manji je bolji. f: kako se ispisuje. */
+var TOPLISTE = {
+  sudoku:    [{ id: "lako", nm: "Lako", s: -1, f: "vreme" }, { id: "srednje", nm: "Srednje", s: -1, f: "vreme" },
+              { id: "tesko", nm: "Teško", s: -1, f: "vreme" }, { id: "ekspert", nm: "Ekspert", s: -1, f: "vreme" }],
+  solitaire: [{ id: "vreme", nm: "Najbrže rešeno", s: -1, f: "vreme" },
+              { id: "poteza", nm: "Najmanje poteza", s: -1, f: "broj" }],
+  kolona:    [{ id: "dnevna", nm: "Dnevna kolona", s: -1, f: "min" }, { id: "slobodna", nm: "Slobodna igra", s: -1, f: "min" }],
+  aparat:    [{ id: "dobitak", nm: "Najveći dobitak", s: 1, f: "kr" }],
+  svercer:   [{ id: "dnevna", nm: "Dnevna tura", s: 1, f: "poena" }, { id: "slobodna", nm: "Slobodna tura", s: 1, f: "poena" }],
+  tetris:    [{ id: "bodovi", nm: "Bodovi", s: 1, f: "broj" }],
+  avioni:    [{ id: "bodovi", nm: "Bodovi", s: 1, f: "broj" }],
+  cigle:     [{ id: "bodovi", nm: "Bodovi", s: 1, f: "broj" }],
+  stvorenja: [{ id: "koraci", nm: "Tri arene iz najmanje koraka", s: -1, f: "broj" }],
+  tablic:    [{ id: "poeni", nm: "Poeni u partiji", s: 1, f: "broj" }],
+  jamb:      [{ id: "listic", nm: "Ukupno na listiću", s: 1, f: "broj" }],
+  geo:       [{ id: "poeni", nm: "Poeni", s: 1, f: "broj" }],
+  pikado:    [{ id: "strele", nm: "Leg zatvoren iz najmanje strelica", s: -1, f: "broj" }],
+  bilijar:   [{ id: "snuker", nm: "Snuker — poeni u frejmu", s: 1, f: "broj" }],
+  kuca:      [{ id: "vreme", nm: "Najbrže sređena kuća", s: -1, f: "vreme" }],
+  teren:     [{ id: "procenat", nm: "Osvojeno table", s: 1, f: "procenat" }],
+  mapa:      [{ id: "poeni", nm: "Poeni", s: 1, f: "broj" }],
+  covece:    [{ id: "bacanja", nm: "Pobeda iz najmanje bacanja", s: -1, f: "broj" }],
+  riziko:    [{ id: "potezi", nm: "Pobeda iz najmanje poteza", s: -1, f: "broj" }],
+  basket:    [{ id: "s10", nm: "Serija od 10 lopti", s: 1, f: "broj" }, { id: "s20", nm: "Serija od 20 lopti", s: 1, f: "broj" }],
+  rumi:      [{ id: "bodovi", nm: "Bodovi u partiji", s: 1, f: "broj" }]
+};
+var TKEY = "igre.top";
+
+function sveListe() { try { return JSON.parse(localStorage.getItem(TKEY) || "{}") || {}; } catch (e) { return {}; } }
+function upisiListe(s) { try { localStorage.setItem(TKEY, JSON.stringify(s)); } catch (e) { } }
+function tablaZa(igra, id) {
+  var l = TOPLISTE[igra] || [];
+  for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
+  return null;
+}
+function ispisRezultata(t, v) {
+  if (t.f === "vreme") { var s = Math.max(0, Math.round(v)); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
+  if (t.f === "min") return Math.round(v) + " min";
+  if (t.f === "procenat") return (Math.round(v * 10) / 10) + "%";
+  if (t.f === "kr") return Math.round(v) + " kr";
+  if (t.f === "poena") return Math.round(v) + " p";
+  return String(Math.round(v * 10) / 10).replace(/\.0$/, "");
+}
+function danKratko(ms) {
+  var d = new Date(ms);
+  return d.getDate() + "." + (d.getMonth() + 1) + ".";
+}
+
+var TOP = {
+  liste: function (igra) { return (TOPLISTE[igra] || []).slice(); },
+  lista: function (igra, tabla) { return (sveListe()[igra + "|" + tabla] || []).slice(); },
+  najbolji: function (igra, tabla) { var l = TOP.lista(igra, tabla); return l.length ? l[0].v : null; },
+  ispis: function (igra, tabla, v) { var t = tablaZa(igra, tabla); return t ? ispisRezultata(t, v) : String(v); },
+  /* Vraća {mesto, rekord} — mesto 0 znači da rezultat nije ušao među deset. */
+  upisi: function (igra, tabla, v, opis) {
+    var t = tablaZa(igra, tabla);
+    if (!t || v == null || typeof v !== "number" || !isFinite(v)) return null;
+    var sve = sveListe(), k = igra + "|" + tabla, l = sve[k] || [];
+    var red = { v: v, i: (window.IGRAC && IGRAC.ime()) || "", d: Date.now(), o: opis || "" };
+    l.push(red);
+    l.sort(function (a, b) { return t.s > 0 ? b.v - a.v : a.v - b.v; });   // stabilno: stariji drži mesto kod izjednačenja
+    var mesto = l.indexOf(red) + 1;
+    sve[k] = l.slice(0, 10);
+    upisiListe(sve);
+    return { mesto: mesto <= 10 ? mesto : 0, rekord: mesto === 1, lista: sve[k] };
+  },
+  obrisi: function (igra) {
+    var sve = sveListe(), l = TOPLISTE[igra] || [];
+    for (var i = 0; i < l.length; i++) delete sve[igra + "|" + l[i].id];
+    upisiListe(sve);
+  },
+  pokazi: pokaziTop
+};
+window.TOP = TOP;
+
+function redoviTabele(igra, t) {
+  var l = TOP.lista(igra, t.id);
+  if (!l.length) return '<p class="topPrazno">Još nema upisanog rezultata — odigraj partiju.</p>';
+  var h = '<ol class="topLista">';
+  for (var i = 0; i < l.length; i++) {
+    var r = l[i], medalja = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : (i + 1) + ".";
+    h += '<li><span class="m">' + medalja + '</span>' +
+      '<b>' + ispisRezultata(t, r.v) + '</b>' +
+      '<span class="ko">' + (r.i ? String(r.i).replace(/[<>&]/g, "") : "") + '</span>' +
+      '<small>' + (r.o ? String(r.o).replace(/[<>&]/g, "") + " · " : "") + danKratko(r.d) + '</small></li>';
+  }
+  return h + "</ol>";
+}
+function pokaziTop(igra) {
+  var stari = document.querySelector(".topSloj");
+  if (stari) stari.remove();
+  var liste = TOP.liste(igra), naslov = imeIgreZa(igra);
+  var telo = "";
+  for (var i = 0; i < liste.length; i++)
+    telo += '<h4>' + liste[i].nm + '</h4>' + redoviTabele(igra, liste[i]);
+  if (!liste.length) telo = '<p class="topPrazno">Ova igra nema rezultat koji se meri.</p>';
+  var sloj = document.createElement("div");
+  sloj.className = "topSloj";
+  sloj.innerHTML = '<div class="topBox" role="dialog" aria-modal="true">' +
+    '<h3>🏆 ' + naslov + ' — najboljih deset</h3>' +
+    '<div class="topTelo">' + telo + '</div>' +
+    '<div class="topRed"><span>🔊 Zvuk</span>' +
+    '<div class="topStil">' +
+    '<button type="button" data-stil="moderno">🎧 Moderno</button>' +
+    '<button type="button" data-stil="retro">👾 Retro</button></div></div>' +
+    '<div class="topVer" id="topVer">' + kratkoIme(igra) +
+    (VERZIJE[igra] ? " v" + VERZIJE[igra] : "") + '</div>' +
+    '<div class="topBtns">' +
+    (liste.length ? '<button type="button" id="topBrisi">🗑 Obriši listu</button>' : "") +
+    '<button type="button" id="topZatvori">Nastavi igru</button></div></div>';
+  document.body.appendChild(sloj);
+  var zatvori = function () { sloj.remove(); };
+  sloj.querySelector("#topZatvori").addEventListener("click", zatvori);
+  sloj.addEventListener("click", function (e) { if (e.target === sloj) zatvori(); });
+  var br = sloj.querySelector("#topBrisi");
+  if (br) br.addEventListener("click", function () {
+    if (br.dataset.sig !== "1") { br.dataset.sig = "1"; br.textContent = "🗑 Stvarno obriši?"; return; }
+    TOP.obrisi(igra); zatvori(); pokaziTop(igra);
+  });
+  var dugmad = sloj.querySelectorAll(".topStil button");
+  var oboji = function () {
+    for (var i = 0; i < dugmad.length; i++)
+      dugmad[i].classList.toggle("on", dugmad[i].dataset.stil === SFX.stil());
+  };
+  for (var d = 0; d < dugmad.length; d++) dugmad[d].addEventListener("click", function () {
+    SFX.stil(this.dataset.stil); oboji();
+    if (!SFX.isOn()) SFX.set(true); else SFX.good();
+  });
+  oboji();
+  if (window.SWPomoc && SWPomoc.mojaVerzija) SWPomoc.mojaVerzija().then(function (v) {
+    var el = document.getElementById("topVer");
+    if (el && v) el.textContent = el.textContent + " · komplet " + v;
+  });
+  document.addEventListener("keydown", function beg(e) {
+    if (e.key === "Escape") { zatvori(); document.removeEventListener("keydown", beg); }
+  });
+}
+function kratkoIme(id) { return imeIgreZa(id).replace(/^\S+\s/, ""); }
+function imeIgreZa(id) {
+  for (var i = 0; i < GAMES.length; i++) if (GAMES[i].id === id) return GAMES[i].em + " " + GAMES[i].nm;
+  return id;
+}
+/* verzija igre u podnožju svake strane, da se uvek zna šta se igra */
+function upisiVerziju(igra) {
+  var v = VERZIJE[igra];
+  var f = document.querySelector(".foot");
+  if (!v || !f || f.querySelector(".verIgre")) return;
+  var s = document.createElement("div");
+  s.className = "verIgre";
+  s.textContent = kratkoIme(igra) + " v" + v;
+  f.appendChild(s);
+}
+
 function pravilaZa(ime) { return PRAVILA[ime] || null; }
 
 function pokaziPravila(ime) {
@@ -755,12 +1019,20 @@ function build() {
     var thm = document.querySelector("header #theme") || document.querySelector("header button:last-of-type");
     if (thm && thm.parentNode) {
       var imeIgre = here.replace(/\.html$/, "");
+      upisiVerziju(imeIgre);
       if (pravilaZa(imeIgre) && !document.querySelector(".uputBtn")) {
         var pb = document.createElement("button");
         pb.type = "button"; pb.className = "uputBtn"; pb.textContent = "❔";
         pb.title = "Pravila igre";
         pb.addEventListener("click", function () { pokaziPravila(imeIgre); });
         thm.parentNode.insertBefore(pb, thm);
+      }
+      if (!document.querySelector(".topBtn")) {
+        var tb = document.createElement("button");
+        tb.type = "button"; tb.className = "topBtn"; tb.textContent = "🏆";
+        tb.title = "Najboljih deset, zvuk i verzija";
+        tb.addEventListener("click", function () { pokaziTop(imeIgre); });
+        thm.parentNode.insertBefore(tb, thm);
       }
       if (!document.querySelector(".zvukBtn")) {
         var zb = document.createElement("button");

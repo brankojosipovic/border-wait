@@ -422,6 +422,7 @@ function dupPick(red) {
 function dupTake() {
   ST.credits += DUP.win; ST.pending = 0; window.SFX && SFX.coin();
   if (DUP.win > ST.best) ST.best = DUP.win;
+  window.TOP && DUP.win > 0 && window.TOP.upisi("aparat", "dobitak", DUP.win, DUP.host === "p" ? "poker" : "voćke");
   $("#" + DUP.host + "Msg").innerHTML = '<span class="w">Naplaćeno ' + DUP.win + ' kr ✔</span>';
   DUP.on = false; save();
   document.body.classList.remove("dup-on");

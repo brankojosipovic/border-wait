@@ -304,6 +304,8 @@ function finish() {
   const ns = noSwitchFrom(W, 0, W.startLane, W.startRow);
   const m = ST.minutes;
   const stars = m <= opt + 1 ? 3 : m <= opt + 4 ? 2 : m < ns ? 1 : 0;
+  window.TOP && window.TOP.upisi("kolona", ST.mode === "daily" ? "dnevna" : "slobodna", m,
+    "⭐".repeat(stars) || "🐢");
   if (ST.mode === "daily") {
     try {
       const all = JSON.parse(localStorage.getItem(DKEY) || "{}");

@@ -845,6 +845,14 @@ function fit() {
   const najvisa = Math.round(visina * 0.34);
   let policaH = visinaPolice(policaCel, sirina);
   while (policaH > najvisa && policaCel > 5) { policaCel -= .5; policaH = visinaPolice(policaCel, sirina); }
+  /* Sitnija polica ume da spakuje isti nameštaj u manje redova i tako oslobodi
+     prostor sobi — zato probamo i manje korake i uzimamo raspored sa većom sobom. */
+  const kucaZa = ph => Math.max(7, Math.min((sirina - 14) / N.w, (visina - ph - 14) / N.h));
+  let najCel = kucaZa(policaH);
+  for (let pc = policaCel - .5; pc >= 5; pc -= .5) {
+    const ph = visinaPolice(pc, sirina), c = kucaZa(ph);
+    if (c > najCel + .01) { najCel = c; policaCel = pc; policaH = ph; }
+  }
   const zaKucu = visina - policaH - 14;
   const cel = Math.max(7, Math.min((sirina - 14) / N.w, zaKucu / N.h));
   R.cel = cel;
@@ -1091,6 +1099,7 @@ function zavrsi() {
     localStorage.removeItem(KEY);
   } catch (e) { }
   window.SFX && SFX.win();
+  window.TOP && window.TOP.upisi("kuca", "vreme", sek, "kuća " + (N.br + 1) + " · " + "★".repeat(zvezde));
   crtaj();
   showOverlay('<h2>🏡 Kuća je uređena!</h2>' +
     '<div class="zvezde">' + "★★★".slice(0, zvezde) + '<span style="opacity:.25">' + "★★★".slice(zvezde) + '</span></div>' +

@@ -279,6 +279,8 @@ function krajSerije() {
   const stari = rekordi[k] || { poeni: 0, pogoci: 0 };
   const noviRek = P.poeni > stari.poeni;
   if (noviRek) { rekordi[k] = { poeni: P.poeni, pogoci: P.pogoci }; upisi(); }
+  window.TOP && window.TOP.upisi("basket", P.ukupno >= 20 ? "s20" : "s10", P.poeni,
+    P.pogoci + "/" + P.ukupno + " · " + (P.pogled === "spreda" ? "iz prvog lica" : "sa strane"));
   window.SFX && SFX.truba();
   if (soba) return soba.kraj();
   const proc = Math.round(P.pogoci * 100 / P.ukupno);

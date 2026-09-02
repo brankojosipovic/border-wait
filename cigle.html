@@ -437,6 +437,7 @@ function gameOver() {
   const rek = score > best;
   if (rek) best = score;
   if (score > (lvBest[startLv] || 0)) lvBest[startLv] = score;
+  window.TOP && window.TOP.upisi("cigle", "bodovi", score, "nivo " + level);
   sacuvana = null;                            // partija je gotova; rekordi ostaju
   saveRec();
   window.SFX && SFX.siren();
