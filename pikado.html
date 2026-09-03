@@ -61,6 +61,10 @@
 
   /* ---- tabela rezultata ---- */
   .hud { display: flex; align-items: stretch; gap: 5px; }
+  .kodBtn { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 1px; font: inherit; font-size: 11px; padding: 4px 7px; border-radius: 10px; cursor: pointer;
+            background: var(--panel); border: 1px solid var(--gold); color: var(--ink-dim); }
+  .kodBtn b { letter-spacing: 1px; font-size: 12.5px; color: var(--gold); }
   .igrac { flex: 1 1 0; min-width: 0; background: var(--panel); border: 1px solid var(--line);
            border-radius: 10px; padding: 4px 6px; text-align: center; position: relative; }
   .igrac .nm { font-size: 12.5px; color: var(--ink-dim); overflow: hidden;
@@ -833,7 +837,10 @@ function ciljRacunara(ig) {
 
 /* ---------- mreža ---------- */
 function posaljiStanje() {
-  if (G && G.rezim === "mreza" && window.Mreza && Mreza.povezan() && Mreza.uloga() === "domacin")
+  /* Uslov je da soba postoji, ne da je „povezan" — ta zastavica je
+     spuštena baš u trenutku kad se neko vraća u sobu, pa bi se stanje
+     izgubilo tačno onome kome najviše treba. */
+  if (G && G.rezim === "mreza" && window.Mreza && Mreza.kod() && Mreza.uloga() === "domacin")
     Mreza.posalji({ t: "stanje", g: G, strele: strele });
 }
 function imeOd(id) {                             // ko je poslao poruku
@@ -868,6 +875,9 @@ function primi(m, od) {
 }
 function primiPostavu(lista, igra, tez) {
   if (!lista || !lista.length) return;
+  /* Postava uvek raspoređuje ispočetka; ono što je odigrano vraća se odmah
+     posle nje, porukom sa stanjem. Pokušaj da se seatirani igrači „samo osveže"
+     ovde je pravio više štete nego koristi. */
   postava = lista.slice(0, 4);
   mojIndex = Math.max(0, postava.findIndex(x => x.id === Mreza.jaSam()));
   cekaonica = false;
@@ -885,14 +895,60 @@ function kreniPartiju() {
   primiPostavu(svi, izabranaIgra, tezina);
   setTimeout(posaljiStanje, 140);
 }
+function uSobi() { return !!window.Mreza && !!Mreza.kod(); }
+function sedim() { return !!(G && G.rezim === "mreza" && !G.gotovo && postava && uSobi()); }
+/* Neko se pridružio ili vratio usred lega: domaćin mu ponovo pošalje ko gde
+   stoji i gde je partija stala. Ko se vrati sa novom mrežnom oznakom, preuzima
+   svoje prazno mesto — inače bi ostao bez rezultata. */
+function osveziPostavu() {
+  if (!window.Mreza || Mreza.uloga() !== "domacin" || !postava || !sedim()) return false;
+  const drustvo = Mreza.drustvo() || [];
+  const sada = drustvo.map(x => x.id);
+  const prazna = postava.filter(p => sada.indexOf(p.id) < 0);
+  const strani = sada.filter(id => !postava.some(p => p.id === id));
+  while (prazna.length && strani.length) {
+    const mesto = prazna.shift(), novi = strani.shift();
+    const k = postava.indexOf(mesto);
+    const d = drustvo.find(x => x.id === novi);
+    postava[k] = { id: novi, ime: (d && d.ime) || mesto.ime };
+    if (G.igraci[k]) { G.igraci[k].ime = postava[k].ime; G.igraci[k].id = postava[k].id; }
+  }
+  Mreza.posalji({ t: "postava", igraci: postava, igra: G.igra, tezina: G.tezina });
+  setTimeout(posaljiStanje, 60);
+  return true;
+}
+function meniSobe() {
+  ocistiTajmere();
+  const svi = (Mreza.drustvo() || []).length;
+  showOverlay('<h2>🎯 Pikado</h2>' +
+    '<p>🌐 Soba <b style="color:#c9a227;letter-spacing:3px">' + (Mreza.kod() || "—") + '</b> · ' +
+    svi + (svi === 1 ? " igrač" : " igrača") + '<br>Ko izađe, ovim kodom se vraća u partiju.</p>' +
+    '<div class="btns"><button id="uIgruBtn">↩ ' + (sedim() ? "Nazad u igru" : "Nazad u sobu") + '</button>' +
+    '<button id="izadjiBtn">✖ Izađi iz sobe</button></div>');
+  $("#uIgruBtn").onclick = () => {
+    if (sedim()) { hideOverlay(); crtaj(); }
+    else { cekaonica = true; pokaziKod(Mreza.kod()); }
+  };
+  $("#izadjiBtn").onclick = () => { try { Mreza.zatvori(); } catch (e) { } cekaonica = false; meni(); };
+}
 function statusMreze(st, detalj) {
+  /* Ko je već u partiji, ne vraća se na ekran za spajanje — te poruke umeju da
+     stignu i posle povezivanja, dok rezervna veza još pokušava. */
+  if ((st === "spajam" || st === "cekam" || st === "povezan") && sedim() && !cekaonica && !nastavljam) {
+    if (st === "povezan") { hideOverlay(); crtaj(); }
+    return;
+  }
   if (st === "spajam") {
     showOverlay('<h2>Spajam se…</h2><p>' + (detalj || "Tražim server za upoznavanje igrača.") + '</p>' +
       '<div class="btns"><button id="odBtn">Odustani</button></div>');
     $("#odBtn").onclick = () => { Mreza.zatvori(); meni(); };
   }
   if (st === "cekam") { cekaonica = true; pokaziKod(detalj); }
-  if (st === "ucesnici") { if (cekaonica) pokaziKod(Mreza.kod()); else if (G) crtaj(); return; }
+  if (st === "ucesnici") {
+    if (cekaonica) pokaziKod(Mreza.kod());
+    else { osveziPostavu(); if (G) crtaj(); }
+    return;
+  }
   if (st === "povezan") {
     window.CET && CET.ukljuci({ mreza: Mreza, ime: imeOd });
     if (nastavljam && G && !G.gotovo && G.rezim === "mreza") {
@@ -983,7 +1039,13 @@ function crtaj() {
     '<div class="dp">' + (G.igra === "krug" ? "gađa" : G.igra === "vezba"
       ? (x.bacanja ? (x.poena / x.bacanja * 3).toFixed(1) + " / 3" : "prosek")
       : (x.bacanja ? "prosek " + (x.poena / x.bacanja * 3).toFixed(0) : "ostalo")) + '</div>' +
-    '</div>').join("");
+    '</div>').join("") +
+    /* Kod ostaje pred očima celu partiju — inače niko ne ume da ga kaže onome
+       ko ispadne. */
+    (uSobi() ? '<button class="kodBtn" id="kodBtn" title="Kod sobe">🌐<b>' +
+      (Mreza.kod() || "—") + '</b></button>' : "");
+  const kodB = $("#kodBtn");
+  if (kodB) kodB.onclick = meniSobe;
 
   const strelice = [0, 1, 2].map(i =>
     '<span class="' + (G.visit[i] ? "" : "prazna") + '">' + (G.visit[i] || "·") + '</span>').join("");
@@ -1016,6 +1078,7 @@ function savet(h) { $("#savet").innerHTML = h; }
 /* ---------- meniji ---------- */
 let izabranaIgra = "501";
 function meni() {
+  if (uSobi()) return meniSobe();
   ocistiTajmere();
   cekaonica = false;
   const nast = G && !G.gotovo && G.igraci && (sacuvanaMreza || G.rezim !== "mreza");
@@ -1285,6 +1348,7 @@ window.P = {
   get G() { return G; }, get strele() { return strele; }, get nis() { return nis; },
   pogodak, sredisteP, izlaz, POLJA, RED20, novaPartija, upisiPogodak, smena, meni, crtaj,
   primi, primiPostavu, kreniPartiju, statusMreze, save, load, nastaviPartiju, ciljRacunara,
+  meniSobe, osveziPostavu, uSobi, sedim,
   baci: t => baci(t), amplituda, podesavanja, pravila, pocetniNisan, pomeriRuku, najavaPolja, najaviZbir,
   prazanStat, stat, prosekTri, tabelaStatistike, pokaziStatistiku,
   get mojIndex() { return mojIndex; }, get postava() { return postava; },
