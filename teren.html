@@ -56,6 +56,10 @@
          white-space: nowrap; overflow: hidden; }
   .hud > span { overflow: hidden; text-overflow: ellipsis; flex: 0 0 auto; }
   .hud b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 700; }
+  .kodBtn { font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 999px; cursor: pointer;
+            background: var(--panel); border: 1px solid var(--gold); color: var(--ink-dim);
+            white-space: nowrap; flex: 0 0 auto; }
+  .kodBtn b { letter-spacing: 2px; color: var(--gold); }
   .hud .od { color: var(--ink-dim); }
   .cip { display: inline-flex; align-items: center; gap: 3px; margin-left: 4px;
          font-variant-numeric: tabular-nums; }
@@ -129,6 +133,7 @@
     <span id="hBotovi" title="protivnici"></span>
     <div class="spacer"></div>
     <span id="hProt"></span>
+    <button id="kodBtn" class="kodBtn" title="Kod sobe" hidden>🌐 <b></b></button>
     <span title="vreme"><b id="hVreme">0:00</b></span>
     <button id="bPause" title="Pauza">⏸</button>
   </div>
@@ -1050,7 +1055,32 @@ function kraj(pobeda, razlog, pobednik) {
 function showOverlay(h) { const o = $("#overlay"); o.innerHTML = h; o.hidden = false; }
 function hideOverlay() { $("#overlay").hidden = true; }
 
+function uSobi() { return !!window.Mreza && !!Mreza.kod(); }
+function sedim() { return !!(uSobi() && postava && igraci.length && (stanje === "igra" || stanje === "pauza")); }
+function osveziKod() {                          // kod ostaje pred očima cele runde
+  const b = document.getElementById("kodBtn");
+  if (!b) return;
+  b.hidden = !uSobi();
+  if (!b.hidden) b.querySelector("b").textContent = Mreza.kod() || "—";
+}
+/* Dok soba stoji, meni ne sme da bude ćorsokak: prvo put nazad, pa tek onda
+   svestan izlazak; kod se vidi ovde da može da se pročita naglas. */
+function meniSobe() {
+  const svi = (Mreza.drustvo() || []).length;
+  showOverlay('<h2>🟩 Teren</h2>' +
+    '<p>🌐 Soba <b style="color:#c9a227;letter-spacing:3px">' + (Mreza.kod() || "—") + '</b> · ' +
+    svi + (svi === 1 ? " igrač" : " igrača") + '<br>' +
+    'Ko izađe, ovim kodom se vraća u sobu i ulazi u sledeću rundu.</p>' +
+    '<div class="btns"><button id="uIgruBtn">↩ ' + (sedim() ? "Nazad u igru" : "Nazad u sobu") + '</button>' +
+    '<button id="izadjiBtn">✖ Izađi iz sobe</button></div>');
+  $("#uIgruBtn").onclick = () => {
+    if (sedim()) { hideOverlay(); if (stanje === "pauza") stanje = "igra"; }
+    else { cekaonica = true; pokaziKod(Mreza.kod()); }
+  };
+  $("#izadjiBtn").onclick = () => { sobaKraj(); pocetak(); };
+}
 function pocetak() {
+  if (uSobi()) return meniSobe();
   stanje = "meni";
   rezim = "sam";
   const r = rekordi[tez] || {};
@@ -1113,7 +1143,7 @@ function pauza() {
     showOverlay('<h2>⏸ Pauza</h2><p>Teren: <b style="color:#eef2f9">' + Math.round(ja.pr) + '%</b></p>' +
       '<div class="btns"><button id="nastBtn">▶ Nastavi</button><button id="meniBtn2">← Meni</button></div>');
     $("#nastBtn").onclick = pauza;
-    $("#meniBtn2").onclick = () => { if (rezim !== "sam") sobaKraj(); pocetak(); };
+    $("#meniBtn2").onclick = pocetak;
   } else if (stanje === "pauza") { stanje = "igra"; lastTs = 0; hideOverlay(); }
 }
 
@@ -1152,6 +1182,7 @@ function sobaMeni() {
 function sobaKraj() {
   if (tajmerStanja) clearInterval(tajmerStanja);
   tajmerStanja = null; rezim = "sam"; postava = null; cekaonica = false; ponoviVezu = null;
+  setTimeout(osveziKod, 0);
   try { if (window.Mreza) Mreza.zatvori(); } catch (e) { }
   try { if (window.CET) CET.iskljuci(); } catch (e) { }
   hud();
@@ -1187,6 +1218,7 @@ function sobaStatus(st, detalj) {
   if (st === "ucesnici") {
     if (cekaonica) pokaziKod(Mreza.kod());
     else if (rezim === "domacin" && postava) {          // ko je ispao, njegovu boju preuzima računar
+      osveziKod();
       const ima = (Mreza.drustvo() || []).map(x => x.id);
       for (const e of igraci) if (!e.bot && e.mrezaId && e.mrezaId !== Mreza.jaSam() && ima.indexOf(e.mrezaId) < 0) {
         e.bot = true; e.brzina = TEZINE[tez].brzina;
@@ -1196,6 +1228,10 @@ function sobaStatus(st, detalj) {
   }
   if (st === "povezan") {
     window.CET && CET.ukljuci({ mreza: Mreza, ime: id => imeIz(id) });
+    osveziKod();
+    /* Ko je već u rundi, ne vraća se u čekaonicu — „povezan" ume da stigne i
+       posle postave, kad se neko vrati u sobu. */
+    if (sedim()) { cekaonica = false; hideOverlay(); return; }
     cekaonica = true; pokaziKod(Mreza.kod());
   }
   if (st === "prekinuto") {
@@ -1254,7 +1290,7 @@ function kreniUSobi() {                        // samo domaćin
   const svi = (Mreza.drustvo() || []).slice(0, 4).map((x, i) => ({ id: x.id, ime: x.ime || ("Igrač " + (i + 1)) }));
   if (svi.length < 2) return;
   const seme = (Math.random() * 2 ** 31) | 0;
-  postava = svi; cekaonica = false;
+  postava = svi; cekaonica = false; osveziKod();
   Mreza.posalji({ t: "P", ig: svi, seme, tez: sobaTez, cilj: sobaCilj });
   nova(seme, sobaTez, svi, sobaCilj);
   if (tajmerStanja) clearInterval(tajmerStanja);
@@ -1347,7 +1383,7 @@ function sobaPrimi(m, od) {
         $("#punaBtn").onclick = () => { sobaKraj(); pocetak(); };
         return;
       }
-      postava = m.ig; cekaonica = false;
+      postava = m.ig; cekaonica = false; osveziKod();
       nova(m.seme, m.tez, m.ig, m.cilj);
       if (tajmerStanja) { clearInterval(tajmerStanja); tajmerStanja = null; }
       return;
@@ -1436,6 +1472,7 @@ document.addEventListener("keyup", e => {
   if (k) { pritisnute.delete(k); odTipaka(); }
 });
 $("#bPause").onclick = pauza;
+$("#kodBtn").onclick = meniSobe;
 $("#theme").onclick = () => {
   const b = document.body;
   b.dataset.theme = b.dataset.theme === "dark" ? "light" : "dark";
@@ -1503,6 +1540,7 @@ window.T = {
   get trag() { return tragV; }, get cilj() { return cilj; }, get tez() { return tez; },
   get vreme() { return vreme; }, get rekordi() { return rekordi; }, RAZLOZI,
   get rezim() { return rezim; }, get postava() { return postava; }, get bonusi() { return bonusi; },
+  meniSobe, uSobi, sedim, osveziKod,
   get mojIndex() { return mojIndex; }, BONUS, CILJEVI, set cilj(v) { cilj = v; },
   spustiBonus, uzmiBonus, sobaMeni, sobaKraj, kreniUSobi, korakGost, izborCilja,
   napraviObrise, get obrisi() { return obrisi; }, get obrisTacke() { return obrisTacke; },
