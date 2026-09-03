@@ -110,7 +110,8 @@
   .akcije { display: flex; gap: 6px; }
   .akcije button { flex: 1; font-size: 14px; padding: 8px 4px; }
   .akcije .glavno { border-color: var(--gold); color: var(--gold); font-weight: 700; }
-  .poruka { font-size: 12.5px; color: var(--ink-dim); text-align: center; min-height: 18px; }
+  .poruka { font-size: 13px; line-height: 1.35; color: var(--ink-dim); text-align: center;
+             min-height: 18px; }
   .poruka.lose { color: var(--bad); }
   .poruka.dobro { color: var(--good); }
 
@@ -523,9 +524,27 @@ function novePlocice() {                        // šta je ovog poteza sišlo iz
   return naStolu.filter(t => bilo.has(t.id));
 }
 function stariNaStolu() { return new Set([].concat.apply([], pocetak.tabla).map(t => t.id)); }
+/* Zašto baš ovaj skup ne valja — poruka imenuje pločice i kaže šta im fali,
+   da se ne pogađa koji je od skupova na stolu uokviren crveno. */
+function imeSkupa(s) { return s.map(t => t.dz ? "☺" : t.v).join("-"); }
+function zastoNije(s) {
+  const ime = "Skup " + imeSkupa(s);
+  if (s.length < 3) return ime + ": svaki skup traži bar tri pločice.";
+  const ob = s.filter(t => !t.dz);
+  if (!ob.length) return "Sami džokeri nisu skup — treba bar jedna prava pločica.";
+  if (s.length > 13) return ime + " je duži od trinaest pločica.";
+  if (ob.every(t => t.b === ob[0].b)) {          // ista boja → može samo kao niz
+    const vs = ob.map(t => t.v);
+    if (new Set(vs).size !== vs.length) return ime + " je ceo u istoj boji, ali se u nizu isti broj ne ponavlja.";
+    return ime + " je ceo u istoj boji, pa može samo kao niz — a niz traži uzastopne brojeve (npr. 8-9-10).";
+  }
+  if (ob.every(t => t.v === ob[0].v))            // isti broj → može samo kao grupa
+    return ime + ": u grupi svaka boja ide samo jednom, dakle najviše četiri pločice.";
+  return ime + " nije ni niz ni grupa: niz je ista boja sa uzastopnim brojevima (8-9-10), " +
+    "a grupa isti broj u različitim bojama (4-4-4).";
+}
 function proveri() {                            // šta fali da bi potez bio gotov
-  for (const s of G.tabla) if (s.length && !ispravan(s))
-    return s.length < 3 ? "Svaki skup mora da ima bar tri pločice." : "Ima skup koji nije ni niz ni grupa.";
+  for (const s of G.tabla) if (s.length && !ispravan(s)) return zastoNije(s);
   if (dzUruci.length) return "Skinuti džoker mora nazad na sto, u istom potezu.";
   const nove = novePlocice();
   if (!nove.length) return "Spusti bar jednu pločicu iz svoje ruke.";
