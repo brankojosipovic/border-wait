@@ -102,6 +102,70 @@
     return ucitajRedom(PEER_CDN, function () { return window.Peer || null; });
   }
 
+  /* ---------- javna tabla: zapamćene poruke ----------
+     Svaki telefon objavi svoj sažetak kao MQTT poruku sa zastavicom „retain",
+     pa je broker čuva. Strana sa pregledom se samo pretplati i odjednom
+     pokupi sve što stoji. Bez ijednog servera sa naše strane. */
+  function klijent(M, url, oznaka) {
+    return M.connect(url, {
+      clientId: oznaka + Math.random().toString(36).slice(2, 10),
+      clean: true, keepalive: 20, connectTimeout: ROK_BROKER,
+      reconnectPeriod: 0, protocolVersion: 4
+    });
+  }
+  function objaviTablu(tema, obj) {
+    return ucitajMqtt().then(function (M) {
+      var tovar = JSON.stringify(obj);
+      return new Promise(function (res) {
+        var ostalo = BROKERI.length, poslato = 0;
+        var kraj = function () { if (--ostalo <= 0) res(poslato); };
+        BROKERI.forEach(function (b) {
+          var c, gotov = false, t = null;
+          var zavrsi = function (ok) {
+            if (gotov) return;
+            gotov = true; if (ok) poslato++;
+            clearTimeout(t);
+            try { c && c.end(true); } catch (e) { }
+            kraj();
+          };
+          try { c = klijent(M, b.url, "bwo"); } catch (e) { return zavrsi(false); }
+          t = setTimeout(function () { zavrsi(false); }, ROK_BROKER);
+          c.on("connect", function () {
+            try { c.publish(tema, tovar, { qos: 0, retain: true }, function () { zavrsi(true); }); }
+            catch (e) { zavrsi(false); }
+          });
+          c.on("error", function () { zavrsi(false); });
+        });
+      });
+    });
+  }
+  function citajTablu(prefiks, naStavku, rok) {
+    return ucitajMqtt().then(function (M) {
+      return new Promise(function (res) {
+        var klijenti = [], n = 0, brokera = 0;
+        var zavrsi = function () {
+          klijenti.forEach(function (c) { try { c.end(true); } catch (e) { } });
+          res({ stavki: n, brokera: brokera });
+        };
+        setTimeout(zavrsi, rok || 7000);
+        BROKERI.forEach(function (b) {
+          var c;
+          try { c = klijent(M, b.url, "bwc"); } catch (e) { return; }
+          klijenti.push(c);
+          c.on("connect", function () {
+            brokera++;
+            try { c.subscribe(prefiks + "/#", { qos: 0 }); } catch (e) { }
+          });
+          c.on("message", function (tema, tovar) {
+            var d; try { d = JSON.parse(String(tovar)); } catch (e) { return; }
+            if (d) { n++; try { naStavku(d, b.ime); } catch (e) { } }
+          });
+          c.on("error", function () { });
+        });
+      });
+    });
+  }
+
   /* ---------- 1) relej preko javnih brokera ---------- */
   function napraviRelej(zaKod, zaUlogu) {
     var moja = TEMA + zaKod + "/s";                    // svi u sobi dele jednu temu
@@ -405,6 +469,9 @@
       if (veza && veza.open) { try { veza.send(obj); return true; } catch (e) { } }
       return false;
     },
+
+    objaviTablu: objaviTablu,
+    citajTablu: citajTablu,
 
     zatvori: function () {
       if (R) { try { R.posalji({ __: "ode" }); } catch (e) { } R.zatvori(); R = null; }

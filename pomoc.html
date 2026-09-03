@@ -193,13 +193,35 @@
     </ul>
   </div>
 
+  <div class="karta col" id="statistika">
+    <h2>📊 Statistika igranja</h2>
+    <p>Igre vode zajedničku statistiku, da se zna šta se igra i šta valja popraviti.
+      Kad se otvori <b>spisak igara</b> uz internet, telefon pošalje kratak sažetak, pa se sve
+      vidi na strani <a href="statistika.html">📊 Statistika igranja</a>.</p>
+    <ul>
+      <li><b>Šalje se:</b> ime koje si sam upisao pod <span class="tag">👤</span> (ako jesi),
+        koliko si puta i koliko dugo igrao koju igru, tvoj najbolji rezultat po igri,
+        i ocena i predlog ako si ih ostavio.</li>
+      <li><b>Ne šalje se ništa drugo</b> — ni broj telefona, ni kontakti, ni gde si, ni šta radiš
+        van ovih igara. Umesto imena stoji nasumična oznaka tipa <span class="tag">Telefon #a3f1</span>
+        dok ne upišeš ime.</li>
+      <li>Vreme se broji <b>samo dok je igra otvorena i dok se igra</b>. Ako strana stoji zaboravljena,
+        posle tri minuta bez dodira se ne broji ništa.</li>
+      <li>Prenos ide preko <b>istih javnih MQTT brokera</b> kao i igra u sobi, bez ijednog našeg servera.
+        To znači i da je strana sa statistikom otvorena za svakoga ko zna adresu — zato se i ne šalje
+        ništa lično.</li>
+      <li><b>⭐ Utisak</b> — na spisku igara, i u <span class="tag">🏆</span> svake igre.
+        Daj zvezdice i napiši šta bi popravio ili dodao; stiže uz statistiku.</li>
+    </ul>
+  </div>
+
   <div class="karta col">
     <h2>🎛 Sitnice koje pomažu</h2>
     <ul>
       <li><span class="tag">🔊 / 🔇</span> <b>u zaglavlju svake igre</b> (i u traci na dnu) — zvuk za sve igre, pamti se. Kad je crveno i precrtano, zvuk je isključen. Kad ga uključiš, čuješ <b>tri probna tona</b>; ako ih ne čuješ, pojačaj dugmićima sa strane i proveri <b>mali prekidač iznad njih</b> — dok je on na crveno, telefon ćuti i za igre.</li>
       <li><span class="tag">🗣 Najava</span> — glas na engleskom kaže šta si pogodio: u pikadu „treble twenty“ pa zbir kruga, u bilijaru koja je lopta pala i kad je faul. Pali se i proba u samoj igri: u pikadu pod <span class="tag">⚙︎</span>, u bilijaru u meniju pod <span class="tag">🔈 Zvuk i najava</span>. Tamo dugme <b>▶ Proba</b> odmah izgovori probnu rečenicu i napiše koji je glas uzeo. Gašenje zvuka gasi i najavu.</li>
       <li><span class="tag">🏠</span> u vrhu svake igre — nazad na spisak igara.</li>
-      <li><span class="tag">🏆</span> <b>u zaglavlju svake igre</b> — najboljih deset, stil zvuka i verzija igre.</li>
+      <li><span class="tag">🏆</span> <b>u zaglavlju svake igre</b> — najboljih deset, stil zvuka, ocena igre i verzija.</li>
       <li><span class="tag">☀︎ / ☾</span> — svetla ili tamna tema, važi za sve igre.</li>
       <li>Traka na dnu je prečica između igara; ispod 460 px širine se vide samo sličice.</li>
       <li><span class="tag">❔ Pravila</span> <b>u zaglavlju svake igre</b> — pravila baš te igre, u dva reda, i usred partije. Odatle vodi dugme i ovamo, na opštu pomoć, a sa ove strane se dugmetom <b>← Nazad u igru</b> vraćaš u partiju.</li>

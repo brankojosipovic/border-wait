@@ -113,6 +113,7 @@
     <button id="sndToggle">…</button>
     <button id="stilToggle" title="Moderan ili retro zvuk u svim igrama">…</button>
     <button id="glasToggle">…</button>
+    <button id="utisakBtn" title="Oceni igre i pošalji predlog">⭐ Utisak</button>
     <a class="pomocBtn" href="pomoc.html">❔ Pomoć</a>
     <button id="updBtn">🔄 Nova verzija</button>
   </div>
@@ -121,11 +122,14 @@
     <button id="imeBtn" class="imeMali">👤 Upiši ime</button> ·
     📶 Rad bez interneta: <span id="offState">proveravam…</span> · <span id="verLine"></span>
     <br><span id="offHint"></span>
+    <br><a href="statistika.html">📊 Statistika igranja</a> ·
+    <a href="pomoc.html?od=igre.html#statistika">šta se šalje</a>
     <br><a href="index.html">← Border Wait — čekanje na granici</a>
   </div>
 </div>
 
 <script src="igre.js"></script>
+<script src="mreza.js"></script>
 <script>
 "use strict";
 var DESC = {
@@ -241,7 +245,15 @@ paintStil();
 document.getElementById("glasToggle").onclick = function () { window.GLAS && GLAS.toggle(); };
 if (window.GLAS) GLAS.paint();
 document.getElementById("imeBtn").onclick = function () { window.IGRAC && IGRAC.pitaj(); };
+document.getElementById("utisakBtn").onclick = function () { window.UTISAK_SLOJ && UTISAK_SLOJ("opste"); };
 paintSnd();
+
+/* Statistika igranja ide odavde: kad se otvori spisak igara uz internet, telefon
+   objavi svoj sažetak. Šta tačno — piše u Pomoći, pod „Statistika igranja". */
+setTimeout(function () { window.STAT && STAT.objavi(); }, 2500);
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden) setTimeout(function () { window.STAT && STAT.objavi(); }, 1200);
+});
 
 /* stanje offline keša */
 function offlineStatus(pokusaj) {

@@ -536,6 +536,20 @@ var CSS =
 '.topStil button{font:inherit;font-size:13.5px;padding:6px 10px;border-radius:9px;cursor:pointer;' +
 'background:var(--panel-2,#1b2a4a);color:var(--ink-dim,#9fb0cc);border:1px solid var(--line,#283a5e)}' +
 '.topStil button.on{color:var(--gold,#c9a227);border-color:var(--gold,#c9a227);font-weight:700}' +
+'.utisak{margin-top:12px;padding-top:12px;border-top:1px solid var(--line,#283a5e)}' +
+'.utRed{display:flex;align-items:center;gap:10px;font-size:14px}' +
+/* Uže odabrano nego što izgleda: .zvezde je previše obično ime da bi se puštalo
+   svuda — ovaj sloj važi samo unutar bloka sa ocenom. */
+'.utisak .zvezde{margin-left:auto;display:flex;gap:2px}' +
+'.utisak .zvezde .zv{font:inherit;font-size:22px;line-height:1;padding:2px 3px;border:0;background:none;cursor:pointer;' +
+'color:var(--line,#283a5e);touch-action:manipulation}' +
+'.utisak .zvezde .zv.on{color:var(--gold,#c9a227)}' +
+'.utisak .zvezde .zv:active{transform:translateY(1px)}' +
+'.utTekst{display:block;width:100%;margin-top:8px;font:inherit;font-size:14px;line-height:1.35;' +
+'padding:8px 10px;border-radius:10px;resize:vertical;' +
+'background:var(--panel-2,#1b2a4a);color:var(--ink,#eef2f9);border:1px solid var(--line,#283a5e)}' +
+'.utTekst:focus{outline:none;border-color:var(--gold,#c9a227)}' +
+'.utHvala{margin-top:6px;font-size:12.5px;color:var(--good,#2e9e6b);text-align:right}' +
 '.topVer{margin-top:10px;font-size:12.5px;color:var(--ink-dim,#9fb0cc);text-align:center;font-variant-numeric:tabular-nums}' +
 '.topBtns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}' +
 '.topBtns button{padding:8px 14px;border-radius:10px;border:1px solid var(--line,#283a5e);' +
@@ -917,6 +931,7 @@ function pokaziTop(igra) {
     '<div class="topStil">' +
     '<button type="button" data-stil="moderno">🎧 Moderno</button>' +
     '<button type="button" data-stil="retro">👾 Retro</button></div></div>' +
+    utisakHtml(igra) +
     '<div class="topVer" id="topVer">' + kratkoIme(igra) +
     (VERZIJE[igra] ? " v" + VERZIJE[igra] : "") + '</div>' +
     '<div class="topBtns">' +
@@ -941,6 +956,7 @@ function pokaziTop(igra) {
     if (!SFX.isOn()) SFX.set(true); else SFX.good();
   });
   oboji();
+  utisakVezi(sloj);
   if (window.SWPomoc && SWPomoc.mojaVerzija) SWPomoc.mojaVerzija().then(function (v) {
     var el = document.getElementById("topVer");
     if (el && v) el.textContent = el.textContent + " · komplet " + v;
@@ -964,6 +980,200 @@ function upisiVerziju(igra) {
   s.textContent = kratkoIme(igra) + " v" + v;
   f.appendChild(s);
 }
+
+/* ---------- statistika igranja i utisci ----------
+   Svaki telefon vodi svoju: koliko je puta koja igra igrana i koliko dugo, plus
+   ocena i predlog ako ih igrač ostavi. Sažetak se sa spiska igara objavi kao
+   zapamćena MQTT poruka, pa se na strani statistika.html vidi sve na jednom
+   mestu. Šalje se samo ime koje je igrač sam upisao, brojevi i njegov tekst —
+   ništa se ne čita sa telefona. Objašnjeno je i u Pomoći. */
+var StKEY = "igre.stat", UtKEY = "igre.utisci", UidKEY = "igre.uid";
+var STAT_TEMA = "bwstat2";
+var PRAG_IGRANJA = 20;        // sekundi da se poseta broji kao jedno igranje
+var MIROVANJE = 180;          // posle toliko sekundi bez dodira vreme se ne broji
+var OBJAVA_RAZMAK = 120000;   // ne objavljuj češće od dva minuta
+
+function mojUid() {
+  var v = "";
+  try { v = localStorage.getItem(UidKEY) || ""; } catch (e) { }
+  if (!/^[0-9a-f]{8}$/.test(v)) {
+    v = (Math.random().toString(16) + "00000000").slice(2, 10);
+    try { localStorage.setItem(UidKEY, v); } catch (e) { }
+  }
+  return v;
+}
+function statUcitaj() {
+  var s;
+  try { s = JSON.parse(localStorage.getItem(StKEY) || "{}"); } catch (e) { s = null; }
+  s = s && typeof s === "object" ? s : {};
+  s.po = s.po && typeof s.po === "object" ? s.po : {};
+  return s;
+}
+function statUpisi(s) { try { localStorage.setItem(StKEY, JSON.stringify(s)); } catch (e) { } }
+function utisciUcitaj() {
+  try { return JSON.parse(localStorage.getItem(UtKEY) || "{}") || {}; } catch (e) { return {}; }
+}
+function utisciUpisi(u) { try { localStorage.setItem(UtKEY, JSON.stringify(u)); } catch (e) { } }
+
+var merim = null, sekunde = 0, upisano = 0, zaduzeno = false, zadnjiDodir = Date.now();
+function merenjeStart(igra) {
+  if (merim || !VERZIJE[igra]) return;
+  merim = igra;
+  ["pointerdown", "keydown", "touchstart"].forEach(function (t) {
+    document.addEventListener(t, function () { zadnjiDodir = Date.now(); }, { passive: true, capture: true });
+  });
+  setInterval(otkucaj, 5000);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) merenjeUpisi(); });
+  window.addEventListener("pagehide", merenjeUpisi);
+}
+function otkucaj() {
+  if (!merim || document.hidden) return;
+  if (Date.now() - zadnjiDodir > MIROVANJE * 1000) return;   // strana stoji otvorena, ali se ne igra
+  sekunde += 5;
+  if ((!zaduzeno && sekunde >= PRAG_IGRANJA) || sekunde - upisano >= 30) merenjeUpisi();
+}
+function merenjeUpisi() {
+  if (!merim) return;
+  var d = sekunde - upisano, novo = !zaduzeno && sekunde >= PRAG_IGRANJA;
+  if (d <= 0 && !novo) return;
+  var s = statUcitaj(), g = s.po[merim] || { n: 0, s: 0 };
+  g.s += d;
+  if (novo) { g.n++; zaduzeno = true; }
+  s.po[merim] = g;
+  s.zadnji = Date.now();
+  if (!s.prvi) s.prvi = s.zadnji;
+  statUpisi(s);
+  upisano = sekunde;
+}
+
+function statSazetak() {
+  var s = statUcitaj(), naj = {};
+  for (var igra in TOPLISTE) {
+    if (!Object.prototype.hasOwnProperty.call(TOPLISTE, igra)) continue;
+    var liste = TOPLISTE[igra];
+    for (var i = 0; i < liste.length; i++) {
+      var v = TOP.najbolji(igra, liste[i].id);
+      if (v != null) naj[igra + "|" + liste[i].id] = v;
+    }
+  }
+  return {
+    v: 2, uid: mojUid(), ime: (window.IGRAC && IGRAC.ime()) || "",
+    kad: Date.now(), prvi: s.prvi || Date.now(),
+    po: s.po, naj: naj, ut: utisciUcitaj()
+  };
+}
+var STAT = {
+  moja: statUcitaj,
+  sazetak: statSazetak,
+  uid: mojUid,
+  tema: STAT_TEMA,
+  ukupno: function () {                          // {puta, sekundi} preko svih igara
+    var s = statUcitaj(), p = 0, v = 0;
+    for (var k in s.po) if (Object.prototype.hasOwnProperty.call(s.po, k)) { p += s.po[k].n || 0; v += s.po[k].s || 0; }
+    return { puta: p, sekundi: v };
+  },
+  /* Objava ide sa spiska igara, najviše jednom u dva minuta i samo kad ima šta. */
+  objavi: function (silom) {
+    if (!window.Mreza || !Mreza.objaviTablu) return Promise.resolve(0);
+    var sad = Date.now(), zadnja = 0;
+    try { zadnja = +(sessionStorage.getItem("igre.statObjava") || 0); } catch (e) { }
+    if (!silom && sad - zadnja < OBJAVA_RAZMAK) return Promise.resolve(0);
+    var sz = statSazetak();
+    if (!silom && !Object.keys(sz.po).length && !Object.keys(sz.ut).length) return Promise.resolve(0);
+    try { sessionStorage.setItem("igre.statObjava", String(sad)); } catch (e) { }
+    return Mreza.objaviTablu(STAT_TEMA + "/" + sz.uid, sz).catch(function () { return 0; });
+  },
+  citaj: function (naStavku, rok) {
+    if (!window.Mreza || !Mreza.citajTablu) return Promise.reject(new Error("nema mrežnog dela"));
+    return Mreza.citajTablu(STAT_TEMA, naStavku, rok);
+  },
+  /* za provere: jedan otkucaj je pet sekundi igranja */
+  _takt: function (koliko) { for (var i = 0; i < (koliko || 1); i++) otkucaj(); merenjeUpisi(); },
+  _merim: function () { return merim; },
+  _obrisi: function () {
+    try { localStorage.removeItem(StKEY); localStorage.removeItem(UtKEY); sessionStorage.removeItem("igre.statObjava"); } catch (e) { }
+    sekunde = upisano = 0; zaduzeno = false;
+  },
+  vreme: function (sek) {                        // 3450 -> „57 min", 145 -> „2 min"
+    sek = Math.round(sek || 0);
+    if (sek < 60) return sek + " s";
+    var m = Math.round(sek / 60);
+    if (m < 90) return m + " min";
+    var h = Math.floor(m / 60);
+    return h + " h " + (m % 60 ? (m % 60) + " min" : "");
+  }
+};
+window.STAT = STAT;
+
+/* ---------- ocena i predlog za igru ---------- */
+var UTISAK = {
+  za: function (igra) { return utisciUcitaj()[igra] || null; },
+  upisi: function (igra, zvezde, tekst) {
+    var u = utisciUcitaj(), stari = u[igra] || {};
+    var z = Math.max(0, Math.min(5, Math.round(zvezde == null ? (stari.z || 0) : zvezde)));
+    var t = String(tekst == null ? (stari.t || "") : tekst).replace(/[<>]/g, "").trim().slice(0, 400);
+    if (!z && !t) delete u[igra]; else u[igra] = { z: z, t: t, kad: Date.now() };
+    utisciUpisi(u);
+    return u[igra] || null;
+  }
+};
+window.UTISAK = UTISAK;
+
+function utisakHtml(igra) {
+  var u = UTISAK.za(igra) || { z: 0, t: "" };
+  var zv = "";
+  for (var i = 1; i <= 5; i++)
+    zv += '<button type="button" class="zv' + (i <= u.z ? " on" : "") + '" data-z="' + i + '" ' +
+      'aria-label="' + i + ' od 5">★</button>';
+  return '<div class="utisak" data-igra="' + igra + '">' +
+    '<div class="utRed"><span>⭐ Tvoja ocena</span><div class="zvezde">' + zv + '</div></div>' +
+    '<textarea class="utTekst" rows="2" maxlength="400" ' +
+    'placeholder="Šta bi popravio ili dodao? (nije obavezno)">' + u.t.replace(/[<>&]/g, "") + '</textarea>' +
+    '<div class="utHvala" hidden>Hvala — stiže uz statistiku.</div></div>';
+}
+function utisakVezi(koren) {
+  var box = koren.querySelector(".utisak");
+  if (!box) return;
+  var igra = box.dataset.igra, polje = box.querySelector(".utTekst"), hvala = box.querySelector(".utHvala");
+  var zvezde = box.querySelectorAll(".zv");
+  var oboji = function (n) {
+    for (var i = 0; i < zvezde.length; i++) zvezde[i].classList.toggle("on", i < n);
+  };
+  var javi = function () { hvala.hidden = false; };
+  for (var i = 0; i < zvezde.length; i++) zvezde[i].addEventListener("click", function () {
+    var n = +this.dataset.z;
+    var sad = UTISAK.za(igra);
+    if (sad && sad.z === n) n = 0;               // ponovni tap na istu zvezdicu skida ocenu
+    UTISAK.upisi(igra, n, polje.value);
+    oboji(n); javi();
+    window.SFX && (n ? SFX.good() : SFX.tick());
+  });
+  polje.addEventListener("change", function () { UTISAK.upisi(igra, null, polje.value); javi(); });
+  polje.addEventListener("blur", function () { UTISAK.upisi(igra, null, polje.value); });
+}
+
+/* Isti blok sa ocenom, samo sam za sebe — sa spiska igara, za utisak o svemu. */
+function pokaziUtisak(igra) {
+  var stari = document.querySelector(".topSloj");
+  if (stari) stari.remove();
+  var sloj = document.createElement("div");
+  sloj.className = "topSloj";
+  sloj.innerHTML = '<div class="topBox" role="dialog" aria-modal="true">' +
+    "<h3>⭐ " + (igra === "opste" ? "Utisak o igrama" : imeIgreZa(igra)) + "</h3>" +
+    '<p class="topPrazno">Oceni i napiši šta bi popravio ili dodao — stiže uz statistiku, ' +
+    "uz ime koje si upisao pod 👤.</p>" +
+    utisakHtml(igra) +
+    '<div class="topBtns"><button type="button" id="utZatvori">Gotovo</button></div></div>';
+  document.body.appendChild(sloj);
+  utisakVezi(sloj);
+  var zatvori = function () { sloj.remove(); };
+  sloj.querySelector("#utZatvori").addEventListener("click", zatvori);
+  sloj.addEventListener("click", function (e) { if (e.target === sloj) zatvori(); });
+  document.addEventListener("keydown", function beg(e) {
+    if (e.key === "Escape") { zatvori(); document.removeEventListener("keydown", beg); }
+  });
+}
+window.UTISAK_SLOJ = pokaziUtisak;
 
 function pravilaZa(ime) { return PRAVILA[ime] || null; }
 
@@ -1002,7 +1212,7 @@ function build() {
   document.head.appendChild(st);
 
   var here = (location.pathname.split("/").pop() || "").toLowerCase();
-  if (here === "igre.html" || here === "pomoc.html" || here === "")
+  if (here === "igre.html" || here === "pomoc.html" || here === "statistika.html" || here === "")
     document.body.classList.add("duga-strana");        // spiskovi se skroluju, pa im treba jastuk na dnu
   var nav = document.createElement("nav");
   nav.className = "gamenav";
@@ -1021,6 +1231,7 @@ function build() {
     if (thm && thm.parentNode) {
       var imeIgre = here.replace(/\.html$/, "");
       upisiVerziju(imeIgre);
+      merenjeStart(imeIgre);                           // koliko se i koliko dugo igra
       if (pravilaZa(imeIgre) && !document.querySelector(".uputBtn")) {
         var pb = document.createElement("button");
         pb.type = "button"; pb.className = "uputBtn"; pb.textContent = "❔";
@@ -1028,7 +1239,7 @@ function build() {
         pb.addEventListener("click", function () { pokaziPravila(imeIgre); });
         thm.parentNode.insertBefore(pb, thm);
       }
-      if (!document.querySelector(".topBtn")) {
+      if (VERZIJE[imeIgre] && !document.querySelector(".topBtn")) {
         var tb = document.createElement("button");
         tb.type = "button"; tb.className = "topBtn"; tb.textContent = "🏆";
         tb.title = "Najboljih deset, zvuk i verzija";
