@@ -528,7 +528,7 @@ function statusMreze(st, detalj) {
   mrezaStanje = st;
   /* Ko je već za listićem, ne vraća se na ekran za spajanje — te poruke umeju da
      stignu i posle povezivanja, dok rezervna veza još pokušava. */
-  if ((st === "spajam" || st === "cekam" || st === "povezan") && sedim() && !cekaonica) {
+  if ((st === "spajam" || st === "cekam" || st === "povezan") && sedim() && !cekaonica && !nastavljam) {
     if (st === "povezan") { hideOverlay(); render(); }
     return;
   }
