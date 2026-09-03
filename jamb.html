@@ -60,6 +60,9 @@
   .hud { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--ink-dim);
          white-space: nowrap; overflow: hidden; }
   .hud b { color: var(--ink); font-weight: 700; }
+  .kodBtn { font: inherit; font-size: 13px; padding: 3px 9px; border-radius: 999px; cursor: pointer;
+            background: var(--panel-2); border: 1px solid var(--gold); color: var(--ink-dim); white-space: nowrap; }
+  .kodBtn b { letter-spacing: 2px; color: var(--gold); }
   .hud .ko { padding: 2px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line);
              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hud .ko.on { border-color: var(--gold); color: var(--gold); font-weight: 700; }
@@ -475,6 +478,13 @@ function imeOd(id) {                                   // ko je poslao poruku
 }
 function primiPostavu(lista) {                         // domaćin je rasporedio igrače
   if (!lista || !lista.length) return;
+  if (sedim() && postava && lista.length === postava.length) {   // samo osvežena postava
+    postava = lista.slice(0, 4);
+    mojIndex = Math.max(0, postava.findIndex(x => x.id === Mreza.jaSam()));
+    postava.forEach((x, i) => { if (G.igraci[i] && x.ime) G.igraci[i].ime = x.ime; });
+    cekaonica = false; hideOverlay(); render();
+    return;
+  }
   postava = lista.slice(0, 4);
   const moj = Math.max(0, postava.findIndex(x => x.id === Mreza.jaSam()));
   novaIgra("mreza", postava.map(x => x.ime), moj);
@@ -492,12 +502,44 @@ function kreniPartiju() {                              // samo domaćin
 }
 let cekaonica = false;                       // domaćin i gosti čekaju da se skupe
 let ponoviVezu = null;                       // šta pokušati ponovo posle neuspeha
+function uSobi() { return !!window.Mreza && !!Mreza.kod(); }
+function sedim() { return !!(G && G.rezim === "mreza" && !G.gotovo && uSobi()); }
+/* Neko se pridružio ili vratio usred partije: domaćin mu ponovo pošalje ko gde
+   sedi i gde je partija stala. Ko se vrati sa novom mrežnom oznakom, preuzima
+   svoje prazno mesto — inače bi ostao bez listića. */
+function osveziPostavu() {
+  if (!window.Mreza || Mreza.uloga() !== "domacin" || !postava || !sedim()) return false;
+  const drustvo = Mreza.drustvo() || [];
+  const sada = drustvo.map(x => x.id);
+  const prazna = postava.filter(p => sada.indexOf(p.id) < 0);
+  const strani = sada.filter(id => !postava.some(p => p.id === id));
+  while (prazna.length && strani.length) {
+    const mesto = prazna.shift(), novi = strani.shift();
+    const k = postava.indexOf(mesto);
+    const d = drustvo.find(x => x.id === novi);
+    postava[k] = { id: novi, ime: (d && d.ime) || mesto.ime };
+    if (G.igraci[k]) G.igraci[k].ime = postava[k].ime;
+  }
+  Mreza.posalji({ t: "postava", igraci: postava });
+  setTimeout(posaljiStanje, 60);
+  return true;
+}
 function statusMreze(st, detalj) {
   mrezaStanje = st;
+  /* Ko je već za listićem, ne vraća se na ekran za spajanje — te poruke umeju da
+     stignu i posle povezivanja, dok rezervna veza još pokušava. */
+  if ((st === "spajam" || st === "cekam" || st === "povezan") && sedim() && !cekaonica) {
+    if (st === "povezan") { hideOverlay(); render(); }
+    return;
+  }
   if (st === "spajam") { showOverlay('<h2>Spajam se…</h2><p>' + (detalj || "Tražim server za upoznavanje igrača.") + '</p>' +
     '<div class="btns"><button id="odBtn">Odustani</button></div>'); $("#odBtn").onclick = () => { Mreza.zatvori(); meni(); }; }
   if (st === "cekam") { cekaonica = true; pokaziKod(detalj); }
-  if (st === "ucesnici") { if (cekaonica) pokaziKod(Mreza.kod()); else if (G) render(); return; }
+  if (st === "ucesnici") {
+    if (cekaonica) pokaziKod(Mreza.kod());
+    else { osveziPostavu(); if (G) render(); }
+    return;
+  }
   if (st === "povezan") {
     if (Mreza.uloga() === "domacin") {
       if (nastavljam && G && !G.gotovo) {               // nastavak prekinute partije ide odmah
@@ -564,11 +606,14 @@ function render() {
     '<span class="ko' + (i === G.naRedu ? " on" : "") + '" data-i="' + i + '" title="' + imeIgraca(i) + '">' +
     imeIgraca(i) + ' <b>' + ukupnoListic(p.listic) + '</b></span>').join("") +
     '<div class="spacer"></div>' +
-    (dvoje ? '<span title="' + (Mreza.kod() || "") + '">' + (Mreza.povezan() ? "🟢" : "🔴 " + (Mreza.kod() || "")) + '</span>' : '') +
+    (dvoje ? '<button id="kodBtn" class="kodBtn" title="Kod sobe">' +
+      (Mreza.povezan() ? "🟢" : "🔴") + ' <b>' + (Mreza.kod() || "—") + '</b></button>' : '') +
     (drugi != null ? '<button id="gledajBtn" class="' + (gledam != null ? "on" : "") + '" title="Vidi protivnikov listić">👁</button>' : '') +
     (dvoje ? '<button id="cetBtn" title="Pošalji poruku protivniku">💬</button>' : '') +
     '<button id="meniBtn2" title="Meni">☰</button>';
   $("#meniBtn2").onclick = meni;
+  const kb = $("#kodBtn");
+  if (kb) kb.onclick = meniSobe;
   if (dvoje) $("#cetBtn").onclick = izborPoruke;
   if (drugi != null) $("#gledajBtn").onclick = () => {         // redom kroz protivnike, pa nazad na svoj
     const n = G.igraci.length;
@@ -706,7 +751,21 @@ window.addEventListener("resize", fit);
 window.addEventListener("load", fit);
 
 /* ---------- meni ---------- */
+function meniSobe() {
+  const svi = (Mreza.drustvo() || []).length;
+  showOverlay('<h2>🎲 Jamb</h2>' +
+    '<p>🌐 Soba <b style="color:#c9a227;letter-spacing:3px">' + (Mreza.kod() || "—") + '</b> · ' +
+    svi + (svi === 1 ? " igrač" : " igrača") + '<br>Ko izađe, ovim kodom se vraća na svoj listić.</p>' +
+    '<div class="btns"><button id="uIgruBtn">↩ ' + (sedim() ? "Nazad u igru" : "Nazad u sobu") + '</button>' +
+    '<button id="izadjiBtn">✖ Izađi iz sobe</button></div>');
+  $("#uIgruBtn").onclick = () => {
+    if (sedim()) { hideOverlay(); render(); }
+    else { cekaonica = true; pokaziKod(Mreza.kod()); }
+  };
+  $("#izadjiBtn").onclick = () => { try { Mreza.zatvori(); } catch (e) { } cekaonica = false; meni(); };
+}
 function meni() {
+  if (uSobi()) return meniSobe();
   const nast = sacuvanaMreza && G && !G.gotovo && G.igraci.length > 1;
   showOverlay('<h2>🎲 Jamb</h2>' +
     '<div class="btns">' +
@@ -788,7 +847,8 @@ window.J = {
   poveziLokalno: u => { mojIndex = u === "gost" ? 1 : 0; return Mreza.lokalno("jamb-test", { uloga: u, poruka: primi, status: statusMreze }); },
   get mojIndex() { return mojIndex; },
   get gledam() { return gledam; }, gledaj: i => { gledam = i; render(); }, kockaHTML, TACKE,
-  save, load, meni, nastaviPartiju, get sacuvanaMreza() { return sacuvanaMreza; },
+  save, load, meni, meniSobe, nastaviPartiju, osveziPostavu, uSobi, sedim,
+  get postava() { return postava; }, get sacuvanaMreza() { return sacuvanaMreza; },
   posaljiPoruku, izborPoruke, EMODZI, RECI,
   get postava() { return postava; }, primiPostavu, kreniPartiju, imeIgraca,
   setKocke: k => { G.kocke = k.slice(); render(); }, setBacanje: n => { G.bacanje = n; render(); },
