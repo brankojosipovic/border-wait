@@ -456,7 +456,10 @@ const tacnaPozicija = () => raspored(G.seed, G.red[G.k]).indexOf(0);
 
 /* ---------- mreža ---------- */
 function posaljiStanje() {
-  if (G && G.rezim === "mreza" && window.Mreza && Mreza.povezan() && Mreza.uloga() === "domacin")
+  /* Uslov je da soba postoji, ne da je „povezan" — ta zastavica je
+     spuštena baš u trenutku kad se neko vraća u sobu, pa bi se stanje
+     izgubilo tačno onome kome najviše treba. */
+  if (G && G.rezim === "mreza" && window.Mreza && Mreza.kod() && Mreza.uloga() === "domacin")
     Mreza.posalji({ t: "stanje", g: G });
 }
 function sediste(id) {                       // koje mesto zauzima pošiljalac
