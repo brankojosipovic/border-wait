@@ -80,7 +80,14 @@ punkta biraš: prodaj (×1,5 pa ×2) ili teraj do pijace (×3). Pad na pregledu 
 Pet tura po sezoni, dnevna sezona sa istim seed-om za sve, a na kraju te igra uporedi sa
 „savršenim švercerom" (sveznajućim oraklom).
 
-## Igre — zajednička traka i zvuk
+## Igre
+
+> **Preseljene.** Od septembra 2026. igre žive u sopstvenom repozitorijumu
+> [brankojosipovic/igre](https://github.com/brankojosipovic/igre) i na adresi
+> https://brankojosipovic.github.io/igre/ — stare adrese ovde samo preusmeravaju.
+> Tekst ispod opisuje kako su nastale i ostaje kao istorija.
+
+### Zajednička traka i zvuk
 
 `igre.html` je poseban ulaz za sve igre (kartice + statistika iz `localStorage`: partija u toku,
 današnji rezultat, stanje kredita). `igre.js` je zajednički za svih pet igara i daje:
