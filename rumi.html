@@ -516,6 +516,7 @@ function vratiSve() {
   G.ruke[G.naRedu] = pocetak.ruka.slice();
   izabrano = []; dzUruci = [];
   javi("");
+  zivaPoruka();
   crtaj();
 }
 function novePlocice() {                        // šta je ovog poteza sišlo iz moje ruke
@@ -543,30 +544,49 @@ function zastoNije(s) {
   return ime + " nije ni niz ni grupa: niz je ista boja sa uzastopnim brojevima (8-9-10), " +
     "a grupa isti broj u različitim bojama (4-4-4).";
 }
+function losSkup() {                            // prvi skup na stolu koji nije ni niz ni grupa
+  for (const s of G.tabla) if (s.length && !ispravan(s)) return s;
+  return null;
+}
+function dirnutoTudje() {                       // pre prvog izlaska se ne sme dirati zatečeno
+  const stari = stariNaStolu();
+  const stariSkupovi = pocetak.tabla.map(s => s.map(t => t.id).sort().join(","));
+  for (const s of G.tabla) {
+    if (!s.some(t => stari.has(t.id))) continue;
+    if (stariSkupovi.indexOf(s.map(t => t.id).sort().join(",")) < 0) return true;
+  }
+  return false;
+}
+function bodoviIzlaska() {                      // vredi samo ono što je spušteno iz ruke
+  const stari = stariNaStolu();
+  let b = 0;
+  for (const s of G.tabla) { if (!s.length || s.some(t => stari.has(t.id))) continue; b += bodoviSkupa(s); }
+  return b;
+}
 function proveri() {                            // šta fali da bi potez bio gotov
-  for (const s of G.tabla) if (s.length && !ispravan(s)) return zastoNije(s);
+  const los = losSkup();
+  if (los) return zastoNije(los);
   if (dzUruci.length) return "Skinuti džoker mora nazad na sto, u istom potezu.";
-  const nove = novePlocice();
-  if (!nove.length) return "Spusti bar jednu pločicu iz svoje ruke.";
-  const ja = G.igraci[G.naRedu];
-  if (!ja.izasao) {
-    const stari = stariNaStolu();
-    const stariSkupovi = pocetak.tabla.map(s => s.map(t => t.id).sort().join(","));
-    for (const s of G.tabla) {
-      const uS = s.filter(t => stari.has(t.id));
-      if (!uS.length) continue;
-      const potpis = s.map(t => t.id).sort().join(",");
-      if (stariSkupovi.indexOf(potpis) < 0)
-        return "Za prvi izlazak se ne sme dirati ono što je već na stolu.";
-    }
-    let bodovi = 0;
-    for (const s of G.tabla) {
-      if (s.some(t => stari.has(t.id))) continue;
-      bodovi += bodoviSkupa(s);
-    }
-    if (bodovi < PRVI_IZLAZAK) return "Prvi izlazak mora da vredi bar " + PRVI_IZLAZAK + " — sad je " + bodovi + ".";
+  if (!novePlocice().length) return "Spusti bar jednu pločicu iz svoje ruke.";
+  if (!G.igraci[G.naRedu].izasao) {
+    if (dirnutoTudje()) return "Za prvi izlazak se ne sme dirati ono što je već na stolu.";
+    const b = bodoviIzlaska();
+    if (b < PRVI_IZLAZAK) return "Prvi izlazak mora da vredi bar " + PRVI_IZLAZAK + " — sad je " + b + ".";
   }
   return null;
+}
+/* Isto to, ali odmah po svakom pomeranju — da se ne čeka „Gotovo" da bi se
+   saznalo da nešto ne valja. Ono što fali tek na kraju poteza (spusti bar jednu
+   pločicu) se ovde ne dobacuje, jer bi smetalo dok se slaže. */
+function zivaPoruka() {
+  if (!G || G.gotovo || !mogu()) return;
+  const los = losSkup();
+  if (los) return javi(zastoNije(los), "lose");
+  if (dzUruci.length) return javi("Skinuti džoker mora nazad na sto, u istom potezu.", "lose");
+  if (G.igraci[G.naRedu].izasao) return javi("");
+  if (dirnutoTudje()) return javi("Za prvi izlazak se ne sme dirati ono što je već na stolu.", "lose");
+  const b = bodoviIzlaska();
+  javi(b ? "Prvi izlazak: " + b + " od " + PRVI_IZLAZAK : "", b >= PRVI_IZLAZAK ? "dobro" : "");
 }
 function zavrsiPotez() {
   if (!mogu()) return;
@@ -796,16 +816,8 @@ function premesti(spisak, cilj) {
   izabrano = [];
   window.SFX && SFX.plocica();
   javi("");
-  osveziIzlazak();
+  zivaPoruka();
   crtaj();
-}
-function osveziIzlazak() {                      // dok se ne izađe, piše koliko je skupljeno
-  if (!G || !mogu()) return;
-  if (G.igraci[G.naRedu].izasao) return;
-  const stari = stariNaStolu();
-  let b = 0;
-  for (const s of G.tabla) { if (!s.length || s.some(t => stari.has(t.id))) continue; b += bodoviSkupa(s); }
-  if (b) javi("Prvi izlazak: " + b + " od " + PRVI_IZLAZAK, b >= PRVI_IZLAZAK ? "dobro" : "");
 }
 function zameniDzokera(t) {
   const i = G.tabla.findIndex(s => s.indexOf(t) >= 0);
@@ -1101,7 +1113,7 @@ window.R = {
   get G() { return G; }, get izabrano() { return izabrano; }, get soba() { return soba; },
   get izbor() { return izbor; }, get pocetak() { return pocetak; }, get dzUruci() { return dzUruci; },
   noviSpil, opisi, ispravan, bodoviSkupa, resi, pl, plocicaIzId,
-  novaPartija, novaRunda, pocni, meni, biraj, crtaj, proveri, zavrsiPotez, vuci, vratiSve, pocniPotez, posalji,
+  novaPartija, novaRunda, pocni, meni, biraj, crtaj, proveri, zivaPoruka, zavrsiPotez, vuci, vratiSve, pocniPotez, posalji,
   premesti, zameniDzokera, prebaciIzbor, potezRacunara, zbirRuke, sazmi, raspakuj,
   ucitajTok, obrisiTok, sobaMeni, sobaKraj, kreniUSobi, pokaziKraj,
   postavi: (tabla, ruka) => {                    // za probe: namesti sto i ruku
