@@ -195,6 +195,10 @@
     var rel = {
       vrsta: "relej",
       spojen: function () { return spojen && zivih() > 0; },
+      /* Za slanje je dovoljno da broker bude živ. „spojen" znači da se neko već
+         javio, a to zna da bude false baš u trenutku kad se neko vraća u sobu —
+         tada poruka ne sme da se izgubi. */
+      ziv: function () { return zivih() > 0; },
       drustvo: function () { return spisak(); },
       jaSam: function () { return ja; },
       brokeri: function () { return imena.slice(); },
@@ -229,7 +233,10 @@
       if (p && p.__ === "ode") {
         delete drustvo[d.o];
         status("ucesnici", spisak());
-        if (!Object.keys(drustvo).length) { spojen = false; objavljen = false; status("prekinuto"); }
+        /* Soba je ostala prazna. „objavljen" se namerno NE vraća na false:
+           ako se neko vrati, treba da stigne „ucesnici", a ne opet „povezan" —
+           inače bi domaćina usred partije odbacilo nazad u čekaonicu. */
+        if (!Object.keys(drustvo).length) { spojen = false; status("prekinuto"); }
         return;
       }
       if (d.im) upisi(d.o, d.im, null);
@@ -465,7 +472,7 @@
 
     posalji: function (obj) {
       if (lokalni) { try { lokalni.postMessage(obj); } catch (e) { } return true; }
-      if (R && R.spojen()) return R.posalji(obj);
+      if (R && R.ziv()) return R.posalji(obj);
       if (veza && veza.open) { try { veza.send(obj); return true; } catch (e) { } }
       return false;
     },
