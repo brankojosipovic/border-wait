@@ -410,10 +410,10 @@ function statusMreze(st, detalj) {
   if (st === "ucesnici") { osveziImena(); return vratiUIgru(); }
   /* Ko je već za stolom, ne vraća se na ekran za spajanje — „spajam" ume da
      stigne i posle povezivanja, dok rezervna direktna veza još pokušava. */
-  if (st === "spajam" && sedim()) return;
+  if (st === "spajam" && sedim() && !nastavljam) return;
   if (st === "spajam") showOverlay('<h2>Spajam se…</h2><p>' + (detalj || "Tražim server za upoznavanje igrača.") + '</p>' +
     '<div class="btns"><button id="odBtn">Odustani</button></div>'), $("#odBtn").onclick = () => { Mreza.zatvori(); meni(); };
-  if (st === "cekam") { if (sedim()) return; pokaziKod(detalj); }
+  if (st === "cekam") { if (sedim() && !nastavljam) return; pokaziKod(detalj); }
   if (st === "povezan") {
     window.CET && CET.ukljuci({ mreza: Mreza, ime: () => Mreza.tudjeIme() });
     if (Mreza.uloga() === "domacin") {

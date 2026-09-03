@@ -55,6 +55,10 @@
 
   .traka { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink-dim); white-space: nowrap; }
   .traka b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .kodBtn { font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 999px; cursor: pointer;
+            background: var(--panel); border: 1px solid var(--gold); color: var(--ink-dim);
+            white-space: nowrap; flex: 0 0 auto; }
+  .kodBtn b { letter-spacing: 2px; color: var(--gold); }
   .traka .niz { color: var(--gold); font-weight: 700; }
   .traka .prot { overflow: hidden; text-overflow: ellipsis; }
 
@@ -116,6 +120,7 @@
     <span class="niz" id="tNiz"></span>
     <span class="spacer"></span>
     <span class="prot" id="tProt"></span>
+    <button id="kodBtn" class="kodBtn" title="Kod sobe" hidden>🌐 <b></b></button>
   </div>
 
   <div class="stage">
@@ -999,6 +1004,31 @@ function osveziTraku() {
   $("#tPoeni").textContent = P.poeni;
   $("#tNiz").textContent = P.niz >= 3 ? "🔥 " + P.niz : "";
   $("#tProt").textContent = soba && soba.postava ? soba.tekstProtivnika() : "";
+  osveziKod();
+}
+function uSobi() { return !!soba && !!window.Mreza && !!Mreza.kod(); }
+function sedim() { return !!(uSobi() && soba.postava && P && !P.gotovo); }
+function osveziKod() {                          // kod ostaje pred očima cele serije
+  const b = document.getElementById("kodBtn");
+  if (!b) return;
+  b.hidden = !uSobi();
+  if (!b.hidden) b.querySelector("b").textContent = Mreza.kod() || "—";
+}
+/* Dok soba stoji, meni ne sme da bude ćorsokak: prvo put nazad, pa tek onda
+   svestan izlazak; kod se vidi ovde da može da se pročita naglas. */
+function meniSobe() {
+  const svi = (Mreza.drustvo() || []).length;
+  showOverlay('<h2>🏀 Basket</h2>' +
+    '<p>🌐 Soba <b style="color:#c9a227;letter-spacing:3px">' + (Mreza.kod() || "—") + '</b> · ' +
+    svi + (svi === 1 ? " igrač" : " igrača") + '<br>' +
+    'Ko izađe, ovim kodom se vraća u sobu i ulazi u sledeću seriju.</p>' +
+    '<div class="btns"><button id="uIgruBtn">↩ ' + (sedim() ? "Nazad u igru" : "Nazad u sobu") + '</button>' +
+    '<button id="izadjiBtn">✖ Izađi iz sobe</button></div>');
+  $("#uIgruBtn").onclick = () => {
+    if (sedim()) { hideOverlay(); osveziTraku(); }
+    else { cekaonica = true; pokaziKod(Mreza.kod()); }
+  };
+  $("#izadjiBtn").onclick = () => { sobaKraj(); meni(); };
 }
 
 /* ---------- meni ---------- */
@@ -1006,8 +1036,8 @@ function showOverlay(h) { const o = $("#overlay"); o.innerHTML = h; o.hidden = f
 function hideOverlay() { $("#overlay").hidden = true; }
 
 function meni() {
+  if (uSobi()) return meniSobe();
   faza = "meni";
-  soba && sobaKraj();
   const tok = ucitajTok();
   const r = rekordi[kljuc(izbor.serija, izbor.tez, izbor.pogled)];
   showOverlay('<h2>🏀 Basket</h2>' +
@@ -1148,9 +1178,13 @@ function sobaStatus(st, detalj) {
   if (!soba) return;
   if (st === "spajam") showOverlay('<h2>Spajam se…</h2><p>' + (detalj || "Tražim server…") + '</p>');
   if (st === "cekam") { cekaonica = true; pokaziKod(detalj); }
-  if (st === "ucesnici") { if (cekaonica) pokaziKod(Mreza.kod()); return; }
+  if (st === "ucesnici") { osveziKod(); if (cekaonica) pokaziKod(Mreza.kod()); return; }
   if (st === "povezan") {
     window.CET && CET.ukljuci({ mreza: Mreza, ime: id => imeIz(id) });
+    osveziKod();
+    /* Ko je već u seriji, ne vraća se u čekaonicu — „povezan" ume da stigne i
+       posle postave, kad se neko vrati u sobu. */
+    if (sedim()) { cekaonica = false; hideOverlay(); osveziTraku(); return; }
     cekaonica = true; pokaziKod(Mreza.kod());
   }
   if (st === "prekinuto" && soba.uloga === "gost") {
@@ -1251,6 +1285,9 @@ if (!POGLEDI[izbor.pogled]) izbor.pogled = "strana";
 fit(); crtaj(); meni();
 raf = requestAnimationFrame(loop);
 
+const _kb = document.getElementById("kodBtn");
+if (_kb) _kb.onclick = meniSobe;
+
 window.B = {
   OBRUC_Y, R_LOPTE, R_OBRUCA, TABLA_D, TABLA_G, START, SIRINA_SVETA, SERIJE, TEZINE, G_UBR,
   get P() { return P; }, get lopta() { return lopta; }, get faza() { return faza; },
@@ -1260,6 +1297,7 @@ window.B = {
   tablaX, obrucX, obrucZ, obrucX1, obrucX2, spreda, pogled,
   novaSerija, novaLopta, suti, korak, putanja, izVuce, izVuceSpreda, gadjanje, tacka3, kljuc,
   meni, biraj, krajSerije, ucitajTok, obrisiTok, sobaMeni, sobaKraj, kreniUSobi, osveziTraku, fit, crtaj,
+  meniSobe, uSobi, sedim, osveziKod,
   sx, get M() { return M; }, get POD() { return POD; },
   /* za probe: odigraj šut do kraja bez čekanja na animaciju */
   odsutiraj: (vx, vy, vz) => {

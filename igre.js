@@ -820,9 +820,9 @@ var PRAVILA = {
    strane i u prozorčiću 🏆. Uz njega ide i verzija celog kompleta (sw.js). */
 var VERZIJE = {
   sudoku: "1.0", solitaire: "1.0", kolona: "1.0", aparat: "1.0", svercer: "1.0",
-  tetris: "1.0", avioni: "1.0", cigle: "1.1", stvorenja: "1.0", tablic: "1.1",
-  jamb: "1.1", geo: "1.1", pikado: "1.1", bilijar: "1.1", kuca: "1.0",
-  teren: "1.0", mapa: "1.0", covece: "1.2", riziko: "1.1", basket: "1.0", rumi: "1.3"
+  tetris: "1.0", avioni: "1.0", cigle: "1.1", stvorenja: "1.0", tablic: "1.2",
+  jamb: "1.2", geo: "1.2", pikado: "1.2", bilijar: "1.2", kuca: "1.0",
+  teren: "1.1", mapa: "1.1", covece: "1.2", riziko: "1.1", basket: "1.1", rumi: "1.3"
 };
 
 /* ---------- top lista deset najboljih ----------

@@ -503,7 +503,9 @@ function kreniPartiju() {                              // samo domaćin
 let cekaonica = false;                       // domaćin i gosti čekaju da se skupe
 let ponoviVezu = null;                       // šta pokušati ponovo posle neuspeha
 function uSobi() { return !!window.Mreza && !!Mreza.kod(); }
-function sedim() { return !!(G && G.rezim === "mreza" && !G.gotovo && uSobi()); }
+/* „Sedim" znači da je domaćin već rasporedio igrače — pre toga se rezim ume
+   prebaciti na mrežni, a partija još nije počela. */
+function sedim() { return !!(G && G.rezim === "mreza" && !G.gotovo && postava && uSobi()); }
 /* Neko se pridružio ili vratio usred partije: domaćin mu ponovo pošalje ko gde
    sedi i gde je partija stala. Ko se vrati sa novom mrežnom oznakom, preuzima
    svoje prazno mesto — inače bi ostao bez listića. */
