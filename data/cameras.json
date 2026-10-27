@@ -40,6 +40,17 @@
     "status": "available",
     "streams": []
   },
+  "horgos-roszke": {
+    "amss": [
+      "https://kamere.amss.org.rs/iframe/horgos2.html"
+    ],
+    "hls": [],
+    "source": null,
+    "status": "available",
+    "streams": [
+      "https://camerastream.borderalarm.com:5443/LiveApp/play.html?id=veVL9nIR9SfxqNDW1702036081693"
+    ]
+  },
   "kelebija-tompa": {
     "amss": [],
     "hls": [],
