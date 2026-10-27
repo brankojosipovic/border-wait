@@ -1,4 +1,15 @@
 {
+  "bajakovo-batrovci": {
+    "amss": [
+      "https://kamere.amss.org.rs/iframe/batrovci1.html"
+    ],
+    "hls": [],
+    "source": null,
+    "status": "available",
+    "streams": [
+      "https://camerastream.borderalarm.com:5443/LiveApp/play.html?id=xilXOXNxCFcdH9yO1701120826441"
+    ]
+  },
   "batrovci-bajakovo": {
     "amss": [
       "https://kamere.amss.org.rs/iframe/batrovci2.html",
