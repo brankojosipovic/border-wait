@@ -31,6 +31,15 @@
     "status": "available",
     "streams": []
   },
+  "evzoni-bogorodica": {
+    "amss": [],
+    "hls": [
+      "https://streaming1.neotel.net.mk/stream/bogorodica.m3u8"
+    ],
+    "source": "https://alltrafficcams.com/live/border-crossings/north-macedonia/greece/bogorodica-evzonoi/",
+    "status": "available",
+    "streams": []
+  },
   "horgos-roszke": {
     "amss": [
       "https://kamere.amss.org.rs/iframe/horgos2.html"
